@@ -1,0 +1,27 @@
+# Time: 2023-10-01T12:34:56.789Z
+# User@Host: root[root] @ localhost [127.0.0.1]
+# Query_time: 5.000123  Lock_time: 0.000045 Rows_sent: 1000  Rows_examined: 5000
+use test_db;
+SET timestamp=1696154096;
+SELECT * FROM users WHERE age > 30;
+
+# Time: 2023-10-01T12:35:56.789Z
+# User@Host: root[root] @ localhost [127.0.0.1]
+# Query_time: 3.000456  Lock_time: 0.000123 Rows_sent: 500  Rows_examined: 2000
+use test_db;
+SET timestamp=1696154156;
+SELECT * FROM orders WHERE order_date > '2023-01-01';
+
+# Time: 2023-10-01T12:36:56.789Z
+# User@Host: root[root] @ localhost [127.0.0.1]
+# Query_time: 7.000789  Lock_time: 0.000067 Rows_sent: 2000  Rows_examined: 10000
+use test_db;
+SET timestamp=1696154216;
+SELECT * FROM products WHERE price > 100;
+
+# Time: 2023-10-01T12:37:56.789Z
+# User@Host: root[root] @ localhost [127.0.0.1]
+# Query_time: 2.000111  Lock_time: 0.000034 Rows_sent: 300  Rows_examined: 1500
+use test_db;
+SET timestamp=1696154276;
+SELECT * FROM customers WHERE country = 'USA';
