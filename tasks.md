@@ -1,8 +1,8 @@
 # Tasks to Complete for QueryGrade
 
 1. **Implement and Integrate Anomaly Detection Algorithm for General Logs**:
-    - Ensure the `process_general_log` function in `analyzer/parser.py` correctly processes general logs.
-    - Verify that the anomaly detection logic for general logs is functioning as expected.
+    - [x] Ensure the `process_general_log` function in `analyzer/parser.py` correctly processes general logs.
+    - [x] Verify that the anomaly detection logic for general logs is functioning as expected.
 
 2. **Enhance the Upload Form and Validation**:
     - Improve the validation of the `UploadLogForm` in `analyzer/forms.py` to ensure the uploaded file is a valid log file.

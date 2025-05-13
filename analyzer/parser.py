@@ -15,7 +15,7 @@ def parse_mysql_general_log(file_path):
         file_path (str): The path to the MySQL general log file.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the parsed log entries with columns for timestamp, thread_id, command_type, 
+        pd.DataFrame: A DataFrame containing the parsed log entries with columns for timestamp, thread_id, command_type,
                       and additional information depending on the command type (e.g., user_host for 'Connect', query for 'Query').
     """
     entries = []
@@ -57,7 +57,6 @@ def parse_mysql_general_log(file_path):
 
     df = pd.DataFrame(entries)
     return df
-
 
 def parse_mysql_slow_log(file_path):
     """
@@ -128,7 +127,6 @@ def parse_mysql_slow_log(file_path):
     df = pd.DataFrame(entries)
     return df
 
-
 def detect_anomalies(x_scaled):
     model = IsolationForest(n_estimators=100, contamination=0.1, random_state=42)
     model.fit(x_scaled)
@@ -176,11 +174,9 @@ def add_results_to_df(df, anomalies, anomaly_scores):
     df_anomalies = df[df['anomaly'] == -1]
     return df, df_anomalies
 
-
 def display_anomalies(df_anomalies):
     print("Potential Queries for Optimization:")
     print(df_anomalies[['timestamp', 'query', 'query_time', 'anomaly_score']].sort_values('anomaly_score'))
-
 
 def clean_data(df):
     # Drop entries with missing values in critical fields
@@ -198,7 +194,7 @@ def feature_engineering(df):
 def feature_engineering_general_log(df):
     # Ensure all entries in the 'query' column are strings
     df['query'] = df['query'].astype(str)
-    
+
     df['query_length'] = df['query'].apply(len)
     df['num_joins'] = df['query'].str.upper().str.count('JOIN')
     df['num_conditions'] = df['query'].str.upper().str.count('WHERE') + df['query'].str.upper().str.count('HAVING')
@@ -213,7 +209,6 @@ def display_general_anomalies(df_anomalies):
     print("Potential Queries for Optimization:")
     print(df_anomalies[['timestamp', 'query', 'anomaly_score']].sort_values('anomaly_score'))
 
-
 def process_slow_log(log_file):
     df = parse_mysql_slow_log(log_file)
     df = clean_data(df)
@@ -222,12 +217,6 @@ def process_slow_log(log_file):
     anomalies, anomaly_scores = detect_anomalies(x_scaled)
     df, df_anomalies = add_results_to_df(df, anomalies, anomaly_scores)
     display_anomalies(df_anomalies)
-
-def add_anomaly_results(df, anomalies, anomaly_scores):
-    df['anomaly'] = anomalies
-    df['anomaly_score'] = anomaly_scores
-    df_anomalies = df[df['anomaly'] == -1]
-    return df, df_anomalies
 
 def process_general_log(log_file):
     df = parse_mysql_general_log(log_file)

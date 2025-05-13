@@ -1,8 +1,7 @@
 from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render
 from .forms import UploadLogForm
-from .parser import parse_mysql_slow_log, parse_mysql_general_log  # Import your main functions
-
+from .parser import process_slow_log, process_general_log  # Import the updated functions
 
 def index(request):
     if request.method == 'POST':
@@ -21,9 +20,9 @@ def index(request):
 
             # Analyze the log file
             if log_type == 'slow':
-                df, df_anomalies = parse_mysql_slow_log(uploaded_file_url)
+                df_anomalies = process_slow_log(uploaded_file_url)
             elif log_type == 'general':
-                df, df_anomalies = parse_mysql_general_log(uploaded_file_url)
+                df_anomalies = process_general_log(uploaded_file_url)
 
             # Prepare data for template
             anomalies = df_anomalies.to_dict('records') if df_anomalies is not None else []
