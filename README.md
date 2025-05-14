@@ -24,39 +24,4 @@ QueryGrade is a Django-based web application designed to analyze MySQL log files
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/QueryGrade.git
-    cd QueryGrade
-    ```
-
-2. Create a virtual environment and activate it:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
-
-3. Install the required packages:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4. Apply migrations:
-    ```bash
-    python manage.py migrate
-    ```
-
-5. Run the development server:
-    ```bash
-    python manage.py runserver
-    ```
-
-6. Open your web browser and navigate to `http://127.0.0.1:8000/` to access the application.
-
-## Usage
-
-1. On the homepage, upload a MySQL log file (either slow query log or general query log).
-2. Select the type of log file you are uploading.
-3. Click the "Upload" button to analyze the log file.
-4. View the results on the results page, which will display any anomalies found in the log file.
-
-## Project Structure
-
+    git clone https://github.com/
