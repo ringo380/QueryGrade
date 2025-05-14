@@ -294,19 +294,21 @@ def display_general_anomalies(df_anomalies):
     print("Potential Queries for Optimization:")
     print(df_anomalies[['timestamp', 'query', 'anomaly_score']].sort_values('anomaly_score'))
 
-from django.core.cache import caches
 import time
 import tracemalloc
 import logging
+from django.core.cache import caches
 
 logger = logging.getLogger(__name__)
-process_cache = caches['process_cache']
 
 def profile_performance(func):
     """Decorator to measure execution time and memory usage"""
     def wrapper(*args, **kwargs):
         tracemalloc.start()
         start_time = time.perf_counter()
+        
+        # Initialize cache after Django setup
+        process_cache = caches['process_cache']
         
         result = func(*args, **kwargs)
         
