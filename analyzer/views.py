@@ -13,6 +13,18 @@ import logging
 # Set up logging
 logger = logging.getLogger(__name__)
 
+def analyze(request):
+    """
+    Handles the analyze view.
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        HttpResponse: The HTTP response object.
+    """
+    return render(request, 'analyzer/index.html')
+
 def index(request):
     """
     Handles the upload and processing of MySQL log files.
