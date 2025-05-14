@@ -33,8 +33,8 @@
     - [x] Update the views and templates to handle user authentication and authorization.
 
 9. **Optimize Performance**:
-    - Optimize the performance of log parsing and anomaly detection algorithms.
-    - Profile the application to identify and address performance bottlenecks.
+    - [x] Optimize the performance of log parsing and anomaly detection algorithms.
+    - [x] Profile the application to identify and address performance bottlenecks.
 
 10. **Deploy the Application**:
     - Create a deployment pipeline using tools like Docker and Kubernetes.
