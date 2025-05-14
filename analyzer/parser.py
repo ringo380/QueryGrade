@@ -320,6 +320,8 @@ def profile_performance(func):
 
 @profile_performance
 @process_cache.cache(timeout=3600, key_prefix='slow_log')
+@profile_performance
+@process_cache.cache(timeout=3600, key_prefix='slow_log')
 def process_slow_log(log_file):
     """
     Processes a slow query log file and detects anomalies.
