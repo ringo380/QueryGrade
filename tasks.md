@@ -37,7 +37,7 @@
     - [x] Profile the application to identify and address performance bottlenecks.
 
 10. **Deploy the Application**:
-    - Create a deployment pipeline using tools like Docker and Kubernetes.
+    - [x] Create a deployment pipeline using tools like Docker and Kubernetes.
     - Deploy the application to a production environment and ensure it is running smoothly.
 
 11. **Monitoring and Alerts**:
