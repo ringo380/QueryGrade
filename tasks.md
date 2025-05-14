@@ -17,8 +17,8 @@
     - [x] Add styles and responsive design to `analyzer/static/analyzer/css/styles.css` for a more polished look.
 
 5. **Implement Pagination for Results**:
-    - Add pagination to the results page to handle large datasets efficiently.
-    - Update the views and templates to support pagination.
+    - [x] Add pagination to the results page to handle large datasets efficiently.
+    - [x] Update the views and templates to support pagination.
 
 6. **Add Unit Tests**:
     - Write unit tests in `analyzer/tests.py` to test the functionality of the log parsing and anomaly detection.

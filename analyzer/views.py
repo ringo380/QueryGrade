@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib import messages
+from django.core.paginator import Paginator
 from .forms import UploadLogForm
 from .parser import process_slow_log, process_general_log  # Import the updated functions
 import logging
@@ -35,7 +36,12 @@ def index(request):
                 # Delete the uploaded file after processing
                 fs.delete(filename)
 
-                return render(request, 'analyzer/results.html', {'anomalies': anomalies})
+                # Paginate the results
+                paginator = Paginator(anomalies, 10)  # Show 10 anomalies per page
+                page_number = request.GET.get('page')
+                page_obj = paginator.get_page(page_number)
+
+                return render(request, 'analyzer/results.html', {'page_obj': page_obj})
             except Exception as e:
                 logger.error(f"Error processing log file: {e}")
                 messages.error(request, "An error occurred while processing the log file. Please check the file format and try again.")
