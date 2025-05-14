@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QueryGrade - Login</title>
+    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Login</h1>
+    </header>
+    <main>
+        <form method="post" id="loginForm">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Login</button>
+        </form>
+    </main>
+</body>
+</html>
