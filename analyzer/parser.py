@@ -307,9 +307,6 @@ def profile_performance(func):
         tracemalloc.start()
         start_time = time.perf_counter()
         
-        # Initialize cache after Django setup
-        process_cache = caches['process_cache']
-        
         result = func(*args, **kwargs)
         
         elapsed = time.perf_counter() - start_time
@@ -321,9 +318,6 @@ def profile_performance(func):
     return wrapper
 
 @profile_performance
-@process_cache.cache(timeout=3600, key_prefix='slow_log')
-@profile_performance
-@process_cache.cache(timeout=3600, key_prefix='slow_log')
 def process_slow_log(log_file):
     """
     Processes a slow query log file and detects anomalies.
@@ -363,6 +357,9 @@ if __name__ == '__main__':
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'querygrade.settings')
     import django
     django.setup()
+    
+    # Initialize cache after Django setup
+    process_cache = caches['process_cache']
 
     parser = argparse.ArgumentParser(description='Process MySQL log files.')
     parser.add_argument('log_type', choices=['slow', 'general'], help='Type of the log file (slow or general)')
