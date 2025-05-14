@@ -335,7 +335,6 @@ def process_slow_log(log_file):
     return result_df.copy()
 
 @profile_performance
-@process_cache.cache(timeout=3600, key_prefix='general_log')
 def process_general_log(log_file):
     """
     Processes a general query log file and detects anomalies.
@@ -343,6 +342,13 @@ def process_general_log(log_file):
     Args:
         log_file (str): The path to the general query log file.
     """
+    # Check cache first
+    cache_key = f"general_log_{log_file}"
+    cached_result = process_cache.get(cache_key)
+    
+    if cached_result:
+        return cached_result
+    
     df = parse_mysql_general_log(log_file)
     print(df.head())  # Add this line to inspect the DataFrame
     df = feature_engineering_general_log(df)
@@ -350,6 +356,9 @@ def process_general_log(log_file):
     anomalies, anomaly_scores = detect_anomalies_general(x_scaled)
     result_df, df_anomalies = add_results_to_df(df, anomalies, anomaly_scores)
     display_general_anomalies(df_anomalies)
+    
+    # Cache results for 1 hour
+    process_cache.set(cache_key, result_df.copy(), timeout=3600)
     return result_df.copy()
 
 if __name__ == '__main__':
