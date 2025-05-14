@@ -21,8 +21,8 @@
     - [x] Update the views and templates to support pagination.
 
 6. **Add Unit Tests**:
-    - Write unit tests in `analyzer/tests.py` to test the functionality of the log parsing and anomaly detection.
-    - Ensure that the tests cover various edge cases and scenarios.
+    - [x] Write unit tests in `analyzer/tests.py` to test the functionality of the log parsing and anomaly detection.
+    - [x] Ensure that the tests cover various edge cases and scenarios.
 
 7. **Document the Code**:
     - Add comments and docstrings to the code to make it more understandable for other developers.
