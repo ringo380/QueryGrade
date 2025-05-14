@@ -1,6 +1,9 @@
 from django import forms
 
 class UploadLogForm(forms.Form):
+    """
+    Form for uploading MySQL log files.
+    """
     LOG_TYPE_CHOICES = [
         ('slow', 'Slow Query Log'),
         ('general', 'General Query Log'),
@@ -9,6 +12,15 @@ class UploadLogForm(forms.Form):
     log_file = forms.FileField(label='Choose Log File', validators=[validate_log_file])
 
 def validate_log_file(file):
+    """
+    Validator function to ensure the uploaded file is a valid log file.
+
+    Args:
+        file: The uploaded file.
+
+    Raises:
+        forms.ValidationError: If the file is not a valid log file.
+    """
     valid_mime_types = ['text/plain']
     valid_extensions = ['.log']
 

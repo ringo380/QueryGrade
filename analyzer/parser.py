@@ -128,6 +128,15 @@ def parse_mysql_slow_log(file_path):
     return df
 
 def detect_anomalies(x_scaled):
+    """
+    Detects anomalies in the scaled data using Isolation Forest.
+
+    Args:
+        x_scaled (np.ndarray): The scaled data.
+
+    Returns:
+        tuple: A tuple containing the anomalies and anomaly scores.
+    """
     model = IsolationForest(n_estimators=100, contamination=0.1, random_state=42)
     model.fit(x_scaled)
     anomaly_scores = model.decision_function(x_scaled)
@@ -135,6 +144,15 @@ def detect_anomalies(x_scaled):
     return anomalies, anomaly_scores
 
 def detect_anomalies_general(x_scaled):
+    """
+    Detects anomalies in the scaled data for general logs using Isolation Forest.
+
+    Args:
+        x_scaled (np.ndarray): The scaled data.
+
+    Returns:
+        tuple: A tuple containing the anomalies and anomaly scores.
+    """
     model = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
     model.fit(x_scaled)
     anomalies = model.predict(x_scaled)
@@ -142,6 +160,15 @@ def detect_anomalies_general(x_scaled):
     return anomalies, anomaly_scores
 
 def prepare_features_general(df):
+    """
+    Prepares features for anomaly detection in general logs.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the parsed log entries.
+
+    Returns:
+        np.ndarray: The scaled features.
+    """
     features = [
         'query_length',
         'num_joins',
@@ -158,6 +185,15 @@ def prepare_features_general(df):
     return x_scaled
 
 def prepare_features(df):
+    """
+    Prepares features for anomaly detection in slow logs.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the parsed log entries.
+
+    Returns:
+        np.ndarray: The scaled features.
+    """
     features = ['query_length', 'num_joins', 'num_conditions', 'num_subqueries', 'query_time', 'rows_ratio']
     x = df[features].copy()  # Use .copy() to avoid SettingWithCopyWarning
     # Handle infinite or NaN values in 'rows_ratio'
@@ -168,6 +204,17 @@ def prepare_features(df):
     return x_scaled
 
 def add_results_to_df(df, anomalies, anomaly_scores):
+    """
+    Adds the anomaly detection results to the DataFrame.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the parsed log entries.
+        anomalies (np.ndarray): The detected anomalies.
+        anomaly_scores (np.ndarray): The anomaly scores.
+
+    Returns:
+        tuple: A tuple containing the updated DataFrame and the DataFrame of anomalies.
+    """
     df['anomaly'] = anomalies
     df['anomaly_score'] = anomaly_scores
     # Anomalies are labeled as -1
@@ -175,15 +222,38 @@ def add_results_to_df(df, anomalies, anomaly_scores):
     return df, df_anomalies
 
 def display_anomalies(df_anomalies):
+    """
+    Displays the detected anomalies.
+
+    Args:
+        df_anomalies (pd.DataFrame): The DataFrame containing the detected anomalies.
+    """
     print("Potential Queries for Optimization:")
     print(df_anomalies[['timestamp', 'query', 'query_time', 'anomaly_score']].sort_values('anomaly_score'))
 
 def clean_data(df):
-    # Drop entries with missing values in critical fields
+    """
+    Cleans the data by dropping entries with missing values in critical fields.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the parsed log entries.
+
+    Returns:
+        pd.DataFrame: The cleaned DataFrame.
+    """
     df = df.dropna(subset=['query', 'query_time'])
     return df
 
 def feature_engineering(df):
+    """
+    Performs feature engineering for anomaly detection in slow logs.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the parsed log entries.
+
+    Returns:
+        pd.DataFrame: The DataFrame with engineered features.
+    """
     df['query_length'] = df['query'].apply(len)
     df['num_joins'] = df['query'].str.upper().str.count('JOIN')
     df['num_conditions'] = df['query'].str.upper().str.count('WHERE') + df['query'].str.upper().str.count('HAVING')
@@ -192,6 +262,15 @@ def feature_engineering(df):
     return df
 
 def feature_engineering_general_log(df):
+    """
+    Performs feature engineering for anomaly detection in general logs.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the parsed log entries.
+
+    Returns:
+        pd.DataFrame: The DataFrame with engineered features.
+    """
     # Ensure all entries in the 'query' column are strings
     df['query'] = df['query'].astype(str)
 
@@ -206,10 +285,22 @@ def feature_engineering_general_log(df):
     return df
 
 def display_general_anomalies(df_anomalies):
+    """
+    Displays the detected anomalies for general logs.
+
+    Args:
+        df_anomalies (pd.DataFrame): The DataFrame containing the detected anomalies.
+    """
     print("Potential Queries for Optimization:")
     print(df_anomalies[['timestamp', 'query', 'anomaly_score']].sort_values('anomaly_score'))
 
 def process_slow_log(log_file):
+    """
+    Processes a slow query log file and detects anomalies.
+
+    Args:
+        log_file (str): The path to the slow query log file.
+    """
     df = parse_mysql_slow_log(log_file)
     df = clean_data(df)
     df = feature_engineering(df)
@@ -219,6 +310,12 @@ def process_slow_log(log_file):
     display_anomalies(df_anomalies)
 
 def process_general_log(log_file):
+    """
+    Processes a general query log file and detects anomalies.
+
+    Args:
+        log_file (str): The path to the general query log file.
+    """
     df = parse_mysql_general_log(log_file)
     print(df.head())  # Add this line to inspect the DataFrame
     df = feature_engineering_general_log(df)

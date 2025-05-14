@@ -12,6 +12,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 def index(request):
+    """
+    Handles the upload and processing of MySQL log files.
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        HttpResponse: The HTTP response object.
+    """
     if request.method == 'POST':
         form = UploadLogForm(request.POST, request.FILES)
         if form.is_valid():
