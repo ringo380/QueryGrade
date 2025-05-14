@@ -357,6 +357,11 @@ def process_general_log(log_file):
     return result_df.copy()
 
 if __name__ == '__main__':
+    # Configure Django settings for standalone script execution
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'querygrade.settings')
+    import django
+    django.setup()
+
     parser = argparse.ArgumentParser(description='Process MySQL log files.')
     parser.add_argument('log_type', choices=['slow', 'general'], help='Type of the log file (slow or general)')
     parser.add_argument('log_file', help='Path to the log file')
