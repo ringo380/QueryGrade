@@ -294,6 +294,32 @@ def display_general_anomalies(df_anomalies):
     print("Potential Queries for Optimization:")
     print(df_anomalies[['timestamp', 'query', 'anomaly_score']].sort_values('anomaly_score'))
 
+from django.core.cache import caches
+import time
+import tracemalloc
+import logging
+
+logger = logging.getLogger(__name__)
+process_cache = caches['process_cache']
+
+def profile_performance(func):
+    """Decorator to measure execution time and memory usage"""
+    def wrapper(*args, **kwargs):
+        tracemalloc.start()
+        start_time = time.perf_counter()
+        
+        result = func(*args, **kwargs)
+        
+        elapsed = time.perf_counter() - start_time
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        
+        logger.info(f"{func.__name__} - Time: {elapsed:.2f}s, Memory: {current/1024:.1f}KB, Peak: {peak/1024:.1f}KB")
+        return result
+    return wrapper
+
+@profile_performance
+@process_cache.cache(timeout=3600, key_prefix='slow_log')
 def process_slow_log(log_file):
     """
     Processes a slow query log file and detects anomalies.
@@ -306,9 +332,12 @@ def process_slow_log(log_file):
     df = feature_engineering(df)
     x_scaled = prepare_features(df)
     anomalies, anomaly_scores = detect_anomalies(x_scaled)
-    df, df_anomalies = add_results_to_df(df, anomalies, anomaly_scores)
+    result_df, df_anomalies = add_results_to_df(df, anomalies, anomaly_scores)
     display_anomalies(df_anomalies)
+    return result_df.copy()
 
+@profile_performance
+@process_cache.cache(timeout=3600, key_prefix='general_log')
 def process_general_log(log_file):
     """
     Processes a general query log file and detects anomalies.
@@ -321,8 +350,9 @@ def process_general_log(log_file):
     df = feature_engineering_general_log(df)
     x_scaled = prepare_features_general(df)
     anomalies, anomaly_scores = detect_anomalies_general(x_scaled)
-    df, df_anomalies = add_results_to_df(df, anomalies, anomaly_scores)
+    result_df, df_anomalies = add_results_to_df(df, anomalies, anomaly_scores)
     display_general_anomalies(df_anomalies)
+    return result_df.copy()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process MySQL log files.')
