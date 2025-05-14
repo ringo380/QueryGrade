@@ -6,12 +6,16 @@
     <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
 </head>
 <body>
-    <h1>Upload MySQL Log File</h1>
-    <form method="post" enctype="multipart/form-data" id="uploadForm">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Upload</button>
-    </form>
+    <header>
+        <h1>Upload MySQL Log File</h1>
+    </header>
+    <main>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Upload</button>
+        </form>
+    </main>
 
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function(event) {

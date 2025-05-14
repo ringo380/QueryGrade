@@ -13,8 +13,8 @@
     - [x] Add logging to capture and track errors for future debugging and improvements.
 
 4. **Enhance User Interface**:
-    - Improve the user interface in `analyzer/templates/analyzer/index.html` and `analyzer/templates/analyzer/results.html` for better usability.
-    - Add styles and responsive design to `analyzer/static/analyzer/css/styles.css` for a more polished look.
+    - [x] Improve the user interface in `analyzer/templates/analyzer/index.html` and `analyzer/templates/analyzer/results.html` for better usability.
+    - [x] Add styles and responsive design to `analyzer/static/analyzer/css/styles.css` for a more polished look.
 
 5. **Implement Pagination for Results**:
     - Add pagination to the results page to handle large datasets efficiently.

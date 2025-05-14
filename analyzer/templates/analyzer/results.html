@@ -1,24 +1,33 @@
-{% extends 'analyzer/base.html' %}
-
-{% block content %}
-<h2>Analysis Results</h2>
-{% if anomalies %}
-    <table>
-        <tr>
-            <th>Timestamp</th>
-            <th>Query</th>
-            <th>Anomaly Score</th>
-        </tr>
-        {% for anomaly in anomalies %}
-        <tr>
-            <td>{{ anomaly.timestamp }}</td>
-            <td>{{ anomaly.query }}</td>
-            <td>{{ anomaly.anomaly_score }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-{% else %}
-    <p>No anomalies detected.</p>
-{% endif %}
-<a href="{% url 'index' %}">Back to Home</a>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QueryGrade Results</title>
+    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Anomalies Detected</h1>
+    </header>
+    <main>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Query</th>
+                    <th>Anomaly Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for anomaly in anomalies %}
+                    <tr>
+                        <td>{{ anomaly.timestamp }}</td>
+                        <td>{{ anomaly.query }}</td>
+                        <td>{{ anomaly.anomaly_score }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>
