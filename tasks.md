@@ -9,8 +9,8 @@
     - [x] Add client-side validation using JavaScript to provide a better user experience.
 
 3. **Improve Error Handling**:
-    - Enhance error handling in `analyzer/views.py` to provide user-friendly error messages for various scenarios (e.g., invalid file format, parsing errors).
-    - Add logging to capture and track errors for future debugging and improvements.
+    - [x] Enhance error handling in `analyzer/views.py` to provide user-friendly error messages for various scenarios (e.g., invalid file format, parsing errors).
+    - [x] Add logging to capture and track errors for future debugging and improvements.
 
 4. **Enhance User Interface**:
     - Improve the user interface in `analyzer/templates/analyzer/index.html` and `analyzer/templates/analyzer/results.html` for better usability.

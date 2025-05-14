@@ -1,7 +1,14 @@
 from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.contrib import messages
 from .forms import UploadLogForm
 from .parser import process_slow_log, process_general_log  # Import the updated functions
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 def index(request):
     if request.method == 'POST':
@@ -15,22 +22,26 @@ def index(request):
             filename = fs.save(log_file.name, log_file)
             uploaded_file_url = fs.path(filename)
 
-            # Initialize df_anomalies
-            df_anomalies = None
+            try:
+                # Analyze the log file
+                if log_type == 'slow':
+                    df_anomalies = process_slow_log(uploaded_file_url)
+                elif log_type == 'general':
+                    df_anomalies = process_general_log(uploaded_file_url)
 
-            # Analyze the log file
-            if log_type == 'slow':
-                df_anomalies = process_slow_log(uploaded_file_url)
-            elif log_type == 'general':
-                df_anomalies = process_general_log(uploaded_file_url)
+                # Prepare data for template
+                anomalies = df_anomalies.to_dict('records') if df_anomalies is not None else []
 
-            # Prepare data for template
-            anomalies = df_anomalies.to_dict('records') if df_anomalies is not None else []
+                # Delete the uploaded file after processing
+                fs.delete(filename)
 
-            # Delete the uploaded file after processing
-            fs.delete(filename)
-
-            return render(request, 'analyzer/results.html', {'anomalies': anomalies})
+                return render(request, 'analyzer/results.html', {'anomalies': anomalies})
+            except Exception as e:
+                logger.error(f"Error processing log file: {e}")
+                messages.error(request, "An error occurred while processing the log file. Please check the file format and try again.")
+                return HttpResponseRedirect(reverse('index'))
+        else:
+            messages.error(request, "There was an error with the form submission. Please check the fields and try again.")
     else:
         form = UploadLogForm()
     return render(request, 'analyzer/index.html', {'form': form})
