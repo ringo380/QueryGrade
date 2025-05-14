@@ -5,8 +5,8 @@
     - [x] Verify that the anomaly detection logic for general logs is functioning as expected.
 
 2. **Enhance the Upload Form and Validation**:
-    - Improve the validation of the `UploadLogForm` in `analyzer/forms.py` to ensure the uploaded file is a valid log file.
-    - Add client-side validation using JavaScript to provide a better user experience.
+    - [x] Improve the validation of the `UploadLogForm` in `analyzer/forms.py` to ensure the uploaded file is a valid log file.
+    - [x] Add client-side validation using JavaScript to provide a better user experience.
 
 3. **Improve Error Handling**:
     - Enhance error handling in `analyzer/views.py` to provide user-friendly error messages for various scenarios (e.g., invalid file format, parsing errors).

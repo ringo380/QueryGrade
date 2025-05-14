@@ -1,10 +1,35 @@
-{% extends 'analyzer/base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QueryGrade</title>
+    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
+</head>
+<body>
+    <h1>Upload MySQL Log File</h1>
+    <form method="post" enctype="multipart/form-data" id="uploadForm">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload</button>
+    </form>
 
-{% block content %}
-<h2>Upload MySQL Log File</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Analyze</button>
-</form>
-{% endblock %}
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            const fileInput = document.querySelector('input[name="log_file"]');
+            const file = fileInput.files[0];
+            const validExtensions = ['.log'];
+            const validMimeTypes = ['text/plain'];
+
+            if (!validExtensions.includes(file.name.slice(-4).toLowerCase())) {
+                alert('Unsupported file extension.');
+                event.preventDefault();
+            }
+
+            if (!validMimeTypes.includes(file.type)) {
+                alert('Unsupported file type.');
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
