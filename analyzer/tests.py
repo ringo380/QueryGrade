@@ -25,13 +25,22 @@ class ParserTestCase(TestCase):
     def test_detect_anomalies(self):
         df = parse_mysql_slow_log(self.sample_slow_log_path)
         df = df.head(10)  # Use a smaller subset for testing
-        x_scaled = detect_anomalies(df)
-        self.assertIsInstance(x_scaled, tuple)
-        self.assertEqual(len(x_scaled), 2)
+        # Need to import the required functions for the complete workflow
+        from analyzer.parser import clean_data, feature_engineering, prepare_features
+        df = clean_data(df)
+        df = feature_engineering(df)
+        x_scaled = prepare_features(df)
+        result = detect_anomalies(x_scaled)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
 
     def test_detect_anomalies_general(self):
         df = parse_mysql_general_log(self.sample_general_log_path)
         df = df.head(10)  # Use a smaller subset for testing
-        x_scaled = detect_anomalies_general(df)
-        self.assertIsInstance(x_scaled, tuple)
-        self.assertEqual(len(x_scaled), 2)
+        # Need to import the required functions for the complete workflow
+        from analyzer.parser import feature_engineering_general_log, prepare_features_general
+        df = feature_engineering_general_log(df)
+        x_scaled = prepare_features_general(df)
+        result = detect_anomalies_general(x_scaled)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
