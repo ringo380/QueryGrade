@@ -52,6 +52,27 @@
         </div>
     </div>
 
+    <!-- Quick Feedback Section -->
+    <div class="quick-feedback-section">
+        <h3>Was this analysis helpful? 👍👎</h3>
+        <div class="feedback-buttons">
+            <button id="thumbs-up" class="feedback-btn thumbs-up" onclick="submitQuickFeedback(true)" title="Yes, this analysis was helpful">
+                <span class="feedback-icon">👍</span>
+                <span class="feedback-text">Helpful</span>
+            </button>
+            <button id="thumbs-down" class="feedback-btn thumbs-down" onclick="submitQuickFeedback(false)" title="No, this analysis needs improvement">
+                <span class="feedback-icon">👎</span>
+                <span class="feedback-text">Not Helpful</span>
+            </button>
+        </div>
+        <div id="feedback-status" class="feedback-status" style="display: none;"></div>
+        <div class="detailed-feedback-link">
+            <a href="{% url 'submit_feedback' analysis.id %}" class="detailed-feedback-btn">
+                💬 Provide Detailed Feedback
+            </a>
+        </div>
+    </div>
+
     <!-- Performance Indicators Section -->
     <div class="performance-indicators">
         <h3>📊 Performance Metrics</h3>
@@ -396,6 +417,159 @@
 
 .results-header {
     margin-bottom: 30px;
+}
+
+/* Quick Feedback Section Styles */
+.quick-feedback-section {
+    background-color: #2a2a2a;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+    border: 2px solid #333;
+    transition: border-color 0.3s ease;
+}
+
+.quick-feedback-section:hover {
+    border-color: #007bff;
+}
+
+.quick-feedback-section h3 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.feedback-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.feedback-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 30px;
+    background-color: #333;
+    border: 2px solid #444;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #e0e0e0;
+    font-size: 16px;
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.feedback-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.feedback-btn.thumbs-up:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.feedback-btn.thumbs-down:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.feedback-btn.selected.thumbs-up {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+    transform: scale(1.05);
+}
+
+.feedback-btn.selected.thumbs-down {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    transform: scale(1.05);
+}
+
+.feedback-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.feedback-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.feedback-text {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.feedback-status {
+    background-color: #333;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.feedback-status.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.feedback-status.error {
+    background-color: #dc3545;
+    color: white;
+}
+
+.detailed-feedback-link {
+    margin-top: 15px;
+}
+
+.detailed-feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.detailed-feedback-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    text-decoration: none;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .feedback-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .feedback-btn {
+        width: 200px;
+        max-width: 100%;
+    }
+
+    .quick-feedback-section {
+        padding: 20px 15px;
+    }
 }
 
 .navigation-tabs {
@@ -1511,6 +1685,90 @@ function showNotification(message, type = 'success') {
     setTimeout(() => {
         notification.remove();
     }, 3000);
+}
+
+// Quick feedback submission
+async function submitQuickFeedback(isHelpful) {
+    const thumbsUpBtn = document.getElementById('thumbs-up');
+    const thumbsDownBtn = document.getElementById('thumbs-down');
+    const statusDiv = document.getElementById('feedback-status');
+
+    // Disable buttons to prevent double submission
+    thumbsUpBtn.disabled = true;
+    thumbsDownBtn.disabled = true;
+
+    try {
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        if (!csrfToken) {
+            // If no CSRF token found, try to get it from cookie
+            const cookies = document.cookie.split(';');
+            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrftoken='));
+            if (!csrfCookie) {
+                throw new Error('CSRF token not found');
+            }
+        }
+
+        const response = await fetch('{% url "quick_feedback" analysis.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                'was_helpful': isHelpful
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Show success message
+            statusDiv.textContent = data.message || 'Thank you for your feedback!';
+            statusDiv.className = 'feedback-status success';
+            statusDiv.style.display = 'block';
+
+            // Update button states
+            if (isHelpful) {
+                thumbsUpBtn.classList.add('selected');
+                thumbsDownBtn.classList.remove('selected');
+            } else {
+                thumbsDownBtn.classList.add('selected');
+                thumbsUpBtn.classList.remove('selected');
+            }
+
+            // Keep buttons disabled after successful submission
+            thumbsUpBtn.disabled = true;
+            thumbsDownBtn.disabled = true;
+
+            // Show notification
+            showNotification('Feedback submitted successfully! 🎉');
+
+        } else {
+            throw new Error(data.error || 'Failed to submit feedback');
+        }
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+
+        // Show error message
+        statusDiv.textContent = 'Unable to submit feedback. Please try the detailed feedback form below.';
+        statusDiv.className = 'feedback-status error';
+        statusDiv.style.display = 'block';
+
+        // Re-enable buttons on error
+        thumbsUpBtn.disabled = false;
+        thumbsDownBtn.disabled = false;
+
+        // Show error notification
+        showNotification('Failed to submit feedback. Please try again.', 'error');
+    }
 }
 
 // Performance indicators initialization

@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.core.cache import caches
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django_ratelimit.decorators import ratelimit
 from django.views.decorators.cache import never_cache
 from .forms import UploadLogForm, QueryGradeForm, QueryCompareForm, BatchQueryForm, QueryFeedbackForm, DatabaseConnectionForm
@@ -915,6 +915,98 @@ def submit_feedback(request, analysis_id):
     }
 
     return render(request, 'analyzer/feedback_form.html', context)
+
+
+@login_required
+@require_POST
+def quick_feedback(request, analysis_id):
+    """Handle quick thumbs up/down feedback via AJAX."""
+    import json
+    from django.http import JsonResponse
+    from django.views.decorators.csrf import csrf_exempt
+    from django.views.decorators.http import require_POST
+
+    try:
+        # Get the user's query history for this analysis
+        user_history = UserQueryHistory.objects.get(
+            query__analysis__id=analysis_id,
+            user=request.user
+        )
+    except UserQueryHistory.DoesNotExist:
+        logger.warning(f"User {request.user.username} attempted quick feedback for non-existent analysis {analysis_id}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Analysis not found or you don\'t have permission to provide feedback.'
+        }, status=404)
+
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+        was_helpful = data.get('was_helpful')
+
+        if was_helpful is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing feedback data'
+            }, status=400)
+
+        # Update the user history with quick feedback
+        user_history.was_helpful = bool(was_helpful)
+        user_history.save()
+
+        # Try to create or update the FeedbackLearning record for ML training
+        try:
+            from .ml.feedback_collector import FeedbackCollector
+            from .models import FeedbackLearning
+
+            # Convert thumbs up/down to grade equivalent (1-5 scale)
+            feedback_grade = 4.0 if was_helpful else 2.0
+            feedback_score = (feedback_grade - 1) * 25  # Convert to 0-100 scale
+
+            analysis = user_history.query.analysis
+            grade_difference = feedback_score - analysis.score
+
+            # Create or update learning record
+            learning_record, created = FeedbackLearning.objects.update_or_create(
+                user_history=user_history,
+                defaults={
+                    'original_grade': analysis.grade,
+                    'original_score': analysis.score,
+                    'original_confidence': 0.8,  # Default system confidence
+                    'feedback_grade_equivalent': feedback_score,
+                    'grade_difference': grade_difference,
+                    'feedback_weight': 0.7,  # Medium weight for quick feedback
+                    'user_reliability_score': 0.5,  # Default for new feedback
+                    'context_similarity_score': 0.0,
+                }
+            )
+
+            logger.info(f"{'Created' if created else 'Updated'} ML learning record for analysis {analysis_id}")
+
+        except Exception as ml_error:
+            # ML processing failed but don't fail the entire request
+            logger.warning(f"ML processing failed for quick feedback: {str(ml_error)}")
+
+        logger.info(f"User {request.user.username} submitted quick feedback ({'helpful' if was_helpful else 'not helpful'}) for analysis {analysis_id}")
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Thank you for your feedback! This helps us improve QueryGrade.',
+            'feedback_type': 'helpful' if was_helpful else 'not_helpful'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+
+    except Exception as e:
+        logger.error(f"Error processing quick feedback for analysis {analysis_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while processing your feedback. Please try again.'
+        }, status=500)
 
 
 @login_required

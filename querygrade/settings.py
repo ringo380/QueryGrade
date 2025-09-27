@@ -75,10 +75,7 @@ DATABASES = {
         "HOST": os.environ.get("DB_HOST", ""),
         "PORT": os.environ.get("DB_PORT", ""),
         "OPTIONS": {
-            # SQLite optimizations
-            'init_command': "PRAGMA foreign_keys=1; PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=10000; PRAGMA temp_store=MEMORY;",
-            # PostgreSQL optimizations (when using PostgreSQL)
-            'sslmode': 'prefer',
+            # Empty options for SQLite to avoid init_command issues
         } if os.environ.get("DB_ENGINE", "django.db.backends.sqlite3") == "django.db.backends.sqlite3" else {
             # PostgreSQL connection pooling and performance settings
             'sslmode': 'prefer',
@@ -102,6 +99,18 @@ DATABASE_ENGINE_OPTIONS = {
         'PRAGMA temp_store': 'MEMORY',
     }
 }
+
+# Machine Learning Configuration
+ML_ENABLED = os.environ.get('ML_ENABLED', 'True').lower() in ('true', '1', 'yes', 'on')
+ML_MODEL_PATH = os.path.join(BASE_DIR, 'analyzer', 'ml', 'models')
+ML_MIN_TRAINING_SAMPLES = int(os.environ.get('ML_MIN_TRAINING_SAMPLES', '50'))
+ML_RETRAIN_THRESHOLD_DAYS = int(os.environ.get('ML_RETRAIN_THRESHOLD_DAYS', '7'))
+ML_PERFORMANCE_THRESHOLD = float(os.environ.get('ML_PERFORMANCE_THRESHOLD', '0.7'))
+
+# ML Feature Flags
+ML_HYBRID_GRADING = os.environ.get('ML_HYBRID_GRADING', 'True').lower() in ('true', '1', 'yes', 'on')
+ML_AUTO_RETRAIN = os.environ.get('ML_AUTO_RETRAIN', 'True').lower() in ('true', '1', 'yes', 'on')
+ML_FEEDBACK_COLLECTION = os.environ.get('ML_FEEDBACK_COLLECTION', 'True').lower() in ('true', '1', 'yes', 'on')
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

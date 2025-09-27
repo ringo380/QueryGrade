@@ -1185,22 +1185,41 @@ class QueryGrader:
 
 
 # Convenience function for easy import
-def analyze_query(sql_text: str, database_type: str = '') -> Tuple[Query, QueryAnalysis]:
+def analyze_query(sql_text: str, database_type: str = '', use_ml: Optional[bool] = None) -> Tuple[Query, QueryAnalysis]:
     """
-    Convenience function to analyze a SQL query.
+    Convenience function to analyze a SQL query with optional ML integration.
 
     Args:
         sql_text (str): The SQL query to analyze
         database_type (str): The target database type (mysql, postgresql, sqlite, oracle, sqlserver)
+        use_ml (bool, optional): Whether to use ML-enhanced grading. If None, uses settings.ML_ENABLED
 
     Returns:
         Tuple[Query, QueryAnalysis]: The created Query and QueryAnalysis objects
     """
+    from django.conf import settings
+
+    # Determine whether to use ML
+    should_use_ml = use_ml if use_ml is not None else getattr(settings, 'ML_HYBRID_GRADING', False)
+
+    if should_use_ml and getattr(settings, 'ML_ENABLED', False):
+        try:
+            from .ml.hybrid_grader import HybridQueryGrader
+            hybrid_grader = HybridQueryGrader()
+            return hybrid_grader.analyze_query(sql_text, database_type, use_ml=True)
+        except Exception as e:
+            # Fall back to rule-based grading if ML fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"ML grading failed, falling back to rule-based: {str(e)}")
+
+    # Use traditional rule-based grading
     grader = QueryGrader()
     return grader.analyze_query(sql_text, database_type)
 
 
-def grade_single_query(sql_text: str, database_type: str = '', database_version: str = '') -> QueryAnalysis:
+def grade_single_query(sql_text: str, database_type: str = '', database_version: str = '',
+                      use_ml: Optional[bool] = None) -> QueryAnalysis:
     """
     Convenience function to grade a single SQL query and return just the analysis.
 
@@ -1208,10 +1227,10 @@ def grade_single_query(sql_text: str, database_type: str = '', database_version:
         sql_text (str): The SQL query to analyze
         database_type (str): The target database type (mysql, postgresql, sqlite, oracle, sqlserver)
         database_version (str): The database version for version-specific recommendations
+        use_ml (bool, optional): Whether to use ML-enhanced grading. If None, uses settings.ML_ENABLED
 
     Returns:
         QueryAnalysis: The analysis object with grade and recommendations
     """
-    grader = QueryGrader()
-    query, analysis = grader.analyze_query(sql_text, database_type)
+    query, analysis = analyze_query(sql_text, database_type, use_ml)
     return analysis
