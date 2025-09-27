@@ -1,50 +1,128 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QueryGrade Results</title>
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
-</head>
-<body>
-    <header>
-        <h1>Anomalies Detected</h1>
-    </header>
-    <main>
-        <table>
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}QueryGrade - Analysis Results{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <div class="results-header">
+        <h1>🔍 Anomalies Detected</h1>
+        <p class="results-subtitle">Machine learning analysis has identified the following query anomalies in your log file</p>
+    </div>
+
+    <div class="results-summary">
+        <div class="summary-stat">
+            <span class="stat-number">{{ page_obj.paginator.count }}</span>
+            <span class="stat-label">Total Anomalies</span>
+        </div>
+        <div class="summary-stat">
+            <span class="stat-number">{{ page_obj.paginator.num_pages }}</span>
+            <span class="stat-label">Pages</span>
+        </div>
+        <div class="summary-stat">
+            <span class="stat-number">{{ page_obj.number }}</span>
+            <span class="stat-label">Current Page</span>
+        </div>
+    </div>
+
+    <div class="results-table-container">
+        <table class="results-table">
             <thead>
                 <tr>
                     <th>Timestamp</th>
                     <th>Query</th>
                     <th>Anomaly Score</th>
+                    <th>Severity</th>
                 </tr>
             </thead>
             <tbody>
                 {% for anomaly in page_obj %}
+                    <tr class="anomaly-row" data-score="{{ anomaly.anomaly_score }}">
+                        <td class="timestamp-cell">
+                            <span class="timestamp">{{ anomaly.timestamp|date:"M d, Y" }}</span>
+                            <span class="time">{{ anomaly.timestamp|time:"H:i:s" }}</span>
+                        </td>
+                        <td class="query-cell">
+                            <div class="query-preview">{{ anomaly.query|truncatechars:100 }}</div>
+                            {% if anomaly.query|length > 100 %}
+                                <button class="btn btn-sm show-full-query" onclick="toggleFullQuery(this)">Show Full Query</button>
+                                <div class="full-query" style="display: none;">{{ anomaly.query }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="score-cell">
+                            <span class="anomaly-score">{{ anomaly.anomaly_score|floatformat:3 }}</span>
+                        </td>
+                        <td class="severity-cell">
+                            {% if anomaly.anomaly_score > 0.8 %}
+                                <span class="severity-badge high">🔴 High</span>
+                            {% elif anomaly.anomaly_score > 0.6 %}
+                                <span class="severity-badge medium">🟡 Medium</span>
+                            {% else %}
+                                <span class="severity-badge low">🟢 Low</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
                     <tr>
-                        <td>{{ anomaly.timestamp }}</td>
-                        <td>{{ anomaly.query }}</td>
-                        <td>{{ anomaly.anomaly_score }}</td>
+                        <td colspan="4" class="no-results">
+                            <div class="no-results-content">
+                                <span class="no-results-icon">✅</span>
+                                <h3>No Anomalies Detected</h3>
+                                <p>Your queries appear to be performing normally based on our analysis.</p>
+                            </div>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <div class="pagination">
-            <span class="step-links">
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination-container">
+            <div class="pagination">
                 {% if page_obj.has_previous %}
-                    <a href="?page=1">&laquo; first</a>
-                    <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                    <a href="?page=1" class="pagination-link first">« First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link prev">‹ Previous</a>
                 {% endif %}
 
-                <span class="current">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                <span class="pagination-info">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
                 </span>
 
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}">next</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    <a href="?page={{ page_obj.next_page_number }}" class="pagination-link next">Next ›</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="pagination-link last">Last »</a>
                 {% endif %}
-            </span>
+            </div>
         </div>
-    </main>
-</body>
-</html>
+    {% endif %}
+
+    <div class="results-actions">
+        <a href="{% url 'index' %}" class="btn btn-secondary">
+            <span class="btn-icon">📁</span>
+            Analyze Another File
+        </a>
+        <a href="{% url 'grade_query' %}" class="btn btn-primary">
+            <span class="btn-icon">📊</span>
+            Grade Individual Query
+        </a>
+    </div>
+</div>
+
+<script>
+function toggleFullQuery(button) {
+    const fullQuery = button.nextElementSibling;
+    const preview = button.parentElement.querySelector('.query-preview');
+
+    if (fullQuery.style.display === 'none') {
+        fullQuery.style.display = 'block';
+        preview.style.display = 'none';
+        button.textContent = 'Show Preview';
+    } else {
+        fullQuery.style.display = 'none';
+        preview.style.display = 'block';
+        button.textContent = 'Show Full Query';
+    }
+}
+</script>
+{% endblock %}

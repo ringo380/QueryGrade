@@ -1,0 +1,276 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}Feedback Analytics - QueryGrade{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="analytics-header mb-4">
+                <h2>📊 Feedback Analytics</h2>
+                <p class="text-muted">User feedback insights and analytics dashboard.</p>
+            </div>
+
+            {% if total_feedback > 0 %}
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <h3 class="card-title text-primary">{{ total_feedback }}</h3>
+                                <p class="card-text">Total Feedback</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <h3 class="card-title text-success">{{ avg_accuracy }}</h3>
+                                <p class="card-text">Avg Accuracy</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <h3 class="card-title text-info">{{ avg_usefulness }}</h3>
+                                <p class="card-text">Avg Usefulness</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card">
+                            <div class="card-body text-center">
+                                <h3 class="card-title text-warning">{{ avg_clarity }}</h3>
+                                <p class="card-text">Avg Clarity</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendation Rate -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Recommendation Rate</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="recommendation-meter">
+                                    <div class="progress mb-3" style="height: 25px;">
+                                        <div class="progress-bar bg-success"
+                                             role="progressbar"
+                                             style="width: {{ recommend_percentage }}%"
+                                             aria-valuenow="{{ recommend_percentage }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                            {{ recommend_percentage }}%
+                                        </div>
+                                    </div>
+                                    <p class="text-muted">Percentage of users who would recommend QueryGrade</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Rating Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="rating-summary">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Accuracy:</span>
+                                        <span class="rating-stars">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= avg_accuracy %}
+                                                    <span class="star filled">★</span>
+                                                {% else %}
+                                                    <span class="star">☆</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Usefulness:</span>
+                                        <span class="rating-stars">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= avg_usefulness %}
+                                                    <span class="star filled">★</span>
+                                                {% else %}
+                                                    <span class="star">☆</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Clarity:</span>
+                                        <span class="rating-stars">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= avg_clarity %}
+                                                    <span class="star filled">★</span>
+                                                {% else %}
+                                                    <span class="star">☆</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Feedback -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Recent Feedback</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if recent_feedback %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>User</th>
+                                                    <th>Accuracy</th>
+                                                    <th>Usefulness</th>
+                                                    <th>Clarity</th>
+                                                    <th>Recommends</th>
+                                                    <th>Suggestions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for feedback in recent_feedback %}
+                                                <tr>
+                                                    <td>{{ feedback.created_at|date:"M d, Y" }}</td>
+                                                    <td>{{ feedback.user_history.user.username }}</td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ feedback.accuracy_rating }}/5</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ feedback.usefulness_rating }}/5</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ feedback.clarity_rating }}/5</span>
+                                                    </td>
+                                                    <td>
+                                                        {% if feedback.would_recommend %}
+                                                            <span class="badge bg-success">Yes</span>
+                                                        {% elif feedback.would_recommend == False %}
+                                                            <span class="badge bg-danger">No</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary">N/A</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if feedback.suggestions %}
+                                                            <span class="text-truncate" style="max-width: 200px; display: inline-block;"
+                                                                  title="{{ feedback.suggestions }}">
+                                                                {{ feedback.suggestions|truncatechars:50 }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="text-muted">No suggestions</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No recent feedback available.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- No Data State -->
+                <div class="text-center py-5">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="text-muted">{{ message }}</h4>
+                            <p class="text-muted">Feedback will appear here once users start providing ratings.</p>
+                            <a href="{% url 'grade_query' %}" class="btn btn-primary">Get Started with Query Grading</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Analytics Dashboard Styles */
+.analytics-header h2 {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stats-card .card-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-meter .progress {
+    background-color: #e9ecef;
+}
+
+.rating-stars .star {
+    color: #ddd;
+    font-size: 1.2rem;
+}
+
+.rating-stars .star.filled {
+    color: #ffc107;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,0.025);
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.text-truncate {
+    cursor: help;
+}
+
+@media (max-width: 768px) {
+    .stats-card .card-title {
+        font-size: 1.5rem;
+    }
+
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}

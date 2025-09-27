@@ -1,0 +1,405 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}Query Analysis Results - QueryGrade{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .grade-display {
+            font-size: 4rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+        }
+        .grade-A { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; }
+        .grade-B { background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%); color: white; }
+        .grade-C { background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: white; }
+        .grade-D { background: linear-gradient(135deg, #fd7e14 0%, #dc3545 100%); color: white; }
+        .grade-F { background: linear-gradient(135deg, #dc3545 0%, #6f42c1 100%); color: white; }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        .context-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-weight: 600;
+        }
+        .sql-code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .metric-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        .issue-item {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 0.25rem 0.25rem 0;
+        }
+        .recommendation-item {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 0.25rem 0.25rem 0;
+        }
+        .context-recommendation {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 0.25rem 0.25rem 0;
+        }
+        .execution-plan {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .table-reference {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.25rem;
+            display: inline-block;
+        }
+        .column-reference {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.25rem;
+            display: inline-block;
+        }
+        .context-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+        .action-buttons {
+            margin-top: 2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Grade Display -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="grade-display grade-{{ analysis.grade }}">
+                <div>{{ analysis.grade }}</div>
+                <div style="font-size: 1.5rem; margin-top: -1rem;">{{ analysis.score }}/100</div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-value">{{ query.query_type|default:"Unknown"|title }}</div>
+                        <div class="metric-label">Query Type</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-value">{{ query.estimated_complexity|default:"Unknown"|title }}</div>
+                        <div class="metric-label">Complexity</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-value">
+                            {% if analysis.execution_time_ms %}{{ analysis.execution_time_ms }}ms{% else %}N/A{% endif %}
+                        </div>
+                        <div class="metric-label">Analysis Time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Information -->
+    {% if has_context %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header context-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-link me-2"></i>
+                        Database Context Analysis
+                        <span class="context-badge">Connected to {{ db_config.name }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Tables and Columns Referenced -->
+                    {% if context_analysis.tables_referenced %}
+                    <div class="mb-3">
+                        <h6><i class="fas fa-table text-primary me-2"></i>Tables Referenced</h6>
+                        {% for table in context_analysis.tables_referenced %}
+                            <span class="table-reference">{{ table }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if context_analysis.columns_referenced %}
+                    <div class="mb-3">
+                        <h6><i class="fas fa-columns text-purple me-2"></i>Columns Referenced</h6>
+                        {% for column in context_analysis.columns_referenced %}
+                            <span class="column-reference">{{ column }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Schema Analysis -->
+                    {% if context_analysis.schema_analysis %}
+                    <div class="mb-3">
+                        <h6><i class="fas fa-chart-bar text-info me-2"></i>Schema Analysis</h6>
+                        <div class="row">
+                            {% for table, info in context_analysis.schema_analysis.items %}
+                            <div class="col-md-6 mb-2">
+                                <div class="border rounded p-2">
+                                    <strong>{{ table }}</strong><br>
+                                    <small class="text-muted">
+                                        {% if info.row_count %}{{ info.row_count|floatformat:0 }} rows • {% endif %}
+                                        {% if info.size_mb %}{{ info.size_mb }} MB • {% endif %}
+                                        {{ info.columns }} columns • {{ info.indexes }} indexes
+                                        {% if not info.has_primary_key %} • <span class="text-danger">No Primary Key</span>{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Context-Specific Recommendations -->
+                    {% if context_analysis.recommendations %}
+                    <div class="mb-3">
+                        <h6><i class="fas fa-lightbulb text-success me-2"></i>Context-Aware Recommendations</h6>
+                        {% for recommendation in context_analysis.recommendations %}
+                            <div class="context-recommendation">
+                                <i class="fas fa-magic me-2"></i>{{ recommendation }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SQL Query -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        SQL Query
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="sql-code">{{ query.sql_text }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div class="row">
+        <!-- Issues Found -->
+        {% if analysis.issues_found %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Issues Found
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for issue in analysis.issues_found %}
+                        <div class="issue-item">
+                            <i class="fas fa-times-circle me-2"></i>{{ issue }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        {% if analysis.recommendations %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for recommendation in analysis.recommendations %}
+                        <div class="recommendation-item">
+                            <i class="fas fa-arrow-right me-2"></i>{{ recommendation }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Performance Notes -->
+    {% if analysis.performance_notes %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Performance Notes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="performance-note">
+                        {{ analysis.performance_notes }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Execution Plan -->
+    {% if execution_plan %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-route me-2"></i>
+                        Query Execution Plan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="execution-plan">
+                        {% if execution_plan.format == 'json' %}
+                            {{ execution_plan.plan|pprint }}
+                        {% else %}
+                            {% for row in execution_plan.plan %}
+                                {{ row|join:" | " }}<br>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <div class="row">
+            <div class="col-12 d-flex gap-2 justify-content-center flex-wrap">
+                <a href="{% url 'submit_feedback' analysis.id %}" class="btn btn-success">
+                    <i class="fas fa-comment me-2"></i>
+                    Provide Feedback
+                </a>
+                <a href="{% url 'query_with_context' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>
+                    Analyze Another Query
+                </a>
+                <a href="{% url 'database_schema' %}" class="btn btn-outline-info">
+                    <i class="fas fa-table me-2"></i>
+                    View Schema
+                </a>
+                <a href="{% url 'query_history' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-history me-2"></i>
+                    Query History
+                </a>
+                <a href="{% url 'index' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-home me-2"></i>
+                    Main Menu
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add copy to clipboard functionality for SQL query
+    function addCopyButton() {
+        const sqlCode = document.querySelector('.sql-code');
+        if (sqlCode) {
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn btn-sm btn-outline-secondary position-absolute';
+            copyBtn.style.top = '10px';
+            copyBtn.style.right = '10px';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.title = 'Copy SQL Query';
+
+            copyBtn.onclick = function() {
+                navigator.clipboard.writeText(sqlCode.textContent);
+                copyBtn.innerHTML = '<i class="fas fa-check text-success"></i>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+            };
+
+            sqlCode.parentElement.style.position = 'relative';
+            sqlCode.parentElement.appendChild(copyBtn);
+        }
+    }
+
+    // Initialize copy button when page loads
+    document.addEventListener('DOMContentLoaded', addCopyButton);
+</script>
+{% endblock %}

@@ -1,0 +1,649 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}QueryGrade - SQL Query Grader{% endblock %}
+
+{% block extra_css %}
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+{% endblock %}
+
+{% block content %}
+
+
+.CodeMirror-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    width: 100vw !important;
+    z-index: 9999 !important;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.required {
+    color: #ff4444;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    background-color: #1a1a1a;
+    border: 2px solid #444;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.half-width {
+    flex: 1;
+}
+
+.form-help {
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+}
+
+.form-errors .error-message {
+    color: #ff4444;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.examples-section {
+    margin-top: 40px;
+}
+
+.examples-section h3 {
+    color: #fff;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 24px;
+}
+
+.examples-subtitle {
+    color: #b0b0b0;
+    text-align: center;
+    margin-bottom: 30px;
+    font-style: italic;
+}
+
+.example-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.example-category {
+    background-color: #2a2a2a;
+    padding: 25px;
+    border-radius: 12px;
+    border-left: 4px solid transparent;
+}
+
+.example-category:nth-child(1) {
+    border-left-color: #28a745; /* Green for well-optimized */
+}
+
+.example-category:nth-child(2) {
+    border-left-color: #ffc107; /* Yellow for moderate issues */
+}
+
+.example-category:nth-child(3) {
+    border-left-color: #dc3545; /* Red for serious problems */
+}
+
+.example-category h4 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.example-queries {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 15px;
+}
+
+.example-query {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.example-query:hover {
+    background-color: #333;
+    border-color: #007bff;
+    transform: translateY(-2px);
+}
+
+.example-query h5 {
+    color: #007bff;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.example-query pre {
+    background-color: #0f0f0f;
+    padding: 15px;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 11px;
+    overflow-x: auto;
+    margin: 0;
+    line-height: 1.4;
+    border: 1px solid #333;
+}
+
+@media (max-width: 768px) {
+    .example-queries {
+        grid-template-columns: 1fr;
+    }
+
+    .example-category {
+        padding: 20px;
+    }
+}
+
+.messages .alert {
+    padding: 12px 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.alert-error {
+    background-color: #d32f2f;
+    color: white;
+}
+
+.alert-success {
+    background-color: #388e3c;
+    color: white;
+}
+
+.alert-warning {
+    background-color: #f57c00;
+    color: white;
+}
+
+.alert-info {
+    background-color: #1976d2;
+    color: white;
+}
+</style>
+</head>
+<body>
+    <nav>
+        <h1>QueryGrade</h1>
+    </nav>
+    <div class="container">
+<div class="grade-container">
+    <div class="grade-header">
+        <h1>SQL Query Grader</h1>
+        <p class="subtitle">Get instant feedback on your SQL queries with letter grades and detailed recommendations</p>
+
+        <div class="navigation-tabs">
+            <a href="{% url 'grade_query' %}" class="tab-link active">Grade Query</a>
+            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
+            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
+        </div>
+    </div>
+
+
+    <div class="grade-form-container">
+        <form method="post" class="grade-form">
+            {% csrf_token %}
+
+            <div class="form-group main-query-group">
+                <div class="sql-editor-header">
+                    <label for="{{ form.sql_query.id_for_label }}" class="form-label">
+                        {{ form.sql_query.label }}
+                        <span class="required">*</span>
+                    </label>
+                    <div class="editor-controls">
+                        <button type="button" class="btn-help" onclick="showKeyboardShortcuts()" title="Show keyboard shortcuts">
+                            <span class="help-icon">⌨️</span>
+                            Shortcuts
+                        </button>
+                        <button type="button" class="btn-help" onclick="toggleFullscreen()" title="Toggle fullscreen">
+                            <span class="help-icon">⛶</span>
+                            Fullscreen
+                        </button>
+                    </div>
+                </div>
+                {{ form.sql_query }}
+                {% if form.sql_query.help_text %}
+                    <div class="form-help">{{ form.sql_query.help_text }}</div>
+                {% endif %}
+                {% if form.sql_query.errors %}
+                    <div class="form-errors">
+                        {% for error in form.sql_query.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="editor-features">
+                    <span class="feature-tag">✨ Syntax Highlighting</span>
+                    <span class="feature-tag">🔍 Auto-complete</span>
+                    <span class="feature-tag">📁 Code Folding</span>
+                    <span class="feature-tag">🎯 Bracket Matching</span>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="{{ form.database_type.id_for_label }}" class="form-label">
+                        {{ form.database_type.label }}
+                    </label>
+                    {{ form.database_type }}
+                    {% if form.database_type.help_text %}
+                        <div class="form-help">{{ form.database_type.help_text }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group half-width">
+                    <label for="{{ form.database_version.id_for_label }}" class="form-label">
+                        {{ form.database_version.label }}
+                    </label>
+                    {{ form.database_version }}
+                    {% if form.database_version.help_text %}
+                        <div class="form-help">{{ form.database_version.help_text }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.use_case_notes.id_for_label }}" class="form-label">
+                    {{ form.use_case_notes.label }}
+                </label>
+                {{ form.use_case_notes }}
+                {% if form.use_case_notes.help_text %}
+                    <div class="form-help">{{ form.use_case_notes.help_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-grade">
+                    <span class="btn-icon">📊</span>
+                    Grade My Query
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                    Clear Form
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="examples-section">
+        <h3>Example Queries - Test Different Performance Patterns</h3>
+        <p class="examples-subtitle">Click any example to load it into the form and see how our analyzer grades different SQL patterns</p>
+
+        <div class="example-categories">
+            <div class="example-category">
+                <h4>🟢 Well-Optimized Queries (Grade: A-B)</h4>
+                <div class="example-queries">
+                    <div class="example-query" onclick="loadExample('optimized-join')">
+                        <h5>Efficient JOIN with Proper Indexing</h5>
+                        <pre>SELECT u.name, u.email, COUNT(o.id) as order_count
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at >= '2023-01-01'
+  AND u.status = 'active'
+GROUP BY u.id, u.name, u.email
+HAVING COUNT(o.id) > 0
+ORDER BY order_count DESC
+LIMIT 100;</pre>
+                    </div>
+
+                    <div class="example-query" onclick="loadExample('union-all-good')">
+                        <h5>Proper UNION ALL Usage</h5>
+                        <pre>SELECT name, email FROM active_users
+WHERE created_at >= '2024-01-01'
+UNION ALL
+SELECT name, email FROM inactive_users
+WHERE last_login >= '2023-01-01'
+ORDER BY name;</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="example-category">
+                <h4>🟡 Moderate Issues (Grade: C-D)</h4>
+                <div class="example-queries">
+                    <div class="example-query" onclick="loadExample('union-without-all')">
+                        <h5>UNION Without ALL (Performance Issue)</h5>
+                        <pre>SELECT product_name, category FROM products
+WHERE price > 100
+UNION
+SELECT product_name, category FROM archived_products
+WHERE archived_date > '2023-01-01'
+ORDER BY product_name;</pre>
+                    </div>
+
+                    <div class="example-query" onclick="loadExample('function-in-where')">
+                        <h5>Functions in WHERE Clause</h5>
+                        <pre>SELECT * FROM users
+WHERE UPPER(email) LIKE '%@GMAIL.COM'
+  AND YEAR(created_at) = 2024
+  AND LENGTH(name) > 5
+ORDER BY created_at DESC;</pre>
+                    </div>
+
+                    <div class="example-query" onclick="loadExample('having-misuse')">
+                        <h5>Misused HAVING Clause</h5>
+                        <pre>SELECT department, COUNT(*) as emp_count
+FROM employees
+GROUP BY department
+HAVING department = 'Sales'
+  AND emp_count > 10
+ORDER BY emp_count DESC;</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="example-category">
+                <h4>🔴 Serious Problems (Grade: D-F)</h4>
+                <div class="example-queries">
+                    <div class="example-query" onclick="loadExample('correlated-subquery')">
+                        <h5>Slow Correlated Subquery</h5>
+                        <pre>SELECT u.name, u.email,
+  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count,
+  (SELECT MAX(o.total) FROM orders o WHERE o.user_id = u.id) as max_order
+FROM users u
+WHERE u.status = 'active';</pre>
+                    </div>
+
+                    <div class="example-query" onclick="loadExample('cartesian-product')">
+                        <h5>Dangerous Cartesian Product</h5>
+                        <pre>SELECT *
+FROM users u, orders o, products p
+WHERE u.created_at > '2024-01-01'
+  AND o.total > 100;</pre>
+                    </div>
+
+                    <div class="example-query" onclick="loadExample('multiple-issues')">
+                        <h5>Query with Multiple Issues</h5>
+                        <pre>SELECT DISTINCT *
+FROM users u
+WHERE UPPER(u.email) LIKE '%@%'
+  AND u.id NOT IN (
+    SELECT user_id FROM orders
+    WHERE user_id IS NOT NULL
+  )
+ORDER BY SUBSTRING(u.name, 1, 5);</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div>
+<!-- CodeMirror JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
+
+<script>
+let sqlEditor = null;
+
+// Initialize CodeMirror SQL editor
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('{{ form.sql_query.id_for_label }}');
+    if (textarea) {
+        // Create CodeMirror instance
+        sqlEditor = CodeMirror.fromTextArea(textarea, {
+            mode: 'text/x-sql',
+            theme: 'material-darker',
+            lineNumbers: true,
+            indentUnit: 2,
+            smartIndent: true,
+            lineWrapping: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            showCursorWhenSelecting: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Cmd-Space": "autocomplete",
+                "Ctrl-/": "toggleComment",
+                "Cmd-/": "toggleComment",
+                "F11": function(cm) {
+                    cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+                },
+                "Esc": function(cm) {
+                    if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+                }
+            },
+            hintOptions: {
+                tables: {
+                    users: ["id", "name", "email", "created_at", "status", "last_login"],
+                    orders: ["id", "user_id", "total", "status", "created_at", "shipped_at"],
+                    products: ["id", "name", "price", "category", "in_stock", "description"],
+                    customers: ["id", "name", "email", "phone", "address", "registration_date"],
+                    employees: ["id", "name", "department", "salary", "hire_date", "manager_id"],
+                    categories: ["id", "name", "description", "parent_id"]
+                }
+            },
+            placeholder: `Paste your SQL query here...
+
+Example:
+SELECT u.name, u.email, COUNT(o.id) as order_count
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at >= '2023-01-01'
+GROUP BY u.id, u.name, u.email
+ORDER BY order_count DESC;`
+        });
+
+        // Set editor height
+        sqlEditor.setSize(null, 'auto');
+        sqlEditor.setOption("minHeight", 300);
+
+        // Enable auto-completion
+        sqlEditor.on("inputRead", function(cm, event) {
+            if (event.text[0].match(/\w/) || event.text[0] === '.') {
+                cm.showHint();
+            }
+        });
+
+        // Sync with form submission
+        sqlEditor.on('change', function() {
+            sqlEditor.save(); // Save to original textarea
+        });
+
+        // Custom styling for better integration
+        setTimeout(function() {
+            const editorElement = sqlEditor.getWrapperElement();
+            editorElement.style.border = '2px solid #444';
+            editorElement.style.borderRadius = '6px';
+            editorElement.style.fontSize = '14px';
+            editorElement.style.fontFamily = 'Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace';
+        }, 100);
+    }
+});
+
+function clearForm() {
+    if (sqlEditor) {
+        sqlEditor.setValue('');
+    }
+    document.getElementById('{{ form.database_type.id_for_label }}').selectedIndex = 0;
+    document.getElementById('{{ form.database_version.id_for_label }}').value = '';
+    document.getElementById('{{ form.use_case_notes.id_for_label }}').value = '';
+}
+
+function loadExample(exampleType) {
+    const examples = {
+        // Well-Optimized Queries (Grade: A-B)
+        'optimized-join': `SELECT u.name, u.email, COUNT(o.id) as order_count
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at >= '2023-01-01'
+  AND u.status = 'active'
+GROUP BY u.id, u.name, u.email
+HAVING COUNT(o.id) > 0
+ORDER BY order_count DESC
+LIMIT 100;`,
+
+        'union-all-good': `SELECT name, email FROM active_users
+WHERE created_at >= '2024-01-01'
+UNION ALL
+SELECT name, email FROM inactive_users
+WHERE last_login >= '2023-01-01'
+ORDER BY name;`,
+
+        // Moderate Issues (Grade: C-D)
+        'union-without-all': `SELECT product_name, category FROM products
+WHERE price > 100
+UNION
+SELECT product_name, category FROM archived_products
+WHERE archived_date > '2023-01-01'
+ORDER BY product_name;`,
+
+        'function-in-where': `SELECT * FROM users
+WHERE UPPER(email) LIKE '%@GMAIL.COM'
+  AND YEAR(created_at) = 2024
+  AND LENGTH(name) > 5
+ORDER BY created_at DESC;`,
+
+        'having-misuse': `SELECT department, COUNT(*) as emp_count
+FROM employees
+GROUP BY department
+HAVING department = 'Sales'
+  AND emp_count > 10
+ORDER BY emp_count DESC;`,
+
+        // Serious Problems (Grade: D-F)
+        'correlated-subquery': `SELECT u.name, u.email,
+  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count,
+  (SELECT MAX(o.total) FROM orders o WHERE o.user_id = u.id) as max_order
+FROM users u
+WHERE u.status = 'active';`,
+
+        'cartesian-product': `SELECT *
+FROM users u, orders o, products p
+WHERE u.created_at > '2024-01-01'
+  AND o.total > 100;`,
+
+        'multiple-issues': `SELECT DISTINCT *
+FROM users u
+WHERE UPPER(u.email) LIKE '%@%'
+  AND u.id NOT IN (
+    SELECT user_id FROM orders
+    WHERE user_id IS NOT NULL
+  )
+ORDER BY SUBSTRING(u.name, 1, 5);`
+    };
+
+    if (examples[exampleType] && sqlEditor) {
+        sqlEditor.setValue(examples[exampleType]);
+        sqlEditor.focus();
+    }
+}
+
+// Add keyboard shortcuts info
+function showKeyboardShortcuts() {
+    const shortcuts = `
+Keyboard Shortcuts for SQL Editor:
+
+• Ctrl/Cmd + Space: Auto-complete
+• Ctrl/Cmd + /: Toggle comments
+• F11: Full screen mode
+• Esc: Exit full screen
+• Tab: Indent selection
+• Shift + Tab: Unindent selection
+• Ctrl/Cmd + A: Select all
+• Ctrl/Cmd + Z: Undo
+• Ctrl/Cmd + Y: Redo
+`;
+    alert(shortcuts);
+}
+
+// Toggle fullscreen mode
+function toggleFullscreen() {
+    if (sqlEditor) {
+        const isFullScreen = sqlEditor.getOption("fullScreen");
+        sqlEditor.setOption("fullScreen", !isFullScreen);
+        if (!isFullScreen) {
+            sqlEditor.focus();
+        }
+    }
+}
+</script>
+{% endblock %}

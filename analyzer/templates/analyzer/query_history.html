@@ -1,0 +1,551 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="history-container">
+    <div class="history-header">
+        <h1>Query History</h1>
+        <p class="subtitle">View your previously analyzed queries and their grades</p>
+
+        <div class="navigation-tabs">
+            <a href="{% url 'grade_query' %}" class="tab-link">Grade Query</a>
+            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
+            <a href="{% url 'query_history' %}" class="tab-link active">Query History</a>
+        </div>
+    </div>
+
+    {% if page_obj %}
+        <div class="history-stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ page_obj.paginator.count }}</div>
+                <div class="stat-label">Total Queries</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">
+                    {% widthratio page_obj.object_list|length 1 page_obj.paginator.count as avg %}
+                    {{ avg|default:"0" }}%
+                </div>
+                <div class="stat-label">Recent Activity</div>
+            </div>
+        </div>
+
+        <div class="history-list">
+            {% for history in page_obj %}
+                <div class="history-item">
+                    <div class="history-header-row">
+                        <div class="query-info">
+                            <span class="query-type">{{ history.query.query_type }}</span>
+                            <span class="query-date">{{ history.submitted_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <div class="grade-info">
+                            {% if history.query.analysis %}
+                                <div class="grade-badge-small grade-{{ history.query.analysis.grade|lower }}">
+                                    {{ history.query.analysis.grade }}
+                                </div>
+                                <span class="grade-score-small">{{ history.query.analysis.score|floatformat:1 }}/100</span>
+                            {% else %}
+                                <span class="no-analysis">No analysis</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="query-preview">
+                        <pre><code>{{ history.query.sql_text|truncatechars:200 }}</code></pre>
+                    </div>
+
+                    <div class="query-metadata">
+                        <div class="metadata-grid">
+                            <div class="metadata-item">
+                                <span class="metadata-label">Tables:</span>
+                                <span class="metadata-value">{{ history.query.table_count }}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Joins:</span>
+                                <span class="metadata-value">{{ history.query.join_count }}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Complexity:</span>
+                                <span class="metadata-value">{{ history.query.estimated_complexity }}/100</span>
+                            </div>
+                            {% if history.database_type %}
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Database:</span>
+                                    <span class="metadata-value">{{ history.database_type|title }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if history.query.analysis %}
+                        <div class="analysis-preview">
+                            {% if history.query.analysis.issues_found %}
+                                <div class="preview-section">
+                                    <strong>Issues Found ({{ history.query.analysis.issues_found|length }}):</strong>
+                                    {% for issue in history.query.analysis.issues_found|slice:":2" %}
+                                        <span class="issue-tag severity-{{ issue.severity }}">{{ issue.type|title }}</span>
+                                    {% endfor %}
+                                    {% if history.query.analysis.issues_found|length > 2 %}
+                                        <span class="more-indicator">+{{ history.query.analysis.issues_found|length|add:"-2" }} more</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            {% if history.query.analysis.recommendations %}
+                                <div class="preview-section">
+                                    <strong>Recommendations ({{ history.query.analysis.recommendations|length }}):</strong>
+                                    {% for rec in history.query.analysis.recommendations|slice:":2" %}
+                                        <span class="recommendation-tag priority-{{ rec.priority }}">{{ rec.type|title }}</span>
+                                    {% endfor %}
+                                    {% if history.query.analysis.recommendations|length > 2 %}
+                                        <span class="more-indicator">+{{ history.query.analysis.recommendations|length|add:"-2" }} more</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="history-actions">
+                        {% if history.query.analysis %}
+                            <a href="{% url 'grade_results' history.query.analysis.id %}" class="btn btn-sm btn-primary">
+                                View Full Analysis
+                            </a>
+                        {% endif %}
+                        <button onclick="copyQuery({{ history.id }})" class="btn btn-sm btn-secondary">
+                            Copy Query
+                        </button>
+                        <button onclick="reanalyzeQuery({{ history.id }})" class="btn btn-sm btn-outline">
+                            Re-analyze
+                        </button>
+                    </div>
+
+                    <textarea id="query-{{ history.id }}" style="display: none;">{{ history.query.sql_text }}</textarea>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-wrapper">
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1" class="page-link">&laquo; First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+                {% endif %}
+
+                <span class="page-info">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    ({{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} queries)
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <h3>No queries analyzed yet</h3>
+            <p>Start by grading your first SQL query to build your analysis history.</p>
+            <a href="{% url 'grade_query' %}" class="btn btn-primary">Grade Your First Query</a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function copyQuery(historyId) {
+    const textarea = document.getElementById('query-' + historyId);
+    textarea.select();
+    document.execCommand('copy');
+
+    // Show feedback
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = 'Copied!';
+    button.style.backgroundColor = '#28a745';
+
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.style.backgroundColor = '';
+    }, 2000);
+}
+
+function reanalyzeQuery(historyId) {
+    const textarea = document.getElementById('query-' + historyId);
+    const queryText = textarea.value;
+
+    // Create a form and submit it to the grade endpoint
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "grade_query" %}';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken.value;
+        form.appendChild(csrfInput);
+    }
+
+    // Add query text
+    const queryInput = document.createElement('textarea');
+    queryInput.name = 'sql_query';
+    queryInput.value = queryText;
+    queryInput.style.display = 'none';
+    form.appendChild(queryInput);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+<style>
+.history-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.history-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.history-header h1 {
+    color: #fff;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #b0b0b0;
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.navigation-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.tab-link {
+    padding: 10px 20px;
+    background-color: #333;
+    color: #e0e0e0;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+
+.tab-link:hover {
+    background-color: #444;
+}
+
+.tab-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.history-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    text-align: center;
+    background-color: #2a2a2a;
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 120px;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    color: #b0b0b0;
+    margin-top: 5px;
+}
+
+.history-item {
+    background-color: #2a2a2a;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+
+.history-item:hover {
+    transform: translateY(-2px);
+}
+
+.history-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.query-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.query-type {
+    background-color: #007bff;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.query-date {
+    color: #b0b0b0;
+    font-size: 14px;
+}
+
+.grade-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.grade-badge-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.grade-a { background: linear-gradient(135deg, #4caf50, #45a049); }
+.grade-b { background: linear-gradient(135deg, #2196f3, #1976d2); }
+.grade-c { background: linear-gradient(135deg, #ff9800, #f57c00); }
+.grade-d { background: linear-gradient(135deg, #ff5722, #d84315); }
+.grade-f { background: linear-gradient(135deg, #f44336, #d32f2f); }
+
+.grade-score-small {
+    color: #e0e0e0;
+    font-weight: bold;
+}
+
+.no-analysis {
+    color: #888;
+    font-style: italic;
+}
+
+.query-preview {
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    margin-bottom: 15px;
+}
+
+.query-preview pre {
+    padding: 15px;
+    margin: 0;
+    color: #e0e0e0;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.metadata-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: #333;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.metadata-label {
+    color: #b0b0b0;
+}
+
+.metadata-value {
+    color: #fff;
+    font-weight: bold;
+}
+
+.analysis-preview {
+    border-top: 1px solid #444;
+    padding-top: 15px;
+    margin-bottom: 15px;
+}
+
+.preview-section {
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
+.preview-section strong {
+    color: #fff;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.issue-tag, .recommendation-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-right: 5px;
+    margin-bottom: 3px;
+}
+
+.severity-critical { background-color: rgba(244, 67, 54, 0.2); color: #f44336; }
+.severity-high { background-color: rgba(255, 87, 34, 0.2); color: #ff5722; }
+.severity-medium { background-color: rgba(255, 152, 0, 0.2); color: #ff9800; }
+.severity-low { background-color: rgba(33, 150, 243, 0.2); color: #2196f3; }
+
+.priority-critical { background-color: rgba(244, 67, 54, 0.2); color: #f44336; }
+.priority-high { background-color: rgba(255, 87, 34, 0.2); color: #ff5722; }
+.priority-medium { background-color: rgba(255, 152, 0, 0.2); color: #ff9800; }
+.priority-low { background-color: rgba(33, 150, 243, 0.2); color: #2196f3; }
+
+.more-indicator {
+    color: #888;
+    font-style: italic;
+    font-size: 11px;
+}
+
+.history-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid #007bff;
+    color: #007bff;
+}
+
+.btn-outline:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: #2a2a2a;
+    padding: 15px 30px;
+    border-radius: 8px;
+}
+
+.page-link {
+    padding: 8px 16px;
+    background-color: #333;
+    color: #e0e0e0;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background-color 0.3s;
+}
+
+.page-link:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.page-info {
+    color: #b0b0b0;
+    font-size: 14px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: #2a2a2a;
+    border-radius: 12px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #b0b0b0;
+    margin-bottom: 30px;
+}
+</style>
+{% endblock %}

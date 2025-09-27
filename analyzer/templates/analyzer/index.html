@@ -1,39 +1,150 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QueryGrade</title>
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
-</head>
-<body>
-    <header>
-        <h1>Upload MySQL Log File</h1>
-    </header>
-    <main>
-        <form method="post" enctype="multipart/form-data" id="uploadForm">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Upload</button>
-        </form>
-    </main>
+{% extends 'analyzer/base.html' %}
+{% load static %}
 
-    <script>
-        document.getElementById('uploadForm').addEventListener('submit', function(event) {
-            const fileInput = document.querySelector('input[name="log_file"]');
-            const file = fileInput.files[0];
-            const validExtensions = ['.log'];
-            const validMimeTypes = ['text/plain'];
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>QueryGrade</h1>
+        <p class="subtitle">Comprehensive SQL query analysis and database optimization platform</p>
 
-            if (!validExtensions.includes(file.name.slice(-4).toLowerCase())) {
-                alert('Unsupported file extension.');
-                event.preventDefault();
-            }
+        {% if user.is_authenticated %}
+            <p class="welcome-message">Welcome back, {{ user.username }}!</p>
+        {% endif %}
+    </div>
 
-            if (!validMimeTypes.includes(file.type)) {
-                alert('Unsupported file type.');
-                event.preventDefault();
-            }
-        });
-    </script>
-</body>
-</html>
+    <div class="features-grid">
+        <!-- Primary Feature: Query Grading -->
+        <div class="feature-card primary-feature">
+            <div class="feature-icon">🎯</div>
+            <h2>SQL Query Grader</h2>
+            <p class="feature-description">
+                Get instant feedback on individual SQL queries. Paste your query and receive a letter grade (A-F)
+                with detailed recommendations for improvement.
+            </p>
+            <div class="feature-highlights">
+                <span class="highlight">✓ Letter Grades (A-F)</span>
+                <span class="highlight">✓ Performance Analysis</span>
+                <span class="highlight">✓ Improvement Tips</span>
+                <span class="highlight">✓ Query History</span>
+            </div>
+            <a href="{% url 'grade_query' %}" class="btn btn-primary btn-large">
+                <span class="btn-icon">📊</span>
+                Grade My Query
+            </a>
+        </div>
+
+        <!-- Log Analysis Feature -->
+        <div class="feature-card">
+            <div class="feature-icon">📈</div>
+            <h2>Log File Analysis</h2>
+            <p class="feature-description">
+                Upload MySQL slow query logs or general query logs to identify problematic queries
+                using machine learning-based anomaly detection.
+            </p>
+            <div class="feature-highlights">
+                <span class="highlight">✓ Slow Query Logs</span>
+                <span class="highlight">✓ General Query Logs</span>
+                <span class="highlight">✓ ML Anomaly Detection</span>
+                <span class="highlight">✓ Performance Insights</span>
+            </div>
+
+            {% if form %}
+                <div class="upload-form-container">
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="{{ form.log_type.id_for_label }}">{{ form.log_type.label }}</label>
+                            {{ form.log_type }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.log_file.id_for_label }}">{{ form.log_file.label }}</label>
+                            {{ form.log_file }}
+                        </div>
+                        <button type="submit" class="btn btn-secondary">
+                            <span class="btn-icon">📁</span>
+                            Analyze Log File
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Query History -->
+        <div class="feature-card">
+            <div class="feature-icon">📚</div>
+            <h2>Query History</h2>
+            <p class="feature-description">
+                Review your previously analyzed queries, track your improvement over time,
+                and revisit past analysis results.
+            </p>
+            <div class="feature-highlights">
+                <span class="highlight">✓ Analysis History</span>
+                <span class="highlight">✓ Performance Tracking</span>
+                <span class="highlight">✓ Query Comparison</span>
+                <span class="highlight">✓ Export Results</span>
+            </div>
+            <a href="{% url 'query_history' %}" class="btn btn-secondary">
+                <span class="btn-icon">📋</span>
+                View History
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Activity (if user is authenticated) -->
+    {% if user.is_authenticated %}
+        <div class="recent-activity">
+            <h3>Quick Actions</h3>
+            <div class="quick-actions">
+                <a href="{% url 'grade_query' %}" class="quick-action-btn">
+                    <span class="action-icon">⚡</span>
+                    Quick Grade
+                </a>
+                <a href="{% url 'query_history' %}" class="quick-action-btn">
+                    <span class="action-icon">🕒</span>
+                    Recent Queries
+                </a>
+                <a href="{% url 'logout' %}" class="quick-action-btn logout-btn">
+                    <span class="action-icon">🚪</span>
+                    Logout
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="auth-section">
+            <p>Please <a href="{% url 'login' %}">log in</a> or <a href="{% url 'register' %}">create an account</a> to start analyzing your queries.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+if (document.getElementById('uploadForm')) {
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        const fileInput = document.querySelector('input[name="log_file"]');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select a file to upload.');
+            event.preventDefault();
+            return;
+        }
+
+        const validExtensions = ['.log'];
+        const validMimeTypes = ['text/plain'];
+
+        if (!validExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
+            alert('Unsupported file extension. Please upload a .log file.');
+            event.preventDefault();
+            return;
+        }
+
+        if (!validMimeTypes.includes(file.type)) {
+            alert('Unsupported file type. Please ensure the file is a plain text log file.');
+            event.preventDefault();
+            return;
+        }
+    });
+}
+</script>
+
+{% endblock %}

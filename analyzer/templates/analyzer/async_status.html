@@ -1,0 +1,305 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}Processing Status - QueryGrade{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow-medium);
+}
+
+.status-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.status-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: var(--accent-blue);
+}
+
+.progress-container {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.status-details {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.5rem 0;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.status-item:last-child {
+    border-bottom: none;
+}
+
+.status-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.status-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.completed {
+    color: var(--accent-green);
+}
+
+.error {
+    color: var(--accent-red);
+}
+
+.processing {
+    color: var(--accent-blue);
+}
+
+.results-link {
+    display: inline-block;
+    background: var(--accent-green);
+    color: var(--text-white);
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+.results-link:hover {
+    background: var(--accent-green-dark);
+    text-decoration: none;
+    color: var(--text-white);
+}
+
+.error-message {
+    background: var(--bg-danger);
+    border: 1px solid var(--border-danger);
+    color: var(--text-danger);
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+}
+
+.refresh-button {
+    background: var(--accent-blue);
+    color: var(--text-white);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+.refresh-button:hover {
+    background: var(--accent-blue-dark);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="status-container">
+    <div class="status-header">
+        <div class="status-icon">⚡</div>
+        <h2>Processing Your Request</h2>
+        <p class="text-secondary">Please wait while we analyze your data...</p>
+    </div>
+
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="text-center">
+            <span id="progressText">Initializing...</span>
+        </div>
+    </div>
+
+    <div class="status-details">
+        <div class="status-item">
+            <span class="status-label">Task ID:</span>
+            <span class="status-value" id="taskId">{{ task_id }}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Status:</span>
+            <span class="status-value processing" id="taskStatus">PENDING</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Started:</span>
+            <span class="status-value" id="startTime">Just now</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Estimated completion:</span>
+            <span class="status-value" id="estimatedTime">Calculating...</span>
+        </div>
+    </div>
+
+    <div id="errorContainer" class="error-message" style="display: none;">
+        <strong>Error:</strong> <span id="errorMessage"></span>
+    </div>
+
+    <div id="resultsContainer" style="display: none; text-align: center;">
+        <h3 class="completed">✅ Processing Complete!</h3>
+        <p>Your analysis is ready. Click below to view the results.</p>
+        <a href="#" id="resultsLink" class="results-link">View Results</a>
+    </div>
+
+    <div class="text-center" style="margin-top: 2rem;">
+        <button class="refresh-button" onclick="checkStatus()">
+            Refresh Status
+        </button>
+        <br><br>
+        <a href="{% url 'index' %}" class="text-secondary">← Back to Home</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let taskId = "{{ task_id }}";
+let checkInterval;
+let startTime = new Date();
+
+function checkStatus() {
+    fetch(`/async/check/${taskId}/`)
+        .then(response => response.json())
+        .then(data => {
+            updateStatus(data);
+        })
+        .catch(error => {
+            console.error('Error checking status:', error);
+            showError('Failed to check status. Please refresh the page.');
+        });
+}
+
+function updateStatus(data) {
+    const statusElement = document.getElementById('taskStatus');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    statusElement.textContent = data.status;
+    statusElement.className = 'status-value';
+
+    if (data.status === 'PENDING') {
+        statusElement.classList.add('processing');
+        progressFill.style.width = '10%';
+        progressText.textContent = 'Waiting to start...';
+    } else if (data.status === 'STARTED' || data.status === 'PROGRESS') {
+        statusElement.classList.add('processing');
+        let progress = data.progress || 50;
+        progressFill.style.width = progress + '%';
+        progressText.textContent = `Processing... ${progress}%`;
+    } else if (data.status === 'SUCCESS') {
+        statusElement.classList.add('completed');
+        progressFill.style.width = '100%';
+        progressText.textContent = 'Complete!';
+        showResults(data.result);
+        clearInterval(checkInterval);
+    } else if (data.status === 'FAILURE') {
+        statusElement.classList.add('error');
+        progressFill.style.width = '100%';
+        progressFill.style.background = 'var(--accent-red)';
+        progressText.textContent = 'Failed';
+        showError(data.error || 'Processing failed');
+        clearInterval(checkInterval);
+    }
+
+    // Update estimated time
+    updateEstimatedTime(data.status);
+}
+
+function updateEstimatedTime(status) {
+    const estimatedElement = document.getElementById('estimatedTime');
+    const elapsed = Math.floor((new Date() - startTime) / 1000);
+
+    if (status === 'SUCCESS' || status === 'FAILURE') {
+        estimatedElement.textContent = `Completed in ${elapsed}s`;
+    } else if (status === 'PENDING') {
+        estimatedElement.textContent = 'Calculating...';
+    } else {
+        // Rough estimation based on typical processing times
+        const estimated = Math.max(30 - elapsed, 10);
+        estimatedElement.textContent = `~${estimated}s remaining`;
+    }
+}
+
+function showResults(result) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsLink = document.getElementById('resultsLink');
+
+    if (result && result.cache_key) {
+        resultsLink.href = `/async/results/?cache_key=${result.cache_key}`;
+        resultsContainer.style.display = 'block';
+    } else {
+        // Fallback for different result types
+        resultsLink.href = '/history/';
+        resultsContainer.style.display = 'block';
+    }
+}
+
+function showError(message) {
+    const errorContainer = document.getElementById('errorContainer');
+    const errorMessage = document.getElementById('errorMessage');
+
+    errorMessage.textContent = message;
+    errorContainer.style.display = 'block';
+}
+
+// Start checking status immediately and then every 2 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    checkStatus();
+    checkInterval = setInterval(checkStatus, 2000);
+
+    // Update start time display
+    document.getElementById('startTime').textContent = startTime.toLocaleTimeString();
+});
+
+// Clean up interval when page is unloaded
+window.addEventListener('beforeunload', function() {
+    if (checkInterval) {
+        clearInterval(checkInterval);
+    }
+});
+</script>
+{% endblock %}

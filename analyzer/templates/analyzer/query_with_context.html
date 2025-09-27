@@ -1,0 +1,275 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}Context-Aware Query Analysis - QueryGrade{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        .context-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .sql-editor {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+        }
+        .sql-editor:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            background-color: white;
+        }
+        .feature-highlight {
+            background-color: #e8f5e8;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+        .db-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+        .btn-analyze {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-analyze:hover {
+            background: linear-gradient(135deg, #218838 0%, #1ca085 100%);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Context Information -->
+            <div class="context-info">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4 class="mb-1">
+                            <i class="fas fa-link me-2"></i>
+                            Context-Aware Query Analysis
+                        </h4>
+                        <p class="mb-0">
+                            Connected to <strong>{{ db_config.name }}</strong>
+                            <span class="db-badge">{{ db_config.engine|title }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a href="{% url 'database_schema' %}" class="btn btn-outline-light">
+                            <i class="fas fa-table me-2"></i>View Schema
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Highlights -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="feature-highlight">
+                        <h6><i class="fas fa-search text-success me-2"></i>Schema-Aware Analysis</h6>
+                        <p class="mb-0 small">Recommendations based on your actual table structure, indexes, and relationships.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-highlight">
+                        <h6><i class="fas fa-chart-line text-success me-2"></i>Execution Plan</h6>
+                        <p class="mb-0 small">Real database execution plan analysis for performance insights.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-highlight">
+                        <h6><i class="fas fa-lightbulb text-success me-2"></i>Targeted Recommendations</h6>
+                        <p class="mb-0 small">Specific advice for your database configuration and data patterns.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Input Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        SQL Query Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- SQL Query Input -->
+                        <div class="form-group">
+                            <label for="{{ form.sql_query.id_for_label }}" class="form-label">
+                                <strong>{{ form.sql_query.label }}</strong>
+                            </label>
+                            {{ form.sql_query }}
+                            {% if form.sql_query.help_text %}
+                                <div class="form-text">{{ form.sql_query.help_text }}</div>
+                            {% endif %}
+                            {% if form.sql_query.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.sql_query.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <!-- Database Version -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.database_version.id_for_label }}" class="form-label">{{ form.database_version.label }}</label>
+                                    {{ form.database_version }}
+                                    {% if form.database_version.help_text %}
+                                        <div class="form-text">{{ form.database_version.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.database_version.errors %}
+                                        <div class="text-danger mt-1">
+                                            {% for error in form.database_version.errors %}{{ error }}{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Database Type (read-only) -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Database Type</label>
+                                    <input type="text" class="form-control" value="{{ db_config.engine|title }}" readonly>
+                                    <div class="form-text">Automatically detected from your connection</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Use Case Notes -->
+                        <div class="form-group">
+                            <label for="{{ form.use_case_notes.id_for_label }}" class="form-label">{{ form.use_case_notes.label }}</label>
+                            {{ form.use_case_notes }}
+                            {% if form.use_case_notes.help_text %}
+                                <div class="form-text">{{ form.use_case_notes.help_text }}</div>
+                            {% endif %}
+                            {% if form.use_case_notes.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.use_case_notes.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Form Errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'database_schema' %}" class="btn btn-outline-secondary me-md-2">Back to Schema</a>
+                            <button type="submit" class="btn btn-success btn-analyze">
+                                <i class="fas fa-magic me-2"></i>
+                                Analyze with Context
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Tips for Better Analysis
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Query Examples</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <code>SELECT u.name FROM users u WHERE u.active = 1</code>
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <code>SELECT COUNT(*) FROM orders WHERE created_at >= '2023-01-01'</code>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Complex JOINs and subqueries
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Context Benefits</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-info me-2"></i>
+                                    Index usage recommendations
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-info me-2"></i>
+                                    Table size considerations
+                                </li>
+                                <li>
+                                    <i class="fas fa-arrow-right text-info me-2"></i>
+                                    Foreign key optimization
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-resize textarea based on content
+    const textarea = document.getElementById('{{ form.sql_query.id_for_label }}');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.max(this.scrollHeight, 200) + 'px';
+        });
+
+        // Initial resize
+        textarea.style.height = Math.max(textarea.scrollHeight, 200) + 'px';
+    }
+
+    // Add syntax highlighting class
+    if (textarea) {
+        textarea.classList.add('sql-editor');
+    }
+</script>
+{% endblock %}

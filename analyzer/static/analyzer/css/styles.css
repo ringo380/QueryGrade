@@ -1,72 +1,210 @@
+/* QueryGrade Main Styles - Dark Mode Default */
+
+/* Import dark mode variables and base styles */
+@import url('dark-mode.css');
+
 /* General styles */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 header {
-    background-color: #333;
-    color: #fff;
-    padding: 1em;
+    background-color: var(--bg-tertiary);
+    color: var(--text-white);
+    padding: 1em 2em;
     text-align: center;
+    box-shadow: 0 2px 4px var(--shadow-light);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    text-shadow: 2px 2px 4px var(--shadow-medium);
 }
 
 main {
-    padding: 1em;
+    padding: 2em;
+    min-height: calc(100vh - 120px);
 }
 
+/* Form styles */
 form {
     display: flex;
     flex-direction: column;
     max-width: 600px;
     margin: 0 auto;
+    background-color: var(--bg-secondary);
+    padding: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 4px 8px var(--shadow-light);
 }
 
-label, button {
-    margin: 0.5em 0;
+.form-group {
+    margin-bottom: 1.5rem;
 }
 
-input, select, button {
-    padding: 0.5em;
-    font-size: 1em;
+label {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-weight: 600;
+    display: block;
+}
+
+input, select, textarea {
+    padding: 0.75rem;
+    font-size: 1rem;
+    background-color: var(--input-bg);
+    border: 2px solid var(--input-border);
+    border-radius: 6px;
+    color: var(--input-text);
+    width: 100%;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
 button {
-    background-color: #333;
-    color: #fff;
+    background-color: var(--btn-primary-bg);
+    color: var(--text-white);
     border: none;
     cursor: pointer;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
 }
 
 button:hover {
-    background-color: #555;
+    background-color: var(--btn-primary-hover);
+    transform: translateY(-2px);
 }
 
 /* Table styles */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1em 0;
+    margin: 1rem 0;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px var(--shadow-light);
 }
 
 th, td {
-    padding: 0.5em;
-    border: 1px solid #ddd;
+    padding: 0.75rem 1rem;
     text-align: left;
 }
 
 th {
-    background-color: #333;
-    color: #fff;
+    background-color: var(--bg-tertiary);
+    color: var(--text-white);
+    font-weight: 600;
+}
+
+td {
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-primary);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Pagination styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+}
+
+.pagination a,
+.pagination span {
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.pagination a:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.pagination .current {
+    background-color: var(--btn-primary-bg);
+    color: var(--text-white);
+}
+
+/* Error list styles */
+.errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+
+.errorlist li {
+    background-color: var(--status-error);
+    color: var(--text-white);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Help text */
+.helptext {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+/* Links */
+a {
+    color: var(--text-accent);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--btn-primary-hover);
+    text-decoration: underline;
 }
 
 /* Responsive design */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    header {
+        padding: 1rem;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    main {
+        padding: 1rem;
+    }
+
     form {
-        width: 100%;
-        padding: 0 1em;
+        padding: 1.5rem;
+        margin: 0;
     }
 
     button {
@@ -74,6 +212,26 @@ th {
     }
 
     table {
-        width: 100%;
+        font-size: 0.9rem;
+    }
+
+    th, td {
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    form {
+        padding: 1rem;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.9rem;
     }
 }

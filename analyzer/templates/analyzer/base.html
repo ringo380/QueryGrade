@@ -1,17 +1,241 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>QueryGrade - MySQL Query Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QueryGrade - MySQL Query Analyzer{% endblock %}</title>
+
+    <!-- Dark Mode CSS -->
+    <link rel="stylesheet" href="{% static 'analyzer/css/dark-mode.css' %}">
     <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
+
+    {% block extra_css %}{% endblock %}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'analyzer/favicon.ico' %}">
 </head>
 <body>
-    <nav>
-        <h1>QueryGrade</h1>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="{% url 'index' %}">
+                    <h1>QueryGrade</h1>
+                </a>
+            </div>
+            <div class="nav-menu">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'grade_query' %}" class="nav-link">Grade Query</a>
+                    <a href="{% url 'database_analyze' %}" class="nav-link">Database Analysis</a>
+                    <a href="{% url 'query_history' %}" class="nav-link">History</a>
+                    <span class="nav-user">{{ user.username }}</span>
+                    <a href="{% url 'logout' %}" class="nav-link nav-logout">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="nav-link">Login</a>
+                    <a href="{% url 'register' %}" class="nav-link">Register</a>
+                {% endif %}
+            </div>
+        </div>
     </nav>
-    <div class="container">
-        {% block content %}{% endblock %}
-    </div>
+
+    <main class="main-content">
+        <!-- Messages Display -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 QueryGrade. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#" class="footer-link">Documentation</a>
+                <a href="#" class="footer-link">Support</a>
+                <a href="#" class="footer-link">Privacy</a>
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+
+    <style>
+    /* Navigation Bar Styles */
+    .navbar {
+        background-color: var(--bg-tertiary);
+        padding: 1rem 0;
+        box-shadow: 0 2px 4px var(--shadow-light);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-brand a {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .nav-brand h1 {
+        color: var(--text-white);
+        margin: 0;
+        font-size: 1.8rem;
+        text-shadow: 2px 2px 4px var(--shadow-medium);
+    }
+
+    .nav-menu {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .nav-link {
+        color: var(--text-primary);
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .nav-link:hover {
+        background-color: var(--bg-elevated);
+        color: var(--text-white);
+        text-decoration: none;
+    }
+
+    .nav-user {
+        color: var(--text-accent);
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        background-color: var(--bg-secondary);
+        border-radius: 6px;
+    }
+
+    .nav-logout {
+        background-color: var(--btn-danger-bg);
+        color: var(--text-white);
+    }
+
+    .nav-logout:hover {
+        background-color: var(--btn-danger-hover);
+    }
+
+    /* Main Content */
+    .main-content {
+        min-height: calc(100vh - 200px);
+        padding-bottom: 2rem;
+    }
+
+    .messages-container {
+        max-width: 1200px;
+        margin: 1rem auto 0;
+        padding: 0 2rem;
+    }
+
+    /* Footer */
+    .footer {
+        background-color: var(--bg-tertiary);
+        color: var(--text-secondary);
+        padding: 2rem 0;
+        margin-top: auto;
+        border-top: 1px solid var(--border-primary);
+    }
+
+    .footer-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .footer-links {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    .footer-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .footer-link:hover {
+        color: var(--text-accent);
+    }
+
+    /* Responsive Navigation */
+    @media (max-width: 768px) {
+        .nav-container {
+            padding: 0 1rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .nav-brand h1 {
+            font-size: 1.5rem;
+        }
+
+        .nav-menu {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .footer-content {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .footer-links {
+            justify-content: center;
+        }
+
+        .messages-container {
+            padding: 0 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .nav-menu {
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .footer-links {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+    </style>
 </body>
 </html>
