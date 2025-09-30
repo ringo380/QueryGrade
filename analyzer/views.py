@@ -15,6 +15,9 @@ from .forms import UploadLogForm, QueryGradeForm, QueryCompareForm, BatchQueryFo
 from .parser import process_slow_log, process_general_log
 from .query_analyzer import analyze_query, grade_single_query
 from .query_optimizer import optimize_query_from_analysis
+from .ml.unified_query_analyzer import UnifiedQueryAnalyzer, AnalysisRequest
+import asyncio
+import json
 from .models import Query, QueryAnalysis, UserQueryHistory, QueryFeedback
 from .tasks import process_log_file_async, batch_analyze_queries, analyze_database_schema_async, generate_performance_report
 from .performance import optimize_view_performance, PerformanceMonitor, memory_optimizer
@@ -280,8 +283,50 @@ def grade_query(request):
             use_case_notes = form.cleaned_data.get('use_case_notes', '')
 
             try:
-                # Analyze the query
+                # Analyze the query with both traditional and ML analysis
                 query, analysis = analyze_query(sql_query, database_type)
+
+                # Enhanced ML analysis
+                ml_analysis = None
+                try:
+                    unified_analyzer = UnifiedQueryAnalyzer()
+                    analysis_request = AnalysisRequest(
+                        query=sql_query,
+                        user_id=str(request.user.id),
+                        database_type=database_type,
+                        database_version=database_version,
+                        context={
+                            'use_case': use_case_notes,
+                            'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                            'ip_address': get_client_ip(request)
+                        }
+                    )
+
+                    # Run async analysis in sync context
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        ml_analysis = loop.run_until_complete(
+                            unified_analyzer.analyze_query(analysis_request)
+                        )
+                    finally:
+                        loop.close()
+
+                    # Store ML analysis in session for results page
+                    request.session['ml_analysis'] = {
+                        'semantic_metrics': ml_analysis.semantic_metrics,
+                        'performance_prediction': ml_analysis.performance_prediction,
+                        'feedback': ml_analysis.feedback,
+                        'recommendations': ml_analysis.recommendations,
+                        'personalized_feedback': ml_analysis.personalized_feedback,
+                        'rewrite_suggestions': ml_analysis.rewrite_suggestions
+                    }
+
+                    logger.info(f"Enhanced ML analysis completed for user {request.user.username}")
+
+                except Exception as ml_error:
+                    logger.warning(f"ML analysis failed for user {request.user.username}: {ml_error}")
+                    # Continue with traditional analysis even if ML fails
 
                 # Create user history record
                 user_history = UserQueryHistory.objects.create(
@@ -294,8 +339,8 @@ def grade_query(request):
                     use_case_notes=use_case_notes
                 )
 
-                # Redirect to results page with the analysis ID
-                return redirect('grade_results', analysis_id=analysis.id)
+                # Redirect to enhanced results page
+                return redirect('enhanced_grade_results', analysis_id=analysis.id)
 
             except ValueError as e:
                 # Handle SQL syntax errors with specific feedback
@@ -379,6 +424,90 @@ def grade_results(request, analysis_id):
     }
 
     return render(request, 'analyzer/grade_results.html', context)
+
+
+@login_required
+def enhanced_grade_results(request, analysis_id):
+    """
+    Display enhanced grading results with ML analysis for a query.
+
+    Args:
+        request: The HTTP request object.
+        analysis_id: ID of the QueryAnalysis object.
+
+    Returns:
+        HttpResponse: The HTTP response object.
+    """
+    try:
+        analysis = get_object_or_404(QueryAnalysis, id=analysis_id)
+    except:
+        messages.error(request, "The requested analysis could not be found.")
+        return redirect('grade_query')
+
+    # Check if the current user has access to this analysis
+    try:
+        user_history = UserQueryHistory.objects.get(
+            user=request.user,
+            query=analysis.query
+        )
+    except UserQueryHistory.DoesNotExist:
+        logger.warning(f"User {request.user.username} attempted to access analysis {analysis_id} without permission")
+        messages.error(request, "You don't have permission to view this analysis.")
+        return redirect('grade_query')
+
+    # Get ML analysis from session
+    ml_analysis = request.session.get('ml_analysis', {})
+
+    # Generate optimization suggestions if there are issues
+    optimization_result = None
+    if analysis.issues_found and len(analysis.issues_found) > 0:
+        try:
+            database_type = user_history.database_type if user_history.database_type else ''
+            optimization_result = optimize_query_from_analysis(
+                analysis.query.sql_text,
+                analysis.issues_found,
+                database_type
+            )
+        except Exception as e:
+            logger.warning(f"Failed to generate optimization suggestions: {e}")
+
+    # Process ML analysis data for template
+    processed_ml_analysis = {}
+    if ml_analysis:
+        try:
+            processed_ml_analysis = {
+                'has_ml_analysis': True,
+                'semantic_score': ml_analysis.get('semantic_metrics', {}).get('overall_score', 0),
+                'complexity_level': ml_analysis.get('semantic_metrics', {}).get('complexity_level', 'Unknown'),
+                'query_intent': ml_analysis.get('semantic_metrics', {}).get('query_intent', 'Unknown'),
+                'performance_prediction': ml_analysis.get('performance_prediction', {}),
+                'feedback': ml_analysis.get('feedback', {}),
+                'recommendations': ml_analysis.get('recommendations', []),
+                'personalized_feedback': ml_analysis.get('personalized_feedback', {}),
+                'rewrite_suggestions': ml_analysis.get('rewrite_suggestions', [])
+            }
+        except Exception as e:
+            logger.warning(f"Error processing ML analysis data: {e}")
+            processed_ml_analysis = {'has_ml_analysis': False}
+    else:
+        processed_ml_analysis = {'has_ml_analysis': False}
+
+    context = {
+        'analysis': analysis,
+        'query': analysis.query,
+        'user_history': user_history,
+        'optimization_result': optimization_result,
+        'ml_analysis': processed_ml_analysis,
+        'grade_colors': {
+            'A': 'success',  # Green
+            'B': 'info',     # Blue
+            'C': 'warning',  # Yellow
+            'D': 'orange',   # Orange
+            'F': 'danger'    # Red
+        }
+    }
+
+    return render(request, 'analyzer/enhanced_grade_results.html', context)
 
 
 @login_required
@@ -1603,6 +1732,107 @@ def performance_report_view(request):
     return render(request, 'analyzer/performance_report.html', {
         'date_range_options': [7, 14, 30, 90, 365]
     })
+
+
+@require_http_methods(["POST"])
+@ratelimit(key='user', rate='10/m', method='POST', block=True)
+def api_unified_query_analysis(request):
+    """
+    API endpoint for unified ML-enhanced query analysis.
+
+    Accepts JSON payload with query and context information,
+    returns comprehensive ML analysis results.
+    """
+    try:
+        # Parse JSON request
+        data = json.loads(request.body)
+        sql_query = data.get('query', '').strip()
+
+        if not sql_query:
+            return JsonResponse({
+                'success': False,
+                'error': 'Query is required'
+            }, status=400)
+
+        # Extract additional parameters
+        database_type = data.get('database_type', 'generic')
+        database_version = data.get('database_version', '')
+        context = data.get('context', {})
+        user_id = str(request.user.id) if request.user.is_authenticated else 'anonymous'
+
+        # Create analysis request
+        analysis_request = AnalysisRequest(
+            query=sql_query,
+            user_id=user_id,
+            database_type=database_type,
+            database_version=database_version,
+            context=context
+        )
+
+        # Run unified ML analysis
+        unified_analyzer = UnifiedQueryAnalyzer()
+
+        # Execute async analysis in sync context
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            ml_result = loop.run_until_complete(
+                unified_analyzer.analyze_query(analysis_request)
+            )
+        finally:
+            loop.close()
+
+        # Traditional analysis for comparison
+        traditional_analysis = None
+        try:
+            query_obj, traditional_analysis = analyze_query(sql_query, database_type)
+        except Exception as e:
+            logger.warning(f"Traditional analysis failed: {e}")
+
+        # Prepare response
+        response_data = {
+            'success': True,
+            'analysis_id': str(uuid.uuid4()),
+            'query': sql_query,
+            'ml_analysis': {
+                'semantic_metrics': ml_result.semantic_metrics,
+                'performance_prediction': ml_result.performance_prediction,
+                'feedback': ml_result.feedback,
+                'recommendations': ml_result.recommendations,
+                'personalized_feedback': ml_result.personalized_feedback,
+                'rewrite_suggestions': ml_result.rewrite_suggestions,
+                'confidence_score': ml_result.confidence_score,
+                'analysis_timestamp': ml_result.analysis_timestamp
+            }
+        }
+
+        # Include traditional analysis if available
+        if traditional_analysis:
+            response_data['traditional_analysis'] = {
+                'grade': traditional_analysis.grade,
+                'score': traditional_analysis.score,
+                'issues_found': traditional_analysis.issues_found,
+                'recommendations': traditional_analysis.recommendations,
+                'execution_time_ms': traditional_analysis.execution_time_ms
+            }
+
+        # Log API usage
+        logger.info(f"API unified analysis completed for user {user_id}, query length: {len(sql_query)}")
+
+        return JsonResponse(response_data)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON payload'
+        }, status=400)
+
+    except Exception as e:
+        logger.error(f"API unified analysis error: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error during analysis'
+        }, status=500)
 
 
 def csrf_failure(request, reason=""):

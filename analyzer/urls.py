@@ -7,6 +7,7 @@ urlpatterns = [
     path('analyze/', views.analyze, name='analyze'),
     path('grade/', views.grade_query, name='grade_query'),
     path('grade/results/<int:analysis_id>/', views.grade_results, name='grade_results'),
+    path('grade/enhanced/<int:analysis_id>/', views.enhanced_grade_results, name='enhanced_grade_results'),
     path('compare/', views.query_compare, name='query_compare'),
     path('compare/results/', views.compare_results, name='compare_results'),
     path('batch/', views.batch_analysis, name='batch_analysis'),
@@ -34,6 +35,8 @@ urlpatterns = [
     path('ml/api/realtime/', dashboard_views.dashboard_api_realtime, name='ml_api_realtime'),
     path('ml/api/feature-importance/', dashboard_views.dashboard_api_feature_importance, name='ml_api_feature_importance'),
     path('ml/api/trigger-training/', dashboard_views.dashboard_api_trigger_training, name='ml_api_trigger_training'),
+    # Unified ML Analysis API
+    path('api/unified-analysis/', views.api_unified_query_analysis, name='api_unified_analysis'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.register_view, name='register'),
