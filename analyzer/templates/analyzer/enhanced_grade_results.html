@@ -1,0 +1,2098 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="results-container">
+    <div class="results-header">
+        <div class="navigation-tabs">
+            <a href="{% url 'grade_query' %}" class="tab-link">Grade Another Query</a>
+            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
+            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
+        </div>
+    </div>
+
+    <!-- Enhanced Grade Display with ML Insights -->
+    <div class="enhanced-grade-display">
+        <div class="grade-badge grade-{{ analysis.grade|lower }}">
+            <div class="grade-letter">{{ analysis.grade }}</div>
+            <div class="grade-score">{{ analysis.score|floatformat:1 }}/100</div>
+            <div class="grade-label">
+                {% if analysis.grade == 'A' %}Excellent
+                {% elif analysis.grade == 'B' %}Good
+                {% elif analysis.grade == 'C' %}Average
+                {% elif analysis.grade == 'D' %}Poor
+                {% else %}Failing
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="analysis-summary">
+            <h2>Enhanced Query Analysis Results</h2>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Query Type:</span>
+                    <span class="stat-value">{{ query.query_type }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Complexity:</span>
+                    <span class="stat-value">{{ query.estimated_complexity }}/100</span>
+                </div>
+                {% if ml_analysis.has_ml_analysis %}
+                <div class="stat-item ml-enhanced">
+                    <span class="stat-label">ML Semantic Score:</span>
+                    <span class="stat-value">{{ ml_analysis.semantic_score|floatformat:1 }}/100</span>
+                </div>
+                <div class="stat-item ml-enhanced">
+                    <span class="stat-label">Query Intent:</span>
+                    <span class="stat-value">{{ ml_analysis.query_intent|title }}</span>
+                </div>
+                {% endif %}
+                <div class="stat-item">
+                    <span class="stat-label">Tables:</span>
+                    <span class="stat-value">{{ query.table_count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Joins:</span>
+                    <span class="stat-value">{{ query.join_count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Analysis Time:</span>
+                    <span class="stat-value">{{ analysis.execution_time_ms }}ms</span>
+                </div>
+            </div>
+        </div>
+
+        {% if ml_analysis.has_ml_analysis %}
+        <div class="ml-insights-panel">
+            <h3>🤖 AI Insights</h3>
+            <div class="ml-insights-grid">
+                <div class="insight-card">
+                    <div class="insight-icon">🎯</div>
+                    <div class="insight-content">
+                        <h4>Complexity Level</h4>
+                        <div class="insight-value">{{ ml_analysis.complexity_level }}</div>
+                    </div>
+                </div>
+                {% if ml_analysis.performance_prediction %}
+                <div class="insight-card">
+                    <div class="insight-icon">⚡</div>
+                    <div class="insight-content">
+                        <h4>Performance Impact</h4>
+                        <div class="insight-value">
+                            {% if ml_analysis.performance_prediction.estimated_execution_time %}
+                                ~{{ ml_analysis.performance_prediction.estimated_execution_time }}ms
+                            {% else %}
+                                Analyzing...
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Feedback Section -->
+    <div class="quick-feedback-section">
+        <h3>Was this enhanced analysis helpful? 👍👎</h3>
+        <div class="feedback-buttons">
+            <button id="thumbs-up" class="feedback-btn thumbs-up" onclick="submitQuickFeedback(true)" title="Yes, this analysis was helpful">
+                <span class="feedback-icon">👍</span>
+                <span class="feedback-text">Helpful</span>
+            </button>
+            <button id="thumbs-down" class="feedback-btn thumbs-down" onclick="submitQuickFeedback(false)" title="No, this analysis needs improvement">
+                <span class="feedback-icon">👎</span>
+                <span class="feedback-text">Not Helpful</span>
+            </button>
+        </div>
+        <div id="feedback-status" class="feedback-status" style="display: none;"></div>
+        <div class="detailed-feedback-link">
+            <a href="{% url 'submit_feedback' analysis.id %}" class="detailed-feedback-btn">
+                💬 Provide Detailed Feedback
+            </a>
+        </div>
+    </div>
+
+    {% if ml_analysis.has_ml_analysis and ml_analysis.personalized_feedback %}
+    <!-- Personalized AI Feedback Section -->
+    <div class="personalized-feedback-section">
+        <h3>🎯 Personalized AI Feedback</h3>
+        <div class="personalized-content">
+            {% if ml_analysis.personalized_feedback.personalized_feedback %}
+                <div class="feedback-text">{{ ml_analysis.personalized_feedback.personalized_feedback }}</div>
+            {% endif %}
+
+            {% if ml_analysis.personalized_feedback.learning_recommendations %}
+                <div class="learning-recommendations">
+                    <h4>📚 Learning Recommendations</h4>
+                    <ul class="learning-list">
+                        {% for recommendation in ml_analysis.personalized_feedback.learning_recommendations %}
+                            <li class="learning-item">{{ recommendation }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if ml_analysis.has_ml_analysis and ml_analysis.performance_prediction %}
+    <!-- ML Performance Predictions -->
+    <div class="ml-performance-section">
+        <h3>⚡ Performance Predictions</h3>
+        <div class="prediction-grid">
+            {% if ml_analysis.performance_prediction.optimization_potential %}
+            <div class="prediction-card">
+                <div class="prediction-header">
+                    <h4>Optimization Potential</h4>
+                    <span class="prediction-value">{{ ml_analysis.performance_prediction.optimization_potential|floatformat:1 }}%</span>
+                </div>
+                <div class="prediction-bar">
+                    <div class="prediction-fill" style="width: {{ ml_analysis.performance_prediction.optimization_potential }}%; background-color: {% if ml_analysis.performance_prediction.optimization_potential > 70 %}#28a745{% elif ml_analysis.performance_prediction.optimization_potential > 40 %}#ffc107{% else %}#dc3545{% endif %};"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ml_analysis.performance_prediction.risk_factors %}
+            <div class="prediction-card">
+                <div class="prediction-header">
+                    <h4>Risk Factors</h4>
+                    <span class="prediction-count">{{ ml_analysis.performance_prediction.risk_factors|length }}</span>
+                </div>
+                <div class="risk-list">
+                    {% for risk in ml_analysis.performance_prediction.risk_factors %}
+                        <div class="risk-item">{{ risk }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Performance Indicators Section -->
+    <div class="performance-indicators">
+        <h3>📊 Performance Metrics</h3>
+        <div class="metrics-grid">
+            <!-- Score Progress Bar -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <h4>Overall Score</h4>
+                    <span class="metric-value">{{ analysis.score|floatformat:1 }}/100</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill score-progress" style="width: {{ analysis.score }}%; background-color: {% if analysis.grade == 'A' %}#28a745{% elif analysis.grade == 'B' %}#17a2b8{% elif analysis.grade == 'C' %}#ffc107{% elif analysis.grade == 'D' %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>0</span>
+                    <span>25</span>
+                    <span>50</span>
+                    <span>75</span>
+                    <span>100</span>
+                </div>
+            </div>
+
+            <!-- ML Semantic Score -->
+            {% if ml_analysis.has_ml_analysis %}
+            <div class="metric-card ml-metric">
+                <div class="metric-header">
+                    <h4>🤖 AI Semantic Score</h4>
+                    <span class="metric-value">{{ ml_analysis.semantic_score|floatformat:1 }}/100</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill ml-progress" style="width: {{ ml_analysis.semantic_score }}%; background-color: linear-gradient(90deg, #007bff, #6f42c1);"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>Basic</span>
+                    <span>Advanced</span>
+                    <span>Expert</span>
+                    <span>Optimal</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Complexity Meter -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <h4>Query Complexity</h4>
+                    <span class="metric-value">{{ query.estimated_complexity }}/100</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill complexity-progress" style="width: {{ query.estimated_complexity }}%; background-color: {% if query.estimated_complexity <= 25 %}#28a745{% elif query.estimated_complexity <= 50 %}#ffc107{% elif query.estimated_complexity <= 75 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>Simple</span>
+                    <span>Moderate</span>
+                    <span>Complex</span>
+                    <span>Very Complex</span>
+                </div>
+            </div>
+
+            <!-- Issues Distribution Chart -->
+            <div class="metric-card issues-chart">
+                <div class="metric-header">
+                    <h4>Issues by Severity</h4>
+                    <span class="metric-value">{{ analysis.issues_found|length }} total</span>
+                </div>
+                <div class="issues-breakdown">
+                    <div class="severity-bars">
+                        <div class="severity-bar">
+                            <span class="severity-label">🔴 Critical</span>
+                            <div class="severity-count" id="critical-count">0</div>
+                        </div>
+                        <div class="severity-bar">
+                            <span class="severity-label">🟠 High</span>
+                            <div class="severity-count" id="high-count">0</div>
+                        </div>
+                        <div class="severity-bar">
+                            <span class="severity-label">🟡 Medium</span>
+                            <div class="severity-count" id="medium-count">0</div>
+                        </div>
+                        <div class="severity-bar">
+                            <span class="severity-label">🔵 Low</span>
+                            <div class="severity-count" id="low-count">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="query-display">
+        <div class="section-header">
+            <h3>Analyzed Query</h3>
+            <button class="copy-btn" onclick="copyToClipboard('analyzed-query', 'Query copied!')" title="Copy SQL query">
+                📋 Copy Query
+            </button>
+        </div>
+        <div class="query-text">
+            <pre><code id="analyzed-query">{{ query.sql_text }}</code></pre>
+        </div>
+    </div>
+
+    {% if analysis.issues_found %}
+    <div class="issues-section">
+        <h3>🔍 Issues Found</h3>
+        <div class="issues-list">
+            {% for issue in analysis.issues_found %}
+                <div class="issue-item severity-{{ issue.severity }}">
+                    <div class="issue-header">
+                        <span class="issue-type">{{ issue.type|title }}</span>
+                        <span class="severity-badge severity-{{ issue.severity }}">
+                            {% if issue.severity == 'critical' %}🔴 Critical
+                            {% elif issue.severity == 'high' %}🟠 High
+                            {% elif issue.severity == 'medium' %}🟡 Medium
+                            {% else %}🔵 Low
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="issue-description">{{ issue.description }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if analysis.recommendations or ml_analysis.recommendations %}
+    <div class="recommendations-section">
+        <div class="section-header">
+            <h3>💡 Enhanced Recommendations</h3>
+            <button class="copy-btn" onclick="copyAllRecommendations()" title="Copy all recommendations">
+                📋 Copy All
+            </button>
+        </div>
+
+        <!-- Traditional Recommendations -->
+        {% if analysis.recommendations %}
+        <div class="traditional-recommendations">
+            <h4>📊 Standard Analysis</h4>
+            <div class="recommendations-list" id="recommendations-list">
+                {% for recommendation in analysis.recommendations %}
+                    <div class="recommendation-item priority-{{ recommendation.priority }}">
+                        <div class="recommendation-header">
+                            <span class="recommendation-type">{{ recommendation.type|title }}</span>
+                            <span class="priority-badge priority-{{ recommendation.priority }}">
+                                {% if recommendation.priority == 'critical' %}⚡ Critical
+                                {% elif recommendation.priority == 'high' %}🔥 High Priority
+                                {% elif recommendation.priority == 'medium' %}📈 Medium Priority
+                                {% else %}💡 Suggestion
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="recommendation-description">{{ recommendation.description }}</div>
+                        {% if recommendation.example %}
+                            <div class="recommendation-example">
+                                <div class="example-header">
+                                    <strong>Example:</strong>
+                                    <button class="copy-btn-small" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')" title="Copy example">
+                                        📋
+                                    </button>
+                                </div>
+                                <code id="example-{{ forloop.counter }}">{{ recommendation.example }}</code>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ML Enhanced Recommendations -->
+        {% if ml_analysis.has_ml_analysis and ml_analysis.recommendations %}
+        <div class="ml-recommendations">
+            <h4>🤖 AI-Enhanced Recommendations</h4>
+            <div class="ml-recommendations-list">
+                {% for recommendation in ml_analysis.recommendations %}
+                    <div class="ml-recommendation-item">
+                        <div class="ml-recommendation-header">
+                            <span class="ml-recommendation-type">{{ recommendation.title|default:"AI Recommendation" }}</span>
+                            <span class="ml-confidence-badge">
+                                Confidence: {{ recommendation.confidence|default:85 }}%
+                            </span>
+                        </div>
+                        <div class="ml-recommendation-description">{{ recommendation.description|default:recommendation }}</div>
+                        {% if recommendation.impact_estimate %}
+                        <div class="impact-estimate">
+                            <strong>Expected Impact:</strong> {{ recommendation.impact_estimate }}
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if ml_analysis.has_ml_analysis and ml_analysis.rewrite_suggestions %}
+    <!-- AI Query Rewrite Suggestions -->
+    <div class="rewrite-suggestions-section">
+        <div class="section-header">
+            <h3>🔄 AI Query Rewrite Suggestions</h3>
+            <button class="copy-btn" onclick="copyRewriteSuggestions()" title="Copy rewrite suggestions">
+                📋 Copy Suggestions
+            </button>
+        </div>
+        <div class="rewrite-suggestions-list">
+            {% for suggestion in ml_analysis.rewrite_suggestions %}
+                <div class="rewrite-suggestion-item">
+                    <div class="rewrite-header">
+                        <h4>{{ suggestion.title|default:"Optimization Suggestion" }}</h4>
+                        <span class="safety-badge safety-{{ suggestion.safety_level|default:'conservative' }}">
+                            {{ suggestion.safety_level|default:'conservative'|title }}
+                        </span>
+                    </div>
+                    {% if suggestion.explanation %}
+                    <div class="rewrite-explanation">{{ suggestion.explanation }}</div>
+                    {% endif %}
+                    {% if suggestion.rewritten_query %}
+                    <div class="rewritten-query">
+                        <div class="query-header">
+                            <strong>Suggested Query:</strong>
+                            <button class="copy-btn-small" onclick="copyToClipboard('rewrite-{{ forloop.counter }}', 'Rewritten query copied!')" title="Copy rewritten query">
+                                📋
+                            </button>
+                        </div>
+                        <div class="query-text">
+                            <pre><code id="rewrite-{{ forloop.counter }}">{{ suggestion.rewritten_query }}</code></pre>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if suggestion.estimated_improvement %}
+                    <div class="improvement-estimate">
+                        <strong>Estimated Improvement:</strong> {{ suggestion.estimated_improvement }}%
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if optimization_result and optimization_result.optimizations_applied %}
+    <div class="optimization-section">
+        <div class="section-header">
+            <h3>🚀 Query Optimization Suggestions</h3>
+            <button class="copy-btn" onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" title="Copy optimized query">
+                📋 Copy Optimized Query
+            </button>
+        </div>
+
+        <div class="optimization-summary">
+            <div class="optimization-stats">
+                <div class="optimization-stat">
+                    <span class="stat-icon">🔧</span>
+                    <span class="stat-label">Optimizations Applied:</span>
+                    <span class="stat-value">{{ optimization_result.optimizations_applied|length }}</span>
+                </div>
+                <div class="optimization-stat">
+                    <span class="stat-icon">📈</span>
+                    <span class="stat-label">Estimated Improvement:</span>
+                    <span class="stat-value improvement-{{ optimization_result.improvement_estimate|floatformat:0 }}">
+                        {{ optimization_result.improvement_estimate }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="optimization-tabs">
+            <button class="tab-button active" onclick="showOptimizationTab('optimized')" id="optimized-tab">
+                Optimized Query
+            </button>
+            <button class="tab-button" onclick="showOptimizationTab('comparison')" id="comparison-tab">
+                Side-by-Side Comparison
+            </button>
+            <button class="tab-button" onclick="showOptimizationTab('explanations')" id="explanations-tab">
+                Explanations
+            </button>
+        </div>
+
+        <div class="optimization-content">
+            <!-- Optimized Query Tab -->
+            <div class="tab-content active" id="optimized-content">
+                <div class="query-container">
+                    <div class="query-header">
+                        <h4>🎯 Optimized Query</h4>
+                        <div class="query-actions">
+                            <button class="copy-btn-small" onclick="copyToClipboard('optimized-query', 'Optimized query copied!')">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="query-text">
+                        <pre><code id="optimized-query">{{ optimization_result.optimized_query }}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Tab -->
+            <div class="tab-content" id="comparison-content">
+                <div class="query-comparison">
+                    <div class="query-comparison-side">
+                        <h4>📄 Original Query</h4>
+                        <div class="query-text">
+                            <pre><code>{{ optimization_result.original_query }}</code></pre>
+                        </div>
+                    </div>
+                    <div class="comparison-arrow">
+                        <div class="arrow-icon">➡️</div>
+                        <div class="improvement-badge">
+                            +{{ optimization_result.improvement_estimate }}% improvement
+                        </div>
+                    </div>
+                    <div class="query-comparison-side">
+                        <h4>🎯 Optimized Query</h4>
+                        <div class="query-text">
+                            <pre><code>{{ optimization_result.optimized_query }}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explanations Tab -->
+            <div class="tab-content" id="explanations-content">
+                <div class="optimization-explanations">
+                    <h4>🔍 What Was Changed</h4>
+                    <div class="optimizations-list">
+                        {% for optimization in optimization_result.optimizations_applied %}
+                            <div class="optimization-item">
+                                <div class="optimization-icon">✅</div>
+                                <div class="optimization-text">{{ optimization }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if optimization_result.explanation %}
+                    <h4>💡 Detailed Explanations</h4>
+                    <div class="explanations-list">
+                        {% for explanation in optimization_result.explanation %}
+                            <div class="explanation-item">
+                                <div class="explanation-icon">💡</div>
+                                <div class="explanation-text">{{ explanation }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="optimization-disclaimer">
+            <p><strong>⚠️ Important:</strong> These are automated optimization suggestions. Always test optimized queries in a development environment before applying them to production. Performance improvements may vary based on your specific database schema, indexes, and data distribution.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if analysis.performance_notes %}
+    <div class="performance-notes">
+        <h3>📊 Performance Notes</h3>
+        <div class="notes-content">{{ analysis.performance_notes }}</div>
+    </div>
+    {% endif %}
+
+    {% if user_history.database_type or user_history.database_version or user_history.use_case_notes %}
+    <div class="context-section">
+        <h3>📝 Query Context</h3>
+        <div class="context-grid">
+            {% if user_history.database_type %}
+                <div class="context-item">
+                    <span class="context-label">Database:</span>
+                    <span class="context-value">{{ user_history.database_type|title }}</span>
+                </div>
+            {% endif %}
+            {% if user_history.database_version %}
+                <div class="context-item">
+                    <span class="context-label">Version:</span>
+                    <span class="context-value">{{ user_history.database_version }}</span>
+                </div>
+            {% endif %}
+        </div>
+        {% if user_history.use_case_notes %}
+            <div class="use-case-notes">
+                <span class="context-label">Use Case:</span>
+                <div class="notes-text">{{ user_history.use_case_notes }}</div>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="action-buttons">
+        <a href="{% url 'grade_query' %}" class="btn btn-primary">
+            Grade Another Query
+        </a>
+        <a href="{% url 'query_history' %}" class="btn btn-secondary">
+            View Query History
+        </a>
+        <a href="{% url 'submit_feedback' analysis.id %}" class="btn btn-info">
+            💬 Provide Feedback
+        </a>
+        <button onclick="copyFullReport()" class="btn btn-outline" title="Copy complete analysis report">
+            📋 Copy Full Report
+        </button>
+        <button onclick="window.print()" class="btn btn-outline">
+            🖨️ Print Results
+        </button>
+    </div>
+</div>
+
+<style>
+.results-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.results-header {
+    margin-bottom: 30px;
+}
+
+/* Enhanced Grade Display */
+.enhanced-grade-display {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 40px;
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    align-items: start;
+}
+
+.ml-insights-panel {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #007bff;
+}
+
+.ml-insights-panel h3 {
+    color: #007bff;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.ml-insights-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.insight-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #1a1a1a;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.insight-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.insight-content h4 {
+    margin: 0;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.insight-value {
+    color: #007bff;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+/* ML Enhanced sections */
+.ml-enhanced {
+    border-left: 3px solid #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.ml-metric {
+    border: 2px solid #007bff;
+}
+
+.ml-progress {
+    background: linear-gradient(90deg, #007bff, #6f42c1) !important;
+}
+
+/* Personalized Feedback Section */
+.personalized-feedback-section {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 2px solid #6f42c1;
+}
+
+.personalized-feedback-section h3 {
+    color: #6f42c1;
+    margin-bottom: 20px;
+}
+
+.personalized-content {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.feedback-text {
+    color: #e0e0e0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.learning-recommendations h4 {
+    color: #6f42c1;
+    margin-bottom: 15px;
+}
+
+.learning-list {
+    list-style: none;
+    padding: 0;
+}
+
+.learning-item {
+    padding: 10px 15px;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border-left: 3px solid #6f42c1;
+}
+
+/* ML Performance Section */
+.ml-performance-section {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 2px solid #28a745;
+}
+
+.ml-performance-section h3 {
+    color: #28a745;
+    margin-bottom: 20px;
+}
+
+.prediction-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.prediction-card {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.prediction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.prediction-header h4 {
+    margin: 0;
+    color: #e0e0e0;
+}
+
+.prediction-value {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.prediction-count {
+    background-color: #28a745;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.prediction-bar {
+    height: 8px;
+    background-color: #1a1a1a;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.prediction-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.risk-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.risk-item {
+    padding: 8px 12px;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    border-left: 3px solid #ffc107;
+}
+
+/* ML Recommendations */
+.ml-recommendations {
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 2px solid #007bff;
+}
+
+.ml-recommendations h4 {
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.ml-recommendation-item {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #007bff;
+}
+
+.ml-recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ml-recommendation-type {
+    color: #007bff;
+    font-weight: bold;
+}
+
+.ml-confidence-badge {
+    background-color: rgba(0, 123, 255, 0.2);
+    color: #007bff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.ml-recommendation-description {
+    color: #e0e0e0;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.impact-estimate {
+    color: #28a745;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Rewrite Suggestions */
+.rewrite-suggestions-section {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 2px solid #fd7e14;
+}
+
+.rewrite-suggestions-section h3 {
+    color: #fd7e14;
+    margin-bottom: 20px;
+}
+
+.rewrite-suggestion-item {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #fd7e14;
+}
+
+.rewrite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.rewrite-header h4 {
+    margin: 0;
+    color: #fd7e14;
+}
+
+.safety-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.safety-conservative {
+    background-color: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
+
+.safety-moderate {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.safety-aggressive {
+    background-color: rgba(253, 126, 20, 0.2);
+    color: #fd7e14;
+}
+
+.rewrite-explanation {
+    color: #e0e0e0;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.rewritten-query {
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.improvement-estimate {
+    color: #28a745;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Quick Feedback Section Styles */
+.quick-feedback-section {
+    background-color: #2a2a2a;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+    border: 2px solid #333;
+    transition: border-color 0.3s ease;
+}
+
+.quick-feedback-section:hover {
+    border-color: #007bff;
+}
+
+.quick-feedback-section h3 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.feedback-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.feedback-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 30px;
+    background-color: #333;
+    border: 2px solid #444;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #e0e0e0;
+    font-size: 16px;
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.feedback-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.feedback-btn.thumbs-up:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.feedback-btn.thumbs-down:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.feedback-btn.selected.thumbs-up {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+    transform: scale(1.05);
+}
+
+.feedback-btn.selected.thumbs-down {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    transform: scale(1.05);
+}
+
+.feedback-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.feedback-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.feedback-text {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.feedback-status {
+    background-color: #333;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.feedback-status.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.feedback-status.error {
+    background-color: #dc3545;
+    color: white;
+}
+
+.detailed-feedback-link {
+    margin-top: 15px;
+}
+
+.detailed-feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.detailed-feedback-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    text-decoration: none;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .enhanced-grade-display {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .feedback-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .feedback-btn {
+        width: 200px;
+        max-width: 100%;
+    }
+
+    .quick-feedback-section {
+        padding: 20px 15px;
+    }
+
+    .prediction-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.navigation-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.tab-link {
+    padding: 10px 20px;
+    background-color: #333;
+    color: #e0e0e0;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+
+.tab-link:hover {
+    background-color: #444;
+}
+
+.grade-badge {
+    text-align: center;
+    padding: 30px;
+    border-radius: 50%;
+    min-width: 150px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+}
+
+.grade-a, .grade-success { background: linear-gradient(135deg, #4caf50, #45a049); }
+.grade-b, .grade-info { background: linear-gradient(135deg, #2196f3, #1976d2); }
+.grade-c, .grade-warning { background: linear-gradient(135deg, #ff9800, #f57c00); }
+.grade-d, .grade-orange { background: linear-gradient(135deg, #ff5722, #d84315); }
+.grade-f, .grade-danger { background: linear-gradient(135deg, #f44336, #d32f2f); }
+
+.grade-letter {
+    font-size: 4rem;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.grade-score {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.9);
+    margin-top: 5px;
+}
+
+.grade-label {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.8);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.analysis-summary {
+    flex: 1;
+}
+
+.analysis-summary h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 2rem;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background-color: #333;
+    border-radius: 6px;
+}
+
+.stat-label {
+    color: #b0b0b0;
+}
+
+.stat-value {
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Performance Indicators Styles */
+.performance-indicators {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.performance-indicators h3 {
+    color: #fff;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.metric-card {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.metric-header h4 {
+    color: #fff;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.metric-value {
+    color: #007bff;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.progress-bar {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background-color: #1a1a1a;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.issues-breakdown {
+    margin-top: 10px;
+}
+
+.severity-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.severity-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+}
+
+.severity-label {
+    font-size: 0.8rem;
+    color: #e0e0e0;
+}
+
+.severity-count {
+    background-color: #007bff;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-card {
+        margin-bottom: 15px;
+    }
+}
+
+.query-display, .issues-section, .recommendations-section, .optimization-section, .performance-notes, .context-section {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.query-display h3, .issues-section h3, .recommendations-section h3, .optimization-section h3, .performance-notes h3, .context-section h3 {
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.query-text pre {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    overflow-x: auto;
+    color: #e0e0e0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.issue-item, .recommendation-item {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid transparent;
+}
+
+.severity-critical { border-left-color: #f44336; }
+.severity-high { border-left-color: #ff5722; }
+.severity-medium { border-left-color: #ff9800; }
+.severity-low { border-left-color: #2196f3; }
+
+.priority-critical { border-left-color: #f44336; }
+.priority-high { border-left-color: #ff5722; }
+.priority-medium { border-left-color: #ff9800; }
+.priority-low { border-left-color: #2196f3; }
+
+.issue-header, .recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.issue-type, .recommendation-type {
+    color: #fff;
+    font-weight: bold;
+}
+
+.severity-badge, .priority-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.severity-critical, .priority-critical {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+}
+
+.severity-high, .priority-high {
+    background-color: rgba(255, 87, 34, 0.2);
+    color: #ff5722;
+}
+
+.severity-medium, .priority-medium {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+}
+
+.severity-low, .priority-low {
+    background-color: rgba(33, 150, 243, 0.2);
+    color: #2196f3;
+}
+
+.issue-description, .recommendation-description {
+    color: #e0e0e0;
+    line-height: 1.6;
+}
+
+.recommendation-example {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+.recommendation-example code {
+    color: #e0e0e0;
+    font-family: monospace;
+}
+
+.notes-content {
+    color: #e0e0e0;
+    padding: 15px;
+    background-color: #333;
+    border-radius: 6px;
+}
+
+.context-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.context-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background-color: #333;
+    border-radius: 6px;
+}
+
+.context-label {
+    color: #b0b0b0;
+    font-weight: bold;
+}
+
+.context-value {
+    color: #fff;
+}
+
+.use-case-notes {
+    background-color: #333;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.notes-text {
+    margin-top: 10px;
+    color: #e0e0e0;
+    line-height: 1.6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 2px solid #007bff;
+    color: #007bff;
+}
+
+.btn-outline:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+@media print {
+    .navigation-tabs, .action-buttons {
+        display: none;
+    }
+
+    .results-container {
+        background-color: white;
+        color: black;
+    }
+}
+
+/* Copy button styles */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.copy-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.copy-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.copy-btn-small {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s;
+    margin-left: 10px;
+}
+
+.copy-btn-small:hover {
+    background-color: #117a8b;
+    transform: scale(1.05);
+}
+
+.example-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.copy-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #28a745;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+</style>
+
+<script>
+// Copy to clipboard functionality
+async function copyToClipboard(elementId, successMessage) {
+    try {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            throw new Error('Element not found');
+        }
+
+        const text = element.textContent || element.innerText;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                throw new Error('Copy command failed');
+            } finally {
+                textArea.remove();
+            }
+        }
+
+        showNotification(successMessage);
+    } catch (err) {
+        console.error('Copy failed: ', err);
+        showNotification('Copy failed. Please try selecting and copying manually.', 'error');
+    }
+}
+
+// Copy all recommendations as a formatted summary
+async function copyAllRecommendations() {
+    try {
+        let summary = "Enhanced SQL Query Analysis Recommendations\n";
+        summary += "==========================================\n\n";
+
+        // Traditional recommendations
+        const recommendationsList = document.getElementById('recommendations-list');
+        if (recommendationsList) {
+            summary += "Standard Analysis Recommendations:\n";
+            summary += "---------------------------------\n";
+
+            const recommendations = recommendationsList.querySelectorAll('.recommendation-item');
+            recommendations.forEach((item, index) => {
+                const type = item.querySelector('.recommendation-type')?.textContent?.trim() || 'Unknown';
+                const priority = item.querySelector('.priority-badge')?.textContent?.trim() || 'Unknown';
+                const description = item.querySelector('.recommendation-description')?.textContent?.trim() || '';
+                const example = item.querySelector('.recommendation-example code')?.textContent?.trim();
+
+                summary += `${index + 1}. ${type}\n`;
+                summary += `   Priority: ${priority}\n`;
+                summary += `   Description: ${description}\n`;
+                if (example) {
+                    summary += `   Example: ${example}\n`;
+                }
+                summary += '\n';
+            });
+        }
+
+        // ML recommendations
+        const mlRecommendationsList = document.querySelector('.ml-recommendations-list');
+        if (mlRecommendationsList) {
+            summary += "\nAI-Enhanced Recommendations:\n";
+            summary += "----------------------------\n";
+
+            const mlRecommendations = mlRecommendationsList.querySelectorAll('.ml-recommendation-item');
+            mlRecommendations.forEach((item, index) => {
+                const type = item.querySelector('.ml-recommendation-type')?.textContent?.trim() || 'AI Recommendation';
+                const confidence = item.querySelector('.ml-confidence-badge')?.textContent?.trim() || 'Unknown';
+                const description = item.querySelector('.ml-recommendation-description')?.textContent?.trim() || '';
+                const impact = item.querySelector('.impact-estimate')?.textContent?.trim();
+
+                summary += `${index + 1}. ${type}\n`;
+                summary += `   ${confidence}\n`;
+                summary += `   Description: ${description}\n`;
+                if (impact) {
+                    summary += `   ${impact}\n`;
+                }
+                summary += '\n';
+            });
+        }
+
+        summary += `\nGenerated by QueryGrade Enhanced SQL Analyzer\n`;
+        summary += `Analysis Date: ${new Date().toLocaleString()}\n`;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(summary);
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = summary;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                throw new Error('Copy command failed');
+            } finally {
+                textArea.remove();
+            }
+        }
+
+        showNotification('All recommendations copied to clipboard!');
+    } catch (err) {
+        console.error('Copy all recommendations failed: ', err);
+        showNotification('Copy failed. Please try again.', 'error');
+    }
+}
+
+// Copy rewrite suggestions
+async function copyRewriteSuggestions() {
+    try {
+        let summary = "AI Query Rewrite Suggestions\n";
+        summary += "============================\n\n";
+
+        const suggestions = document.querySelectorAll('.rewrite-suggestion-item');
+        suggestions.forEach((item, index) => {
+            const title = item.querySelector('.rewrite-header h4')?.textContent?.trim() || 'Optimization Suggestion';
+            const safety = item.querySelector('.safety-badge')?.textContent?.trim() || 'Conservative';
+            const explanation = item.querySelector('.rewrite-explanation')?.textContent?.trim();
+            const query = item.querySelector('.rewritten-query code')?.textContent?.trim();
+            const improvement = item.querySelector('.improvement-estimate')?.textContent?.trim();
+
+            summary += `${index + 1}. ${title} (${safety})\n`;
+            if (explanation) {
+                summary += `   Explanation: ${explanation}\n`;
+            }
+            if (query) {
+                summary += `   Suggested Query:\n   ${query}\n`;
+            }
+            if (improvement) {
+                summary += `   ${improvement}\n`;
+            }
+            summary += '\n';
+        });
+
+        summary += `Generated by QueryGrade AI Query Rewriter\n`;
+        summary += `Analysis Date: ${new Date().toLocaleString()}\n`;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(summary);
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = summary;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                throw new Error('Copy command failed');
+            } finally {
+                textArea.remove();
+            }
+        }
+
+        showNotification('Rewrite suggestions copied to clipboard!');
+    } catch (err) {
+        console.error('Copy rewrite suggestions failed: ', err);
+        showNotification('Copy failed. Please try again.', 'error');
+    }
+}
+
+// Copy full analysis report
+async function copyFullReport() {
+    try {
+        let report = "Enhanced SQL Query Analysis Report\n";
+        report += "==================================\n\n";
+
+        // Grade and summary
+        const gradeLetter = document.querySelector('.grade-letter')?.textContent?.trim();
+        const gradeScore = document.querySelector('.grade-score')?.textContent?.trim();
+        const gradeLabel = document.querySelector('.grade-label')?.textContent?.trim();
+
+        if (gradeLetter) {
+            report += `Overall Grade: ${gradeLetter} (${gradeScore}) - ${gradeLabel}\n\n`;
+        }
+
+        // ML Insights
+        const semanticScore = document.querySelector('.insight-value')?.textContent?.trim();
+        if (semanticScore) {
+            report += `AI Semantic Analysis: ${semanticScore}\n\n`;
+        }
+
+        // Query
+        const query = document.getElementById('analyzed-query')?.textContent?.trim();
+        if (query) {
+            report += "Analyzed Query:\n";
+            report += "---------------\n";
+            report += query + "\n\n";
+        }
+
+        // Summary stats
+        const stats = document.querySelectorAll('.stat-item');
+        if (stats.length > 0) {
+            report += "Query Statistics:\n";
+            report += "-----------------\n";
+            stats.forEach(stat => {
+                const label = stat.querySelector('.stat-label')?.textContent?.trim();
+                const value = stat.querySelector('.stat-value')?.textContent?.trim();
+                if (label && value) {
+                    report += `${label} ${value}\n`;
+                }
+            });
+            report += "\n";
+        }
+
+        // Personalized feedback
+        const personalizedFeedback = document.querySelector('.feedback-text')?.textContent?.trim();
+        if (personalizedFeedback) {
+            report += "Personalized AI Feedback:\n";
+            report += "-------------------------\n";
+            report += personalizedFeedback + "\n\n";
+        }
+
+        // Issues
+        const issues = document.querySelectorAll('.issue-item');
+        if (issues.length > 0) {
+            report += "Issues Found:\n";
+            report += "-------------\n";
+            issues.forEach((issue, index) => {
+                const type = issue.querySelector('.issue-type')?.textContent?.trim();
+                const severity = issue.querySelector('.severity-badge')?.textContent?.trim();
+                const description = issue.querySelector('.issue-description')?.textContent?.trim();
+
+                report += `${index + 1}. ${type} (${severity})\n`;
+                report += `   ${description}\n\n`;
+            });
+        }
+
+        // Traditional Recommendations
+        const recommendations = document.querySelectorAll('.recommendation-item');
+        if (recommendations.length > 0) {
+            report += "Standard Recommendations:\n";
+            report += "------------------------\n";
+            recommendations.forEach((item, index) => {
+                const type = item.querySelector('.recommendation-type')?.textContent?.trim();
+                const priority = item.querySelector('.priority-badge')?.textContent?.trim();
+                const description = item.querySelector('.recommendation-description')?.textContent?.trim();
+
+                report += `${index + 1}. ${type} (${priority})\n`;
+                report += `   ${description}\n\n`;
+            });
+        }
+
+        // ML Recommendations
+        const mlRecommendations = document.querySelectorAll('.ml-recommendation-item');
+        if (mlRecommendations.length > 0) {
+            report += "AI-Enhanced Recommendations:\n";
+            report += "---------------------------\n";
+            mlRecommendations.forEach((item, index) => {
+                const type = item.querySelector('.ml-recommendation-type')?.textContent?.trim();
+                const confidence = item.querySelector('.ml-confidence-badge')?.textContent?.trim();
+                const description = item.querySelector('.ml-recommendation-description')?.textContent?.trim();
+
+                report += `${index + 1}. ${type} (${confidence})\n`;
+                report += `   ${description}\n\n`;
+            });
+        }
+
+        // Performance notes
+        const notes = document.querySelector('.notes-content')?.textContent?.trim();
+        if (notes) {
+            report += "Performance Notes:\n";
+            report += "------------------\n";
+            report += notes + "\n\n";
+        }
+
+        report += `\nGenerated by QueryGrade Enhanced SQL Analyzer\n`;
+        report += `Analysis Date: ${new Date().toLocaleString()}\n`;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(report);
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = report;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                throw new Error('Copy command failed');
+            } finally {
+                textArea.remove();
+            }
+        }
+
+        showNotification('Complete enhanced analysis report copied to clipboard!');
+    } catch (err) {
+        console.error('Copy full report failed: ', err);
+        showNotification('Copy failed. Please try again.', 'error');
+    }
+}
+
+// Show optimization tab
+function showOptimizationTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Show selected tab content
+    const selectedContent = document.getElementById(tabName + '-content');
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+    }
+
+    // Add active class to selected tab button
+    const selectedButton = document.getElementById(tabName + '-tab');
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+    }
+}
+
+// Show notification
+function showNotification(message, type = 'success') {
+    // Remove existing notifications
+    document.querySelectorAll('.copy-notification').forEach(n => n.remove());
+
+    const notification = document.createElement('div');
+    notification.className = 'copy-notification';
+    notification.textContent = message;
+
+    if (type === 'error') {
+        notification.style.backgroundColor = '#dc3545';
+    }
+
+    document.body.appendChild(notification);
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Quick feedback submission
+async function submitQuickFeedback(isHelpful) {
+    const thumbsUpBtn = document.getElementById('thumbs-up');
+    const thumbsDownBtn = document.getElementById('thumbs-down');
+    const statusDiv = document.getElementById('feedback-status');
+
+    // Disable buttons to prevent double submission
+    thumbsUpBtn.disabled = true;
+    thumbsDownBtn.disabled = true;
+
+    try {
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        if (!csrfToken) {
+            // If no CSRF token found, try to get it from cookie
+            const cookies = document.cookie.split(';');
+            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrftoken='));
+            if (!csrfCookie) {
+                throw new Error('CSRF token not found');
+            }
+        }
+
+        const response = await fetch('{% url "quick_feedback" analysis.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                'was_helpful': isHelpful
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Show success message
+            statusDiv.textContent = data.message || 'Thank you for your feedback!';
+            statusDiv.className = 'feedback-status success';
+            statusDiv.style.display = 'block';
+
+            // Update button states
+            if (isHelpful) {
+                thumbsUpBtn.classList.add('selected');
+                thumbsDownBtn.classList.remove('selected');
+            } else {
+                thumbsDownBtn.classList.add('selected');
+                thumbsUpBtn.classList.remove('selected');
+            }
+
+            // Keep buttons disabled after successful submission
+            thumbsUpBtn.disabled = true;
+            thumbsDownBtn.disabled = true;
+
+            // Show notification
+            showNotification('Enhanced feedback submitted successfully! 🎉');
+
+        } else {
+            throw new Error(data.error || 'Failed to submit feedback');
+        }
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+
+        // Show error message
+        statusDiv.textContent = 'Unable to submit feedback. Please try the detailed feedback form below.';
+        statusDiv.className = 'feedback-status error';
+        statusDiv.style.display = 'block';
+
+        // Re-enable buttons on error
+        thumbsUpBtn.disabled = false;
+        thumbsDownBtn.disabled = false;
+
+        // Show error notification
+        showNotification('Failed to submit feedback. Please try again.', 'error');
+    }
+}
+
+// Performance indicators initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Count issues by severity
+    const issues = {{ analysis.issues_found|safe }};
+    const severityCounts = {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0
+    };
+
+    issues.forEach(issue => {
+        if (severityCounts.hasOwnProperty(issue.severity)) {
+            severityCounts[issue.severity]++;
+        }
+    });
+
+    // Update severity count displays
+    const criticalElement = document.getElementById('critical-count');
+    const highElement = document.getElementById('high-count');
+    const mediumElement = document.getElementById('medium-count');
+    const lowElement = document.getElementById('low-count');
+
+    if (criticalElement) criticalElement.textContent = severityCounts.critical;
+    if (highElement) highElement.textContent = severityCounts.high;
+    if (mediumElement) mediumElement.textContent = severityCounts.medium;
+    if (lowElement) lowElement.textContent = severityCounts.low;
+
+    // Update severity count colors based on values
+    function updateSeverityCountColor(element, count, baseColor) {
+        if (element && count > 0) {
+            element.style.backgroundColor = baseColor;
+        } else if (element) {
+            element.style.backgroundColor = '#666';
+        }
+    }
+
+    updateSeverityCountColor(criticalElement, severityCounts.critical, '#dc3545');
+    updateSeverityCountColor(highElement, severityCounts.high, '#fd7e14');
+    updateSeverityCountColor(mediumElement, severityCounts.medium, '#ffc107');
+    updateSeverityCountColor(lowElement, severityCounts.low, '#17a2b8');
+
+    // Animate progress bars
+    setTimeout(() => {
+        const progressBars = document.querySelectorAll('.progress-fill');
+        progressBars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 100);
+        });
+    }, 500);
+
+    // Animate prediction bars
+    setTimeout(() => {
+        const predictionBars = document.querySelectorAll('.prediction-fill');
+        predictionBars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 100);
+        });
+    }, 750);
+});
+</script>
+{% endblock %}
