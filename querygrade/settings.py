@@ -1,17 +1,19 @@
 from pathlib import Path
 import os
 from django.utils.translation import gettext_lazy as _
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-@j(#-fz+=j*@p@2g!3_%zk5p7-57r7ms%=90g04pxvct9r4l7q"
+# Generate a new secret key with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-CHANGE-ME-IN-PRODUCTION')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 # Application definition
 
@@ -240,6 +242,18 @@ LOGIN_REDIRECT_URL = '/'
 # Redirect to login URL if user tries to access a login required page and is not logged in
 LOGIN_URL = '/login/'
 
+# Email Configuration for Password Reset
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend'  # Development: prints to console
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes', 'on')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@querygrade.com')
+
 # Django REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -366,7 +380,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
 # Rate Limiting Settings
-RATELIMIT_ENABLE = True
+# Temporarily disabled for development - enable in production
+RATELIMIT_ENABLE = os.environ.get('RATELIMIT_ENABLE', 'False').lower() in ('true', '1', 'yes', 'on')
 RATELIMIT_USE_CACHE = 'default'
 
 # File Upload Security

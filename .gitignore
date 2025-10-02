@@ -22,12 +22,16 @@ wheels/
 MANIFEST
 
 # Django
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
+
+# Logs (keep directory structure but ignore log files)
+logs/*.log
+logs/**/*.log
+*.log
 
 # Virtual environments
 .env
