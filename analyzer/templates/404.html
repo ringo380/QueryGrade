@@ -1,0 +1,285 @@
+{% extends "analyzer/base.html" %}
+{% load static %}
+
+{% block title %}404 - Page Not Found | QueryGrade{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-container">
+        <div class="error-illustration">
+            <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Lost magnifying glass -->
+                <circle cx="120" cy="120" r="50" stroke="#4d9fff" stroke-width="6" fill="none" opacity="0.5"/>
+                <line x1="158" y1="158" x2="190" y2="190" stroke="#4d9fff" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
+
+                <!-- Question marks floating around -->
+                <text x="50" y="80" font-family="Arial" font-size="40" fill="#ff7043" opacity="0.7">?</text>
+                <text x="200" y="60" font-family="Arial" font-size="35" fill="#ffb74d" opacity="0.6">?</text>
+                <text x="180" y="190" font-family="Arial" font-size="30" fill="#64b5f6" opacity="0.6">?</text>
+                <text x="40" y="210" font-family="Arial" font-size="38" fill="#ff7043" opacity="0.5">?</text>
+
+                <!-- Database icon (faded) -->
+                <ellipse cx="220" cy="230" rx="30" ry="10" fill="#4d9fff" opacity="0.2"/>
+                <rect x="190" y="230" width="60" height="40" fill="#4d9fff" opacity="0.2"/>
+                <ellipse cx="220" cy="270" rx="30" ry="10" fill="#4d9fff" opacity="0.3"/>
+
+                <!-- Broken link chain -->
+                <circle cx="80" cy="250" r="12" stroke="#ff7043" stroke-width="4" fill="none"/>
+                <circle cx="130" cy="250" r="12" stroke="#ff7043" stroke-width="4" fill="none"/>
+                <line x1="90" y1="245" x2="110" y2="245" stroke="#ff7043" stroke-width="4" stroke-dasharray="5,5" opacity="0.5"/>
+            </svg>
+        </div>
+
+        <h1 class="error-code">404</h1>
+        <h2 class="error-title">Page Not Found</h2>
+        <p class="error-description">
+            Looks like this page took an unexpected turn! The SQL query you're looking for
+            doesn't exist in our schema. Perhaps it was deleted, moved, or never existed.
+        </p>
+
+        <div class="error-suggestions">
+            <h3 class="suggestions-title">💡 What you can do:</h3>
+            <ul class="suggestions-list">
+                <li>
+                    <span class="suggestion-icon">🏠</span>
+                    <span class="suggestion-text">Return to the <a href="{% url 'index' %}" class="error-link">Home page</a></span>
+                </li>
+                <li>
+                    <span class="suggestion-icon">📊</span>
+                    <span class="suggestion-text">Grade a new query at <a href="{% url 'grade_query' %}" class="error-link">Query Grader</a></span>
+                </li>
+                <li>
+                    <span class="suggestion-icon">📚</span>
+                    <span class="suggestion-text">Check your <a href="{% url 'query_history' %}" class="error-link">Query History</a></span>
+                </li>
+                <li>
+                    <span class="suggestion-icon">🗄️</span>
+                    <span class="suggestion-text">Analyze your <a href="{% url 'database_analyze' %}" class="error-link">Database Schema</a></span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="error-actions">
+            <a href="{% url 'index' %}" class="btn btn-primary btn-large">
+                <span class="btn-icon">🏠</span>
+                Back to Home
+            </a>
+            <a href="{% url 'grade_query' %}" class="btn btn-secondary btn-large">
+                <span class="btn-icon">📊</span>
+                Grade a Query
+            </a>
+        </div>
+
+        <p class="error-hint">
+            If you believe this is a mistake, please
+            <a href="https://github.com/ringo380/QueryGrade/issues" class="error-link" target="_blank" rel="noopener noreferrer">
+                report it on GitHub
+            </a>
+        </p>
+    </div>
+</div>
+
+<style>
+.error-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.error-container {
+    max-width: 700px;
+    text-align: center;
+    padding: 40px;
+    background: linear-gradient(135deg, rgba(42, 42, 42, 0.95) 0%, rgba(30, 30, 30, 0.95) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(68, 68, 68, 0.3);
+}
+
+.error-illustration {
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.error-illustration svg {
+    filter: drop-shadow(0 4px 12px rgba(77, 159, 255, 0.2));
+}
+
+.error-code {
+    font-size: 6rem;
+    font-weight: 900;
+    color: var(--text-accent);
+    margin: 20px 0 10px;
+    text-shadow: 0 4px 8px rgba(77, 159, 255, 0.3);
+    line-height: 1;
+}
+
+.error-title {
+    font-size: 2rem;
+    color: var(--text-white);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.error-description {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 40px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.error-suggestions {
+    background: rgba(42, 42, 42, 0.5);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 40px;
+    border: 1px solid rgba(68, 68, 68, 0.2);
+}
+
+.suggestions-title {
+    color: var(--text-white);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.suggestions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.suggestions-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(42, 42, 42, 0.3);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.suggestions-list li:hover {
+    background: rgba(77, 159, 255, 0.1);
+    transform: translateX(5px);
+}
+
+.suggestion-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.suggestion-text {
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.error-link {
+    color: var(--text-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.error-link:hover {
+    color: var(--btn-primary-hover);
+    text-decoration: underline;
+}
+
+.error-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.btn-large {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-large:hover {
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: var(--bg-elevated);
+    color: var(--text-white);
+    border: 2px solid var(--border-primary);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-accent);
+    box-shadow: 0 4px 12px rgba(77, 159, 255, 0.2);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.error-hint {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .error-container {
+        padding: 30px 20px;
+    }
+
+    .error-illustration svg {
+        width: 200px;
+        height: 200px;
+    }
+
+    .error-code {
+        font-size: 4rem;
+    }
+
+    .error-title {
+        font-size: 1.5rem;
+    }
+
+    .error-description {
+        font-size: 1rem;
+    }
+
+    .error-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-large {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .suggestions-list li {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+}
+</style>
+{% endblock %}

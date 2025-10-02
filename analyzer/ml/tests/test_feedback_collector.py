@@ -15,7 +15,7 @@ from analyzer.models import (
     Query, QueryAnalysis, UserQueryHistory, QueryFeedback,
     TrainingData, FeedbackLearning
 )
-from analyzer.ml.feedback_collector import FeedbackCollector
+from analyzer.ml.core.feedback_collector import FeedbackCollector
 
 
 class FeedbackCollectorTestCase(TestCase):

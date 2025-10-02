@@ -210,6 +210,13 @@ We welcome contributions! Priority areas:
 3. **Database Integrations**: Add support for different database systems
 4. **Analysis Algorithms**: Improve query optimization recommendations
 
+### Developer Documentation
+
+Before contributing, please review:
+- **[CLAUDE.md](CLAUDE.md)** - Complete project documentation, architecture, and development guide
+- **[TESTING.md](TESTING.md)** - Testing best practices and troubleshooting guide
+- **[INTEGRATION_TEST_FIX_SUMMARY.md](INTEGRATION_TEST_FIX_SUMMARY.md)** - Case study on cache issues in tests
+
 ## Project Structure
 
 ```

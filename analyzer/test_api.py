@@ -341,3 +341,95 @@ class QueryGradingAPITestCase(TestCase):
         # Check that throttling headers are present (they should be in a real request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Note: Throttling headers might not be present in test environment
+
+    def test_delete_query_history_success(self):
+        """Test successful deletion of query history."""
+        self.authenticate()
+
+        # Create test queries
+        grade_url = reverse('api:grade_query')
+        query1_response = self.client.post(grade_url, {'sql_text': 'SELECT * FROM test1'}, format='json')
+        query2_response = self.client.post(grade_url, {'sql_text': 'SELECT * FROM test2'}, format='json')
+
+        # Get the created history IDs
+        history_url = reverse('api:query_history')
+        history_response = self.client.get(history_url)
+        history_ids = [item['id'] for item in history_response.data['results'][:2]]
+
+        # Delete the queries
+        delete_url = reverse('api:delete_query_history')
+        delete_response = self.client.delete(delete_url, {'query_ids': history_ids}, format='json')
+
+        self.assertEqual(delete_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(delete_response.data['deleted'], len(history_ids))
+        self.assertIn('message', delete_response.data)
+
+        # Verify queries are deleted
+        history_response_after = self.client.get(history_url)
+        remaining_ids = [item['id'] for item in history_response_after.data['results']]
+        for hid in history_ids:
+            self.assertNotIn(hid, remaining_ids)
+
+    def test_delete_query_history_invalid_input(self):
+        """Test deletion with invalid input."""
+        self.authenticate()
+        delete_url = reverse('api:delete_query_history')
+
+        # Test with empty list
+        response = self.client.delete(delete_url, {'query_ids': []}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('error', response.data)
+
+        # Test with non-list input
+        response = self.client.delete(delete_url, {'query_ids': 'invalid'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Test with invalid integer values
+        response = self.client.delete(delete_url, {'query_ids': ['abc', 'def']}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_delete_query_history_not_found(self):
+        """Test deletion of non-existent query history."""
+        self.authenticate()
+        delete_url = reverse('api:delete_query_history')
+
+        # Try to delete non-existent queries
+        response = self.client.delete(delete_url, {'query_ids': [99999, 99998]}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn('error', response.data)
+
+    def test_delete_query_history_access_control(self):
+        """Test that users can only delete their own query history."""
+        # Create another user
+        other_user = User.objects.create_user(
+            username='otheruser',
+            email='other@example.com',
+            password='otherpass123'
+        )
+
+        # Authenticate as first user and create query
+        self.authenticate()
+        grade_url = reverse('api:grade_query')
+        self.client.post(grade_url, {'sql_text': 'SELECT * FROM my_query'}, format='json')
+
+        # Get the history ID
+        history_url = reverse('api:query_history')
+        history_response = self.client.get(history_url)
+        history_id = history_response.data['results'][0]['id']
+
+        # Authenticate as second user and try to delete first user's query
+        other_refresh = RefreshToken.for_user(other_user)
+        other_access_token = str(other_refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {other_access_token}')
+
+        delete_url = reverse('api:delete_query_history')
+        response = self.client.delete(delete_url, {'query_ids': [history_id]}, format='json')
+
+        # Should return 404 since the query doesn't belong to this user
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # Verify original query still exists
+        self.authenticate()  # Re-authenticate as first user
+        history_response = self.client.get(history_url)
+        remaining_ids = [item['id'] for item in history_response.data['results']]
+        self.assertIn(history_id, remaining_ids)

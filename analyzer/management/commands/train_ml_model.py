@@ -13,7 +13,7 @@ import os
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
-from analyzer.ml.training_pipeline import TrainingPipelineManager, TrainingConfig
+from analyzer.ml.core.training_pipeline import TrainingPipelineManager, TrainingConfig
 
 
 class Command(BaseCommand):

@@ -1,0 +1,394 @@
+{% extends "analyzer/base.html" %}
+{% load static %}
+
+{% block title %}500 - Server Error | QueryGrade{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-container">
+        <div class="error-illustration">
+            <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Server/Database with error symbol -->
+                <rect x="75" y="100" width="150" height="120" rx="8" fill="#2a2a2a" stroke="#ff5252" stroke-width="4"/>
+
+                <!-- Server lines -->
+                <line x1="90" y1="130" x2="210" y2="130" stroke="#444" stroke-width="3"/>
+                <line x1="90" y1="160" x2="210" y2="160" stroke="#444" stroke-width="3"/>
+                <line x1="90" y1="190" x2="210" y2="190" stroke="#444" stroke-width="3"/>
+
+                <!-- LED indicators (red) -->
+                <circle cx="100" cy="115" r="5" fill="#ff5252"/>
+                <circle cx="120" cy="115" r="5" fill="#ff5252"/>
+                <circle cx="140" cy="115" r="5" fill="#ff5252"/>
+
+                <!-- Warning triangle overlay -->
+                <path d="M 150 50 L 200 130 L 100 130 Z" fill="#ff7043" opacity="0.9" stroke="#ff5252" stroke-width="3"/>
+                <text x="150" y="115" font-family="Arial" font-size="45" font-weight="bold" fill="#1a1a1a" text-anchor="middle">!</text>
+
+                <!-- Sparkles/error particles -->
+                <circle cx="60" cy="100" r="3" fill="#ff7043" opacity="0.6"/>
+                <circle cx="240" cy="120" r="4" fill="#ff5252" opacity="0.7"/>
+                <circle cx="70" cy="200" r="3" fill="#ffb74d" opacity="0.6"/>
+                <circle cx="230" cy="180" r="3" fill="#ff7043" opacity="0.5"/>
+
+                <!-- Broken gear -->
+                <circle cx="220" cy="240" r="20" stroke="#ff7043" stroke-width="4" fill="none" opacity="0.6"/>
+                <line x1="210" y1="230" x2="230" y2="250" stroke="#ff7043" stroke-width="4" stroke-dasharray="5,5" opacity="0.6"/>
+            </svg>
+        </div>
+
+        <h1 class="error-code">500</h1>
+        <h2 class="error-title">Internal Server Error</h2>
+        <p class="error-description">
+            Oops! Our query optimizer encountered an unexpected NULL value. Something went wrong
+            on our end while processing your request. Don't worry—it's not your fault!
+        </p>
+
+        <div class="error-suggestions">
+            <h3 class="suggestions-title">🔧 What happened?</h3>
+            <div class="error-details">
+                <p>The server encountered an unexpected condition that prevented it from fulfilling your request. This could be due to:</p>
+                <ul class="details-list">
+                    <li>A temporary database connection issue</li>
+                    <li>An unexpected query or data format</li>
+                    <li>A configuration problem on our servers</li>
+                    <li>High server load or resource constraints</li>
+                </ul>
+            </div>
+
+            <h3 class="suggestions-title" style="margin-top: 30px;">💡 What you can do:</h3>
+            <ul class="suggestions-list">
+                <li>
+                    <span class="suggestion-icon">🔄</span>
+                    <span class="suggestion-text">Try <a href="javascript:window.location.reload()" class="error-link">refreshing the page</a></span>
+                </li>
+                <li>
+                    <span class="suggestion-icon">⏱️</span>
+                    <span class="suggestion-text">Wait a few moments and try again</span>
+                </li>
+                <li>
+                    <span class="suggestion-icon">🏠</span>
+                    <span class="suggestion-text">Return to the <a href="{% url 'index' %}" class="error-link">Home page</a></span>
+                </li>
+                <li>
+                    <span class="suggestion-icon">📊</span>
+                    <span class="suggestion-text">Try a different query at <a href="{% url 'grade_query' %}" class="error-link">Query Grader</a></span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="error-actions">
+            <a href="javascript:window.location.reload()" class="btn btn-primary btn-large">
+                <span class="btn-icon">🔄</span>
+                Retry Request
+            </a>
+            <a href="{% url 'index' %}" class="btn btn-secondary btn-large">
+                <span class="btn-icon">🏠</span>
+                Back to Home
+            </a>
+        </div>
+
+        <div class="error-report-box">
+            <p class="report-text">
+                <strong>Problem persists?</strong> Please report this issue:
+            </p>
+            <div class="report-actions">
+                <a href="https://github.com/ringo380/QueryGrade/issues/new?labels=bug&template=bug_report.md"
+                   class="btn btn-danger" target="_blank" rel="noopener noreferrer">
+                    <span class="btn-icon">🐛</span>
+                    Report Bug on GitHub
+                </a>
+            </div>
+            <p class="report-hint">
+                Including the URL and what you were trying to do helps us fix issues faster!
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.error-container {
+    max-width: 800px;
+    text-align: center;
+    padding: 40px;
+    background: linear-gradient(135deg, rgba(42, 42, 42, 0.95) 0%, rgba(30, 30, 30, 0.95) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 82, 82, 0.3);
+}
+
+.error-illustration {
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.error-illustration svg {
+    filter: drop-shadow(0 4px 12px rgba(255, 82, 82, 0.2));
+}
+
+.error-code {
+    font-size: 6rem;
+    font-weight: 900;
+    color: var(--severity-critical);
+    margin: 20px 0 10px;
+    text-shadow: 0 4px 8px rgba(255, 82, 82, 0.3);
+    line-height: 1;
+}
+
+.error-title {
+    font-size: 2rem;
+    color: var(--text-white);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.error-description {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 40px;
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.error-suggestions {
+    background: rgba(42, 42, 42, 0.5);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 40px;
+    border: 1px solid rgba(68, 68, 68, 0.2);
+}
+
+.suggestions-title {
+    color: var(--text-white);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.error-details {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.error-details p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.details-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.details-list li {
+    color: var(--text-primary);
+    padding-left: 25px;
+    position: relative;
+}
+
+.details-list li::before {
+    content: "•";
+    position: absolute;
+    left: 10px;
+    color: var(--severity-high);
+    font-size: 1.2rem;
+}
+
+.suggestions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.suggestions-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(42, 42, 42, 0.3);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.suggestions-list li:hover {
+    background: rgba(255, 112, 67, 0.1);
+    transform: translateX(5px);
+}
+
+.suggestion-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.suggestion-text {
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.error-link {
+    color: var(--text-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.error-link:hover {
+    color: var(--btn-primary-hover);
+    text-decoration: underline;
+}
+
+.error-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.btn-large {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-large:hover {
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: var(--bg-elevated);
+    color: var(--text-white);
+    border: 2px solid var(--border-primary);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-accent);
+    box-shadow: 0 4px 12px rgba(77, 159, 255, 0.2);
+}
+
+.btn-danger {
+    background-color: var(--btn-danger-bg);
+    color: var(--text-white);
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 83, 80, 0.3);
+    border-color: var(--severity-critical);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.error-report-box {
+    background: rgba(239, 83, 80, 0.1);
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    border-radius: 12px;
+    padding: 25px;
+    margin-top: 30px;
+}
+
+.report-text {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    font-size: 1rem;
+}
+
+.report-actions {
+    margin: 20px 0;
+}
+
+.report-hint {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 10px 0 0 0;
+    font-style: italic;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .error-container {
+        padding: 30px 20px;
+    }
+
+    .error-illustration svg {
+        width: 200px;
+        height: 200px;
+    }
+
+    .error-code {
+        font-size: 4rem;
+    }
+
+    .error-title {
+        font-size: 1.5rem;
+    }
+
+    .error-description {
+        font-size: 1rem;
+    }
+
+    .error-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-large {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .suggestions-list li {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .error-details {
+        text-align: center;
+    }
+
+    .details-list li {
+        text-align: left;
+    }
+}
+</style>
+{% endblock %}

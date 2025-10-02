@@ -14,8 +14,8 @@ from django.db import transaction
 from datetime import timedelta
 
 from analyzer.models import Query, QueryFeedback, TrainingData
-from analyzer.ml.feedback_collector import FeedbackCollector
-from analyzer.ml.feature_extractor import FeatureExtractor
+from analyzer.ml.core.feedback_collector import FeedbackCollector
+from analyzer.ml.core.feature_extractor import FeatureExtractor
 
 
 class Command(BaseCommand):

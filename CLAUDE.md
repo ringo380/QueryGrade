@@ -18,8 +18,23 @@ QueryGrade is a comprehensive Django-based SQL query analysis and database optim
 - **Main project**: `querygrade/` - Django configuration, Celery setup
 - **Main app**: `analyzer/` - Core query analysis functionality
 - **Key modules**:
-  - `analyzer/query_analyzer.py` - Core query grading engine (rule-based)
-  - `analyzer/views.py` - Web interface with authentication & query submission
+  - `analyzer/query_analyzer.py` - Core query grading engine facade (delegates to modular analyzers)
+  - `analyzer/analyzers/` - **NEW: Modular analyzer architecture (9 specialized analyzers)**:
+    - `base.py` - Base analyzer class and orchestrator
+    - `select_analyzer.py` - SELECT clause efficiency
+    - `join_analyzer.py` - JOIN analysis
+    - `where_analyzer.py` - WHERE clause optimization
+    - `indexing_analyzer.py` - **NEW: Index detection and optimization**
+    - `subquery_analyzer.py` - **NEW: Subquery pattern optimization**
+    - `orderby_analyzer.py` - **NEW: Sorting efficiency**
+    - `groupby_analyzer.py` - **NEW: Aggregation optimization**
+    - `database/` - Database-specific analyzers (MySQL, PostgreSQL, SQLite, Oracle, SQL Server)
+  - `analyzer/views/` - Modular views package:
+    - `auth_views.py` - Authentication flows
+    - `query_grading_views.py` - Query analysis
+    - `history_views.py` - User history
+    - `feedback_views.py` - Feedback collection
+    - `upload_views.py` - File processing
   - `analyzer/models.py` - Comprehensive models for queries, analysis, feedback, ML tracking
   - `analyzer/forms.py` - Query input, feedback collection, database connection forms
   - `analyzer/ml/` - Machine learning subsystem:
@@ -37,8 +52,10 @@ QueryGrade is a comprehensive Django-based SQL query analysis and database optim
 1. **Query Submission**: User pastes SQL query via web form (`QueryGradeForm`)
 2. **Analysis Phase**:
    - Query normalized and hashed for caching
-   - `QueryGrader.analyze_query()` applies rule-based analysis
-   - Checks for 10+ performance issues (SELECT *, function on columns, etc.)
+   - `QueryGrader.analyze_query()` orchestrates 9 specialized analyzers
+   - Each analyzer examines specific aspects (SELECT, JOIN, WHERE, ORDER BY, GROUP BY, indexes, subqueries)
+   - Detects 18+ issue types across performance, efficiency, and best practices
+   - Generates 27+ recommendation types with actionable examples
    - Calculates base score (0-100) and letter grade (A-F)
 3. **ML Enhancement** (if enabled):
    - `FeatureExtractor` extracts 41+ numerical features
@@ -52,6 +69,37 @@ QueryGrade is a comprehensive Django-based SQL query analysis and database optim
    - User feedback collected via `QueryFeedback` model
    - `FeedbackCollector` processes feedback into training data
    - Periodic retraining improves ML predictions
+
+### Analyzer Architecture (NEW - Phase 1 Complete)
+
+**9 Specialized Analyzers** using Strategy Pattern:
+
+**Core Clause Analyzers**:
+1. **SelectAnalyzer** - SELECT clause efficiency (SELECT *, DISTINCT, COUNT(*), scalar subqueries)
+2. **JoinAnalyzer** - JOIN analysis (types, conditions, cross joins, implicit joins)
+3. **WhereAnalyzer** - WHERE clause optimization (functions on columns, OR conditions, type mismatches)
+4. **OrderByAnalyzer** - Sorting efficiency (ORDER BY without LIMIT, functions, expressions, RAND())
+5. **GroupByAnalyzer** - Aggregation optimization (GROUP BY indexes, HAVING vs WHERE, DISTINCT in aggregates)
+
+**Performance Analyzers**:
+6. **IndexingAnalyzer** - Index detection (missing indexes, LIKE wildcards, composite indexes, covering indexes)
+7. **SubqueryAnalyzer** - Subquery patterns (correlated subqueries, scalar subqueries, IN vs EXISTS, CTEs)
+
+**Database-Specific Analyzers**:
+8. **MySQLAnalyzer** - MySQL patterns (storage engines, full-text search, query hints)
+9. **PostgreSQLAnalyzer** - PostgreSQL features (window functions, DISTINCT ON, advanced indexes)
+
+**Detection Capabilities** (18+ issue types):
+- High Severity: LIKE leading wildcard, function on indexed columns, scalar subqueries, NOT IN, ORDER BY RAND()
+- Medium Severity: SELECT *, functions in WHERE/ORDER BY/GROUP BY, correlated subqueries, HAVING without aggregates
+- Low Severity: Many GROUP BY columns, DISTINCT with GROUP BY, ORDER BY in subquery
+
+**Recommendation Types** (27+ types):
+- Index-related (7): WHERE, range, JOIN, ORDER BY, GROUP BY, composite, covering
+- Query rewriting (6): JOIN instead of subquery, NOT EXISTS, CTEs, eliminate scalar subqueries
+- Function optimization (4): Avoid functions on columns, computed columns for ORDER BY/GROUP BY
+- Filter optimization (2): Move HAVING to WHERE, column order by selectivity
+- Other optimizations (8+): ADD LIMIT, remove DISTINCT, COUNT optimization, etc.
 
 ### Machine Learning System
 
@@ -269,6 +317,10 @@ GET  /register/                       # User registration
 
 ## Testing Strategy
 
+> **📚 For comprehensive testing guidance**, see:
+> - **[TESTING.md](TESTING.md)** - Complete testing guide with examples, best practices, and troubleshooting
+> - **[INTEGRATION_TEST_FIX_SUMMARY.md](INTEGRATION_TEST_FIX_SUMMARY.md)** - Case study of solving cache initialization issues in tests
+
 ### Test Coverage
 - **Unit Tests**: Individual components (QueryGrader, FeatureExtractor, etc.)
 - **Integration Tests**: End-to-end workflows (query submission → grading → feedback)
@@ -277,12 +329,82 @@ GET  /register/                       # User registration
 - **Database Tests**: Model relationships, constraints, queries
 
 ### Key Test Files
-- `analyzer/test_query_grader.py` - Query analysis logic
-- `analyzer/test_integration.py` - Full workflow tests
+- `analyzer/test_query_grader.py` - Query analysis logic (28 tests)
+- `analyzer/test_integration_refactored.py` - Full workflow tests with proper cache handling (5 tests)
+- `analyzer/test_integration.py` - Legacy integration tests (deprecated, use refactored version)
 - `analyzer/test_api.py` - API endpoint tests
 - `analyzer/ml/tests/test_hybrid_grader.py` - ML grading tests
 - `analyzer/ml/tests/test_feature_extractor.py` - Feature engineering
 - `analyzer/ml/tests/test_feedback_collector.py` - Feedback processing
+
+### Testing Best Practices
+
+#### Cache Management in Tests
+**Critical**: The global `query_cache` singleton in `analyzer/performance.py` is instantiated at module import time, *before* test settings apply. This causes tests to use production cache instead of DummyCache.
+
+**Solution**: Always reinitialize cache in test setUp():
+```python
+def setUp(self):
+    from analyzer.performance import query_cache
+    from django.core.cache import caches
+
+    # Force query_cache to use test cache backend
+    query_cache.cache = caches['query_analysis_cache']
+
+    # Clear all caches
+    for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+        try:
+            caches[cache_name].clear()
+        except:
+            pass
+```
+
+#### TransactionTestCase vs TestCase
+When `ATOMIC_REQUESTS=True` (production setting), use `TransactionTestCase` for integration tests:
+- `TestCase` wraps each test in a transaction, conflicting with `ATOMIC_REQUESTS`
+- `TransactionTestCase` allows proper transaction control
+- Requires manual cleanup in `tearDown()` (no automatic rollback)
+- Use factory methods for consistent test object creation
+
+**Example**:
+```python
+from django.test import TransactionTestCase
+
+class IntegrationTestCase(TransactionTestCase):
+    def tearDown(self):
+        # Manual cleanup required
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
+```
+
+#### Fetching Test Objects
+Always fetch objects by explicit ID to avoid cache interference:
+```python
+# ❌ BAD - may return cached objects
+simple_query_obj = Query.objects.first()
+complex_query_obj = Query.objects.last()
+
+# ✅ GOOD - fetch by ID from response
+analysis_id = int(response.url.split('/')[-2])
+analysis = QueryAnalysis.objects.get(id=analysis_id)
+query_obj = analysis.query
+```
+
+#### Test Configuration
+Required `@override_settings` for integration tests:
+```python
+@override_settings(
+    RATELIMIT_ENABLE=False,  # Disable rate limiting
+    CACHES={
+        'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'},
+        'query_analysis_cache': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'},
+        'process_cache': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'},
+        'template_cache': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
+    }
+)
+```
 
 ## Performance Considerations
 
@@ -347,9 +469,45 @@ GET  /register/                       # User registration
   print(analysis.grade, analysis.score, analysis.issues_found)
   ```
 
+**For debugging test failures**, see:
+- [TESTING.md - Troubleshooting Checklist](TESTING.md#troubleshooting-checklist)
+- [INTEGRATION_TEST_FIX_SUMMARY.md - Common Issues](INTEGRATION_TEST_FIX_SUMMARY.md#common-issues-and-solutions)
+
 ### Adding New Analysis Rules
-1. Edit `analyzer/query_analyzer.py`
-2. Add rule method to `QueryGrader` class
-3. Update `_calculate_score()` to incorporate new rule
-4. Add test case in `analyzer/test_query_grader.py`
-5. Run tests: `python manage.py test analyzer.test_query_grader`
+The analyzer uses a modular architecture with specialized analyzer classes. To add new rules:
+
+**Option 1: Add to existing analyzer**
+1. Identify relevant analyzer in `analyzer/analyzers/` (e.g., `where_analyzer.py`, `join_analyzer.py`)
+2. Add detection logic to the analyzer's `analyze()` method
+3. Append issues/recommendations to `context.issues` or `context.recommendations`
+4. Update scoring in `analyzer/analyzers/base.py` `_calculate_score()` if needed
+5. Add test case to `analyzer/test_query_grader.py`
+6. Run tests: `python manage.py test analyzer.test_query_grader`
+
+**Option 2: Create new analyzer**
+1. Create new file in `analyzer/analyzers/` (e.g., `security_analyzer.py`)
+2. Inherit from `BaseAnalyzer` and implement `analyze()` and `name` property
+3. Register in `analyzer/analyzers/base.py` `_initialize_analyzers()`
+4. Add comprehensive test cases
+5. Run full test suite: `python manage.py test analyzer`
+
+**Example new analyzer**:
+```python
+from .base import BaseAnalyzer, AnalysisContext
+
+class SecurityAnalyzer(BaseAnalyzer):
+    @property
+    def name(self) -> str:
+        return "SecurityAnalyzer"
+
+    def analyze(self, context: AnalysisContext) -> None:
+        sql_upper = context.sql_text.upper()
+
+        # Detect SQL injection patterns
+        if re.search(r";\s*DROP\s+TABLE", sql_upper):
+            context.issues.append({
+                'type': 'sql_injection',
+                'severity': 'critical',
+                'message': 'Potential SQL injection detected'
+            })
+```

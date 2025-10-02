@@ -13,6 +13,7 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django_ratelimit.decorators import ratelimit
 
 from ..forms import QueryGradeForm, QueryCompareForm, BatchQueryForm
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @login_required
+@transaction.non_atomic_requests
 @ratelimit(key='user', rate='20/m', method='POST', block=True)
 @PerformanceMonitor.time_function("grade_query_view")
 def grade_query(request):
@@ -51,6 +53,7 @@ def grade_query(request):
             try:
                 # Analyze the query with both traditional and ML analysis
                 query, analysis = analyze_query(sql_query, database_type)
+                logger.info(f"Query created: ID={query.id}, Analysis created: ID={analysis.id}")
 
                 # Enhanced ML analysis
                 ml_analysis = None
@@ -95,6 +98,7 @@ def grade_query(request):
                     # Continue with traditional analysis even if ML fails
 
                 # Create user history record
+                logger.info(f"About to create UserQueryHistory with query.id={query.id}, user={request.user}")
                 user_history = UserQueryHistory.objects.create(
                     user=request.user,
                     query=query,
@@ -104,6 +108,7 @@ def grade_query(request):
                     database_version=database_version,
                     use_case_notes=use_case_notes
                 )
+                logger.info(f"UserQueryHistory created: ID={user_history.id}")
 
                 # Redirect to enhanced results page
                 return redirect('enhanced_grade_results', analysis_id=analysis.id)
@@ -123,7 +128,11 @@ def grade_query(request):
                 return render(request, 'analyzer/grade_form.html', {'form': form})
             except Exception as e:
                 logger.error(f"Unexpected error analyzing query for user {request.user.username}: {e}")
-                messages.error(request, "An unexpected error occurred while analyzing your query. Please try again or contact support if the problem persists.")
+                # Temporarily disable re-raising to see debug output
+                # import sys
+                # if 'test' in sys.argv:
+                #     raise
+                messages.error(request, f"An unexpected error occurred: {str(e)}")
                 return render(request, 'analyzer/grade_form.html', {'form': form})
         else:
             messages.error(request, "Please correct the errors in the form below.")

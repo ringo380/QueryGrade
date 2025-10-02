@@ -24,7 +24,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 
-from ..models import Query, QueryFeedback, MLModel, TrainingData, LearningMetrics
+from ...models import Query, QueryFeedback, MLModel, TrainingData, LearningMetrics
 from .feature_extractor import FeatureExtractor
 from .feedback_collector import FeedbackCollector
 

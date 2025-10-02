@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
 from analyzer.models import Query, QueryAnalysis, UserQueryHistory
@@ -10,7 +10,7 @@ class QueryOptimizationTestCase(TestCase):
 
     def setUp(self):
         """Set up test client and user."""
-        self.client = Client()
+        self.client = Client(enforce_csrf_checks=False)
         self.optimizer = QueryOptimizer()
         self.test_user = User.objects.create_user(
             username='testuser',
@@ -50,6 +50,7 @@ class QueryOptimizationTestCase(TestCase):
         self.assertIn('optimized_query', result)
         self.assertGreater(len(result['optimizations_applied']), 0)
 
+    @override_settings(RATELIMIT_ENABLE=False)
     def test_optimization_integration_workflow(self):
         """Test the full workflow including optimization in the web interface."""
         # Login

@@ -568,43 +568,55 @@ async function deleteSelected() {
     deleteBtn.disabled = true;
 
     try {
-        // TODO: Replace with actual API call
-        // For now, simulate deletion with animation
-        queryIds.forEach(id => {
-            const item = document.querySelector(`.history-item[data-query-id="${id}"]`);
-            if (item) {
-                item.style.opacity = '0.5';
-                item.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    item.style.display = 'none';
-                }, 300);
-            }
-        });
-
-        // Clear selection after deletion
-        setTimeout(() => {
-            clearSelection();
-            showNotification(`Successfully deleted ${queryIds.length} ${queryIds.length === 1 ? 'query' : 'queries'}`);
-        }, 400);
-
-        {% comment %}
-        // In production, this would be:
+        // Get CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        const response = await fetch('{% url "bulk_delete_queries" %}', {
-            method: 'POST',
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
+        // Call API to delete queries
+        const response = await fetch('/api/query-history/delete/', {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken,
             },
             body: JSON.stringify({ query_ids: queryIds })
         });
-        if (!response.ok) throw new Error('Delete failed');
-        window.location.reload();
-        {% endcomment %}
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Delete failed');
+        }
+
+        // Animate removal of deleted items
+        queryIds.forEach(id => {
+            const item = document.querySelector(`.history-item[data-query-id="${id}"]`);
+            if (item) {
+                item.style.opacity = '0';
+                item.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    item.remove();
+                }, 300);
+            }
+        });
+
+        // Clear selection and show success message
+        setTimeout(() => {
+            clearSelection();
+            showNotification(data.message || `Successfully deleted ${queryIds.length} ${queryIds.length === 1 ? 'query' : 'queries'}`);
+
+            // Reload page if no queries remain
+            const remainingQueries = document.querySelectorAll('.history-item').length;
+            if (remainingQueries === 0) {
+                setTimeout(() => window.location.reload(), 1000);
+            }
+        }, 400);
 
     } catch (error) {
         console.error('Delete error:', error);
-        showNotification('Failed to delete queries. Please try again.', 'error');
+        showNotification(error.message || 'Failed to delete queries. Please try again.', 'error');
         deleteBtn.innerHTML = originalHTML;
         deleteBtn.disabled = false;
     }

@@ -12,7 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-from ..models import (
+from ...models import (
     Query, QueryAnalysis, UserQueryHistory, QueryFeedback,
     TrainingData, FeedbackLearning, MLModel
 )

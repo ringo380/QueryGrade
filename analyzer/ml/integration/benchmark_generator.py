@@ -24,7 +24,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 
-from ..models import Query, QueryAnalysis, TrainingData
+from ...models import Query, QueryAnalysis, TrainingData
 from .documentation_loader import DocumentationLoader, DocumentationRule, BenchmarkResult
 
 logger = logging.getLogger(__name__)

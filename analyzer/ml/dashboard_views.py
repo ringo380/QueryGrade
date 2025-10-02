@@ -21,8 +21,8 @@ from ..models import (
     Query, QueryFeedback, UserQueryHistory,
     MLModel, TrainingData, LearningMetrics, FeedbackLearning
 )
-from .hybrid_grader import HybridQueryGrader
-from .training_pipeline import TrainingPipelineManager
+from .core.hybrid_grader import HybridQueryGrader
+from .core.training_pipeline import TrainingPipelineManager
 
 
 def is_staff_or_superuser(user):

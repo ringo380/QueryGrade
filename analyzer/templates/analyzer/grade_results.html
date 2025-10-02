@@ -617,11 +617,11 @@
     box-shadow: 0 8px 16px rgba(0,0,0,0.4);
 }
 
-.grade-a, .grade-success { background: linear-gradient(135deg, #4caf50, #45a049); }
-.grade-b, .grade-info { background: linear-gradient(135deg, #2196f3, #1976d2); }
-.grade-c, .grade-warning { background: linear-gradient(135deg, #ff9800, #f57c00); }
-.grade-d, .grade-orange { background: linear-gradient(135deg, #ff5722, #d84315); }
-.grade-f, .grade-danger { background: linear-gradient(135deg, #f44336, #d32f2f); }
+.grade-a, .grade-success { background: linear-gradient(135deg, var(--grade-a), var(--grade-a-dark)); }
+.grade-b, .grade-info { background: linear-gradient(135deg, var(--grade-b), var(--grade-b-dark)); }
+.grade-c, .grade-warning { background: linear-gradient(135deg, var(--grade-c), var(--grade-c-dark)); }
+.grade-d, .grade-orange { background: linear-gradient(135deg, var(--grade-d), var(--grade-d-dark)); }
+.grade-f, .grade-danger { background: linear-gradient(135deg, var(--grade-f), var(--grade-f-dark)); }
 
 .grade-letter {
     font-size: 4rem;
@@ -905,15 +905,15 @@
     border-left: 4px solid transparent;
 }
 
-.severity-critical { border-left-color: #f44336; }
-.severity-high { border-left-color: #ff5722; }
-.severity-medium { border-left-color: #ff9800; }
-.severity-low { border-left-color: #2196f3; }
+.severity-critical { border-left-color: var(--severity-critical); }
+.severity-high { border-left-color: var(--severity-high); }
+.severity-medium { border-left-color: var(--severity-medium); }
+.severity-low { border-left-color: var(--severity-low); }
 
-.priority-critical { border-left-color: #f44336; }
-.priority-high { border-left-color: #ff5722; }
-.priority-medium { border-left-color: #ff9800; }
-.priority-low { border-left-color: #2196f3; }
+.priority-critical { border-left-color: var(--priority-critical); }
+.priority-high { border-left-color: var(--priority-high); }
+.priority-medium { border-left-color: var(--priority-medium); }
+.priority-low { border-left-color: var(--priority-low); }
 
 .issue-header, .recommendation-header {
     display: flex;
@@ -935,23 +935,23 @@
 }
 
 .severity-critical, .priority-critical {
-    background-color: rgba(244, 67, 54, 0.2);
-    color: #f44336;
+    background-color: var(--severity-critical-bg);
+    color: var(--severity-critical);
 }
 
 .severity-high, .priority-high {
-    background-color: rgba(255, 87, 34, 0.2);
-    color: #ff5722;
+    background-color: var(--severity-high-bg);
+    color: var(--severity-high);
 }
 
 .severity-medium, .priority-medium {
-    background-color: rgba(255, 152, 0, 0.2);
-    color: #ff9800;
+    background-color: var(--severity-medium-bg);
+    color: var(--severity-medium);
 }
 
 .severity-low, .priority-low {
-    background-color: rgba(33, 150, 243, 0.2);
-    color: #2196f3;
+    background-color: var(--severity-low-bg);
+    color: var(--severity-low);
 }
 
 .issue-description, .recommendation-description {

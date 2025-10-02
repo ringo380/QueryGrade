@@ -54,8 +54,8 @@ except ImportError:
     TENSORFLOW_AVAILABLE = False
     logging.warning("TensorFlow not available. Neural network models will be skipped.")
 
-from ..models import Query, QueryAnalysis, TrainingData, MLModel
-from .feature_extractor import FeatureExtractor
+from analyzer.models import Query, QueryAnalysis, TrainingData, MLModel
+from ..core.feature_extractor import FeatureExtractor
 
 logger = logging.getLogger(__name__)
 

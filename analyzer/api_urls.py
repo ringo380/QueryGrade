@@ -20,6 +20,7 @@ urlpatterns = [
 
     # Query history and analysis
     path('query-history/', api_views.QueryHistoryListAPIView.as_view(), name='query_history'),
+    path('query-history/delete/', api_views.delete_query_history, name='delete_query_history'),
     path('analysis/<int:pk>/', api_views.QueryAnalysisDetailAPIView.as_view(), name='analysis_detail'),
 
     # Feedback endpoints

@@ -13,8 +13,8 @@ import json
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
-from analyzer.ml.documentation_loader import DocumentationLoader
-from analyzer.ml.feature_extractor import FeatureExtractor
+from analyzer.ml.integration.documentation_loader import DocumentationLoader
+from analyzer.ml.core.feature_extractor import FeatureExtractor
 
 
 class Command(BaseCommand):

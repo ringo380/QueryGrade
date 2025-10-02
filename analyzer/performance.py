@@ -307,6 +307,17 @@ class AsyncOptimizer:
 
 
 # Global instances for easy import
+#
+# ⚠️ TESTING NOTE: These singletons are instantiated at module import time,
+# BEFORE Django's @override_settings decorator can apply test settings.
+# This means query_cache will capture the production cache backend even in tests.
+#
+# Solution: In test setUp(), reinitialize the cache backend:
+#   from analyzer.performance import query_cache
+#   from django.core.cache import caches
+#   query_cache.cache = caches['query_analysis_cache']
+#
+# See TESTING.md and analyzer/test_integration_refactored.py for details.
 query_cache = QueryCache()
 performance_monitor = PerformanceMonitor()
 db_optimizer = DatabaseOptimizer()

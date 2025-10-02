@@ -26,8 +26,8 @@ except ImportError:
     SKLEARN_AVAILABLE = False
     logging.warning("scikit-learn not available. ML functionality will be limited.")
 
-from ..query_analyzer import QueryGrader as RuleBasedGrader
-from ..models import Query, QueryAnalysis, TrainingData, MLModel, LearningMetrics
+from ...query_analyzer import QueryGrader as RuleBasedGrader
+from ...models import Query, QueryAnalysis, TrainingData, MLModel, LearningMetrics
 from .feedback_collector import FeedbackCollector
 from .feature_extractor import FeatureExtractor
 

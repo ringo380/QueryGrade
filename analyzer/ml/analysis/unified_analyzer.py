@@ -14,19 +14,19 @@ import asyncio
 import concurrent.futures
 from contextlib import contextmanager
 
-# Import our ML components
-from .semantic_feature_extractor import SemanticFeatureExtractor, analyze_query_semantics
-from .query_plan_predictor import QueryPlanPredictor
-from .database_statistics_integration import DatabaseStatisticsManager, generate_context_aware_features
-from .workload_pattern_recognition import WorkloadPatternRecognizer, analyze_workload
-from .query_pattern_library import QueryPatternLibrary, analyze_query_patterns
+# Import our ML components - updated paths for reorganization
+from .semantic_analyzer import SemanticFeatureExtractor, analyze_query_semantics
+from ..optimization.plan_predictor import QueryPlanPredictor
+from ..integration.database_stats import DatabaseStatisticsManager, generate_context_aware_features
+from .workload_patterns import WorkloadPatternRecognizer, analyze_workload
+from .pattern_library import QueryPatternLibrary, analyze_query_patterns
 from .anti_pattern_detector import AntiPatternDetector, analyze_query_antipatterns
-from .natural_language_feedback import NaturalLanguageFeedbackGenerator, FeedbackLevel
-from .contextual_recommendations import ContextualRecommendationsEngine, RecommendationContext
-from .learning_path_generator import LearningPathGenerator
-from .performance_impact_predictor import PerformanceImpactPredictor, PerformanceBaseline
-from .intelligent_query_rewriter import IntelligentQueryRewriter
-from .feedback_personalization import FeedbackPersonalizationEngine
+from ..recommendations.natural_language import NaturalLanguageFeedbackGenerator, FeedbackLevel
+from ..recommendations.contextual_engine import ContextualRecommendationsEngine, RecommendationContext
+from ..recommendations.learning_paths import LearningPathGenerator
+from ..integration.performance_predictor import PerformanceImpactPredictor, PerformanceBaseline
+from ..optimization.query_rewriter import IntelligentQueryRewriter
+from ..recommendations.personalization_engine import FeedbackPersonalizationEngine
 
 
 @dataclass

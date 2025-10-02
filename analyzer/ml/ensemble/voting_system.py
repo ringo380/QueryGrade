@@ -595,27 +595,169 @@ class EnsembleVotingSystem:
         )
 
     def analyze_voting_performance(self, days_back: int = 7) -> Dict[str, Any]:
-        """Analyze voting performance over recent period."""
+        """
+        Analyze voting performance over recent period.
+
+        Args:
+            days_back: Number of days to look back for analysis
+
+        Returns:
+            Dictionary containing performance metrics and recommendations
+        """
         try:
-            # This would analyze cached voting results to determine
-            # which strategies perform best under different conditions
             analysis = {
                 'total_votes': 0,
                 'strategy_usage': defaultdict(int),
                 'average_confidence': 0.0,
                 'average_quality': 0.0,
                 'consensus_trends': {},
-                'recommendations': []
+                'recommendations': [],
+                'performance_metrics': {},
+                'time_period_days': days_back
             }
 
-            # Placeholder for actual analysis
-            # In practice, this would query cached results and compute statistics
+            # Calculate cutoff timestamp for filtering results
+            cutoff_time = timezone.now() - timedelta(days=days_back)
+            cutoff_timestamp = int(cutoff_time.timestamp())
+
+            # Collect voting results from cache
+            # Try to get cache keys (works with Redis backend)
+            cached_results = []
+            try:
+                # Get Django cache backend client (Redis)
+                cache_client = self.cache._cache.get_client() if hasattr(self.cache, '_cache') else None
+
+                if cache_client and hasattr(cache_client, 'keys'):
+                    # Redis backend - can query by pattern
+                    pattern = 'voting_result_*'
+                    keys = cache_client.keys(pattern)
+
+                    for key in keys:
+                        # Extract timestamp from key
+                        try:
+                            key_str = key.decode('utf-8') if isinstance(key, bytes) else key
+                            timestamp_str = key_str.split('_')[-1]
+                            timestamp = int(timestamp_str)
+
+                            # Only include results within time window
+                            if timestamp >= cutoff_timestamp:
+                                result = self.cache.get(key_str)
+                                if result:
+                                    cached_results.append(result)
+                        except (ValueError, IndexError):
+                            continue
+                else:
+                    # Non-Redis backend - fall back to tracking via performance history
+                    logger.info("Cache backend doesn't support key pattern matching. Using limited analysis.")
+
+            except Exception as cache_error:
+                logger.warning(f"Could not query cache keys: {cache_error}. Using alternative analysis method.")
+
+            # Compute statistics from cached results
+            if cached_results:
+                total_votes = len(cached_results)
+                confidences = [r.get('confidence', 0.0) for r in cached_results]
+                qualities = [r.get('quality', 0.0) for r in cached_results]
+                model_counts = [r.get('model_count', 0) for r in cached_results]
+
+                analysis['total_votes'] = total_votes
+                analysis['average_confidence'] = statistics.mean(confidences) if confidences else 0.0
+                analysis['average_quality'] = statistics.mean(qualities) if qualities else 0.0
+                analysis['confidence_std'] = statistics.stdev(confidences) if len(confidences) > 1 else 0.0
+                analysis['quality_std'] = statistics.stdev(qualities) if len(qualities) > 1 else 0.0
+
+                analysis['performance_metrics'] = {
+                    'min_confidence': min(confidences) if confidences else 0.0,
+                    'max_confidence': max(confidences) if confidences else 0.0,
+                    'median_confidence': statistics.median(confidences) if confidences else 0.0,
+                    'min_quality': min(qualities) if qualities else 0.0,
+                    'max_quality': max(qualities) if qualities else 0.0,
+                    'median_quality': statistics.median(qualities) if qualities else 0.0,
+                    'avg_model_count': statistics.mean(model_counts) if model_counts else 0.0
+                }
+
+                # Generate recommendations based on metrics
+                recommendations = []
+
+                # Low confidence warning
+                if analysis['average_confidence'] < 0.5:
+                    recommendations.append({
+                        'type': 'warning',
+                        'metric': 'confidence',
+                        'message': f"Average confidence is low ({analysis['average_confidence']:.2f}). Consider retraining models or adjusting voting strategy."
+                    })
+
+                # High variance warning
+                if analysis.get('confidence_std', 0) > 0.3:
+                    recommendations.append({
+                        'type': 'warning',
+                        'metric': 'variance',
+                        'message': f"High confidence variance ({analysis['confidence_std']:.2f}) indicates inconsistent predictions. Review model diversity."
+                    })
+
+                # Quality recommendations
+                if analysis['average_quality'] < 0.6:
+                    recommendations.append({
+                        'type': 'improvement',
+                        'metric': 'quality',
+                        'message': f"Average quality score is {analysis['average_quality']:.2f}. Consider ensemble optimization or model updates."
+                    })
+                elif analysis['average_quality'] > 0.85:
+                    recommendations.append({
+                        'type': 'success',
+                        'metric': 'quality',
+                        'message': f"Excellent quality score ({analysis['average_quality']:.2f}). Current ensemble is performing well."
+                    })
+
+                # Model count recommendations
+                avg_model_count = analysis['performance_metrics']['avg_model_count']
+                if avg_model_count < 2:
+                    recommendations.append({
+                        'type': 'warning',
+                        'metric': 'ensemble_size',
+                        'message': f"Low average model count ({avg_model_count:.1f}). Add more models for better ensemble performance."
+                    })
+
+                analysis['recommendations'] = recommendations
+
+            else:
+                # No cached results found
+                analysis['recommendations'] = [{
+                    'type': 'info',
+                    'metric': 'data',
+                    'message': f"No voting results found in the last {days_back} days. System may be new or cache may have been cleared."
+                }]
+
+            # Add consensus trends if we have enough data
+            if len(cached_results) >= 10:
+                # Split results into time buckets to show trends
+                half_point = len(cached_results) // 2
+                recent_half = cached_results[half_point:]
+                older_half = cached_results[:half_point]
+
+                recent_conf = statistics.mean([r.get('confidence', 0.0) for r in recent_half])
+                older_conf = statistics.mean([r.get('confidence', 0.0) for r in older_half])
+
+                analysis['consensus_trends'] = {
+                    'confidence_trend': 'improving' if recent_conf > older_conf else 'declining',
+                    'recent_confidence': recent_conf,
+                    'older_confidence': older_conf,
+                    'change_percentage': ((recent_conf - older_conf) / older_conf * 100) if older_conf > 0 else 0.0
+                }
 
             return analysis
 
         except Exception as e:
-            logger.error(f"Error analyzing voting performance: {e}")
-            return {}
+            logger.error(f"Error analyzing voting performance: {e}", exc_info=True)
+            return {
+                'error': str(e),
+                'total_votes': 0,
+                'recommendations': [{
+                    'type': 'error',
+                    'metric': 'system',
+                    'message': f"Analysis failed: {str(e)}"
+                }]
+            }
 
     def get_optimal_strategy(self, query_characteristics: Dict[str, Any]) -> VotingStrategy:
         """Recommend optimal voting strategy based on query characteristics."""

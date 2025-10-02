@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.http import HttpResponse
@@ -6,17 +6,28 @@ from analyzer.models import Query, QueryAnalysis, UserQueryHistory
 import json
 
 
+# Disable rate limiting for tests
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+)
 class QueryGradingIntegrationTestCase(TestCase):
     """Integration tests for the complete query grading workflow."""
 
     def setUp(self):
         """Set up test client and user."""
-        self.client = Client()
+        self.client = Client(enforce_csrf_checks=False)  # Disable CSRF for tests
         self.test_user = User.objects.create_user(
             username='integrationuser',
             email='integration@example.com',
             password='testpass123'
         )
+        # Force login the test user
+        self.client.force_login(self.test_user)
 
     def test_full_query_grading_workflow(self):
         """Test the complete workflow from login to grading to history."""
@@ -50,9 +61,28 @@ class QueryGradingIntegrationTestCase(TestCase):
             'database_type': 'mysql'
         })
 
+        # Debug: Print response content if not redirecting
+        if grade_response.status_code != 302:
+            print(f"\nDEBUG: Status code: {grade_response.status_code}")
+            if hasattr(grade_response, 'context') and grade_response.context:
+                form = grade_response.context.get('form')
+                if form and hasattr(form, 'errors'):
+                    print(f"DEBUG: Form errors: {form.errors}")
+            # Check for Django messages
+            from django.contrib.messages import get_messages
+            messages = list(get_messages(grade_response.wsgi_request))
+            if messages:
+                print(f"DEBUG: Messages: {[str(m) for m in messages]}")
+            print(f"DEBUG: Response content (first 1000 chars): {grade_response.content[:1000]}")
+
         # Should redirect to results page
         self.assertEqual(grade_response.status_code, 302)
-        self.assertTrue(grade_response.url.startswith('/grade/results/'))
+        # The view redirects to enhanced_grade_results in the new architecture
+        self.assertTrue(
+            grade_response.url.startswith('/grade/results/') or
+            grade_response.url.startswith('/grade/enhanced/'),
+            f"Expected redirect to results page but got: {grade_response.url}"
+        )
 
         # Step 4: Check that Query and Analysis objects were created
         self.assertEqual(Query.objects.count(), 1)
@@ -120,6 +150,9 @@ class QueryGradingIntegrationTestCase(TestCase):
 
     def test_authentication_required(self):
         """Test that authentication is required for grading pages."""
+
+        # Logout first since setUp force_login's the user
+        self.client.logout()
 
         # Try to access grade query page without login
         grade_response = self.client.get(reverse('grade_query'))

@@ -10,10 +10,10 @@ import logging
 import hashlib
 from typing import List, Dict, Optional, Any
 import sqlparse
-from sqlparse import tokens
+from sqlparse import tokens as sqltokens
 from sqlparse.sql import Statement, Token, TokenList
 
-from ..models import Query
+from ...models import Query
 
 logger = logging.getLogger(__name__)
 
@@ -130,15 +130,15 @@ class FeatureExtractor:
 
     def _extract_basic_features(self, sql_text: str, parsed: Statement) -> List[float]:
         """Extract basic structural features."""
-        tokens = list(parsed.flatten())
+        token_list = list(parsed.flatten())
 
         # Count different token types
-        keyword_count = sum(1 for token in tokens if token.ttype in tokens.Keyword)
-        identifier_count = sum(1 for token in tokens if token.ttype in (tokens.Name, tokens.Name.Builtin))
+        keyword_count = sum(1 for token in token_list if token.ttype in sqltokens.Keyword)
+        identifier_count = sum(1 for token in token_list if token.ttype in (sqltokens.Name, sqltokens.Name.Builtin))
 
         return [
             float(len(sql_text)),  # query_length
-            float(len(tokens)),    # token_count
+            float(len(token_list)),    # token_count
             float(keyword_count),  # keyword_count
             float(identifier_count),  # identifier_count
         ]
@@ -155,13 +155,14 @@ class FeatureExtractor:
         window_functions = ['ROW_NUMBER', 'RANK', 'DENSE_RANK', 'LAG', 'LEAD', 'FIRST_VALUE', 'LAST_VALUE']
         window_count = sum(sql_text.count(f' {func}(') for func in window_functions)
 
+        # Use getattr with default values for fields that may not exist
         return [
-            float(query.table_count),      # table_count
-            float(query.join_count),       # join_count
-            float(query.where_conditions), # where_conditions
-            float(query.subquery_count),   # subquery_count
-            float(aggregate_count),        # aggregate_function_count
-            float(window_count),          # window_function_count
+            float(getattr(query, 'table_count', 0)),      # table_count
+            float(getattr(query, 'join_count', 0)),       # join_count
+            float(getattr(query, 'where_conditions', 0)), # where_conditions
+            float(getattr(query, 'subquery_count', 0)),   # subquery_count
+            float(aggregate_count),                       # aggregate_function_count
+            float(window_count),                          # window_function_count
         ]
 
     def _extract_query_type_features(self, parsed: Statement) -> List[float]:
@@ -170,10 +171,10 @@ class FeatureExtractor:
 
         # Determine query type
         for token in parsed.flatten():
-            if token.ttype in tokens.Keyword.DML:
+            if token.ttype in sqltokens.Keyword.DML:
                 query_type = token.value.upper()
                 break
-            elif token.ttype in tokens.Keyword.DDL:
+            elif token.ttype in sqltokens.Keyword.DDL:
                 query_type = token.value.upper()
                 break
 
@@ -258,20 +259,20 @@ class FeatureExtractor:
 
         # Calculate average identifier length
         identifiers = [token.value for token in tokens
-                      if token.ttype in (tokens.Name, tokens.Name.Builtin)
+                      if token.ttype in (sqltokens.Name, sqltokens.Name.Builtin)
                       and len(token.value.strip()) > 0]
         avg_identifier_length = (sum(len(ident) for ident in identifiers) / len(identifiers)
                                if identifiers else 0)
 
         # Keyword diversity (unique keywords / total keywords)
-        keywords = [token.value.upper() for token in tokens if token.ttype in tokens.Keyword]
+        keywords = [token.value.upper() for token in tokens if token.ttype in sqltokens.Keyword]
         keyword_diversity = len(set(keywords)) / len(keywords) if keywords else 0
 
         # Count different types of operators
-        operators = [token.value for token in tokens if token.ttype in tokens.Operator]
+        operators = [token.value for token in tokens if token.ttype in sqltokens.Operator]
         comparison_ops = [op for op in operators if op in ['=', '!=', '<>', '<', '>', '<=', '>=']]
         logical_ops = [token.value.upper() for token in tokens
-                      if token.ttype in tokens.Keyword and token.value.upper() in ['AND', 'OR', 'NOT']]
+                      if token.ttype in sqltokens.Keyword and token.value.upper() in ['AND', 'OR', 'NOT']]
 
         return [
             float(avg_identifier_length),    # avg_identifier_length
