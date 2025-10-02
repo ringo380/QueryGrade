@@ -105,7 +105,8 @@ k8s/secrets/
 k8s/*-secret.yaml
 
 # Models and large files (LFS candidates)
-models/
+# Note: Only ignore ML model files, not Python models packages
+analyzer/ml/models/
 *.pkl
 *.model
 *.bin
@@ -117,4 +118,7 @@ models/
 *.tsv
 *.json
 *.xml
-samples/large/
+samples/large/# Claude Code files
+CLAUDE.md
+.claude/
+
