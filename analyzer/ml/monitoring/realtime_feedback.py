@@ -37,9 +37,9 @@ from analyzer.models import (
     Query, QueryAnalysis, UserQueryHistory, QueryFeedback,
     TrainingData, MLModel, LearningMetrics, FeedbackLearning
 )
-from .feedback_collector import FeedbackCollector
-from .feature_extractor import FeatureExtractor
-from .hybrid_grader import HybridQueryGrader
+from analyzer.ml.core.feedback_collector import FeedbackCollector
+from analyzer.ml.core.feature_extractor import FeatureExtractor
+from analyzer.ml.core.hybrid_grader import HybridQueryGrader
 
 logger = logging.getLogger(__name__)
 

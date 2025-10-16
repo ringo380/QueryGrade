@@ -36,7 +36,7 @@ except ImportError:
     logging.warning("scikit-learn not available. Online learning functionality will be limited.")
 
 from analyzer.models import Query, QueryAnalysis, TrainingData, MLModel, LearningMetrics
-from .feature_extractor import FeatureExtractor
+from analyzer.ml.core.feature_extractor import FeatureExtractor
 
 logger = logging.getLogger(__name__)
 
