@@ -309,30 +309,37 @@ class FeedbackService:
     ) -> None:
         """Create or update learning record for ML training."""
         try:
-            # Calculate aggregated grade from ratings
+            # Get the query analysis to extract original grade and score
+            try:
+                analysis = user_history.query.analysis
+                original_grade = analysis.grade
+                original_score = analysis.score
+            except:
+                logger.warning(f"Could not retrieve analysis for query {user_history.query.id}")
+                return
+
+            # Calculate aggregated feedback score from ratings (convert 1-5 scale to 0-100 scale)
             avg_rating = (
                 feedback.accuracy_rating +
                 feedback.usefulness_rating +
                 feedback.clarity_rating
             ) / 3
 
-            # Convert to grade (1-5 scale to A-F scale)
-            if avg_rating >= 4.5:
-                target_grade = 'A'
-            elif avg_rating >= 3.5:
-                target_grade = 'B'
-            elif avg_rating >= 2.5:
-                target_grade = 'C'
-            elif avg_rating >= 1.5:
-                target_grade = 'D'
-            else:
-                target_grade = 'F'
+            # Convert 1-5 rating scale to 0-100 score scale
+            # 1 -> 0, 2 -> 25, 3 -> 50, 4 -> 75, 5 -> 100
+            feedback_score = (avg_rating - 1) * 25
+
+            # Calculate the grade difference (user feedback vs system analysis)
+            grade_difference = feedback_score - original_score
 
             # Get or create learning record
             learning_record, created = FeedbackLearning.objects.get_or_create(
                 user_history=user_history,
                 defaults={
-                    'target_grade': target_grade,
+                    'original_grade': original_grade,
+                    'original_score': original_score,
+                    'feedback_grade_equivalent': feedback_score,
+                    'grade_difference': grade_difference,
                     'user_reliability_score': self._calculate_user_reliability(
                         user_history.user
                     )
@@ -340,11 +347,19 @@ class FeedbackService:
             )
 
             if not created:
-                learning_record.target_grade = target_grade
+                learning_record.original_grade = original_grade
+                learning_record.original_score = original_score
+                learning_record.feedback_grade_equivalent = feedback_score
+                learning_record.grade_difference = grade_difference
                 learning_record.user_reliability_score = self._calculate_user_reliability(
                     user_history.user
                 )
                 learning_record.save()
+
+            logger.info(
+                f"Created/updated learning record for user {user_history.user.username}: "
+                f"Original: {original_grade}/{original_score}, Feedback: {feedback_score}, Diff: {grade_difference}"
+            )
 
         except Exception as e:
             logger.warning(f"Failed to create learning record: {e}")
