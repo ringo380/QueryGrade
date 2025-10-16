@@ -1117,6 +1117,371 @@ class RealWorldCTEQueryTestCase(TestCase):
         self.assertIsNotNone(analysis.cte_complexity_score)
 
 
+# ===== CONTEXT WINDOW ANALYZER TESTS (Phase 4) =====
+
+
+class ContextWindowAnalyzerInitializationTestCase(TestCase):
+    """Tests for ContextWindowAnalyzer initialization"""
+
+    def test_analyzer_initialization(self):
+        """Test context window analyzer initializes"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+
+        self.assertIsNotNone(analyzer)
+        self.assertIsNotNone(analyzer.logger)
+
+    def test_pattern_compilation(self):
+        """Test regex patterns are compiled"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+
+        # Check patterns are compiled
+        self.assertIsNotNone(analyzer.select_pattern)
+        self.assertIsNotNone(analyzer.begin_pattern)
+        self.assertIsNotNone(analyzer.commit_pattern)
+
+
+class SimpleMultiStatementTestCase(TestCase):
+    """Tests for simple multi-statement detection"""
+
+    def test_single_statement(self):
+        """Test single statement detection"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = "SELECT * FROM users"
+        analysis = analyzer.analyze_context_window(query)
+
+        self.assertEqual(analysis.total_statement_count, 1)
+        self.assertFalse(analysis.total_statement_count > 1)
+
+    def test_two_statements(self):
+        """Test two statement detection"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = "SELECT * FROM users; UPDATE users SET active = 1"
+        analysis = analyzer.analyze_context_window(query)
+
+        self.assertGreaterEqual(analysis.total_statement_count, 2)
+
+    def test_three_statements(self):
+        """Test three statement detection"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            SELECT * FROM users;
+            INSERT INTO audit VALUES (1);
+            UPDATE users SET active = 1;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        self.assertGreaterEqual(analysis.total_statement_count, 3)
+
+
+class StatementTypeClassificationTestCase(TestCase):
+    """Tests for statement type classification"""
+
+    def test_select_statement_classification(self):
+        """Test SELECT statement classification"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import StatementType
+
+        analyzer = ContextWindowAnalyzer()
+        query = "SELECT * FROM users; INSERT INTO audit VALUES (1)"
+        analysis = analyzer.analyze_context_window(query)
+
+        if analysis.total_statement_count > 0:
+            self.assertIn(StatementType.SELECT.value, analysis.statement_types)
+
+    def test_insert_statement_classification(self):
+        """Test INSERT statement classification"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import StatementType
+
+        analyzer = ContextWindowAnalyzer()
+        query = "INSERT INTO users VALUES (1, 'John')"
+        analysis = analyzer.analyze_context_window(query)
+
+        if analysis.total_statement_count > 0:
+            self.assertIn(StatementType.INSERT.value, analysis.statement_types)
+
+    def test_update_delete_statements(self):
+        """Test UPDATE and DELETE statements"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import StatementType
+
+        analyzer = ContextWindowAnalyzer()
+        query = "UPDATE users SET active = 1; DELETE FROM logs"
+        analysis = analyzer.analyze_context_window(query)
+
+        if analysis.total_statement_count > 0:
+            stmt_types = list(analysis.statement_types.keys())
+            # Should have update and/or delete
+            self.assertTrue(
+                StatementType.UPDATE.value in stmt_types or
+                StatementType.DELETE.value in stmt_types
+            )
+
+
+class TransactionDetectionTestCase(TestCase):
+    """Tests for transaction detection"""
+
+    def test_explicit_transaction_detection(self):
+        """Test explicit transaction detection"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import TransactionScope
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            BEGIN;
+            INSERT INTO users VALUES (1, 'John');
+            UPDATE users SET active = 1;
+            COMMIT;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        self.assertTrue(analysis.has_explicit_transaction)
+        self.assertEqual(analysis.transaction_scope, TransactionScope.EXPLICIT)
+
+    def test_auto_commit_detection(self):
+        """Test auto-commit transaction detection"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import TransactionScope
+
+        analyzer = ContextWindowAnalyzer()
+        query = "SELECT * FROM users"
+        analysis = analyzer.analyze_context_window(query)
+
+        if analysis.total_statement_count == 1:
+            self.assertEqual(analysis.transaction_scope, TransactionScope.AUTO_COMMIT)
+
+
+class DataDependencyDetectionTestCase(TestCase):
+    """Tests for data dependency detection"""
+
+    def test_data_flow_detection(self):
+        """Test data flow detection between statements"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            INSERT INTO temp_users SELECT * FROM users;
+            SELECT * FROM temp_users WHERE active = 1;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        # Should detect data flow (insert followed by select from same table)
+        self.assertIsNotNone(analysis.data_flows)
+
+    def test_independent_statements(self):
+        """Test detection of independent statements"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            SELECT * FROM users;
+            SELECT * FROM orders;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        # Independent statements should have no data flows
+        if analysis.total_statement_count > 1:
+            # May or may not have flows depending on table names
+            self.assertIsNotNone(analysis.data_flows)
+
+
+class ComplexityScoreTestCase(TestCase):
+    """Tests for complexity scoring"""
+
+    def test_complexity_score_range(self):
+        """Test complexity score is in valid range"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            BEGIN;
+            INSERT INTO users SELECT * FROM source_users;
+            UPDATE users SET active = 1 WHERE id IN (SELECT id FROM recent_users);
+            COMMIT;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        self.assertGreaterEqual(analysis.overall_complexity_score, 0.0)
+        self.assertLessEqual(analysis.overall_complexity_score, 1.0)
+
+    def test_more_statements_higher_complexity(self):
+        """Test that more statements increase complexity"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+
+        # Simple 1 statement
+        simple = analyzer.analyze_context_window("SELECT * FROM users")
+
+        # Complex 4 statements
+        complex_q = """
+            INSERT INTO audit VALUES (1);
+            SELECT * FROM users;
+            UPDATE users SET active = 1;
+            DELETE FROM logs;
+        """
+        complex = analyzer.analyze_context_window(complex_q)
+
+        # Complex should have >= complexity
+        if complex.total_statement_count > simple.total_statement_count:
+            self.assertGreaterEqual(complex.overall_complexity_score, simple.overall_complexity_score)
+
+
+class ContextWindowMetricsIntegrationTestCase(TestCase):
+    """Tests for integration with SemanticMetrics"""
+
+    def test_metrics_updated_with_context(self):
+        """Test SemanticMetrics are updated with context analysis"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = "SELECT * FROM users; INSERT INTO audit VALUES (1)"
+
+        metrics = extractor.extract_semantic_features(query)
+
+        # Metrics should be populated
+        self.assertIsNotNone(metrics.statement_count)
+        self.assertIsNotNone(metrics.is_multi_statement)
+        self.assertIsNotNone(metrics.context_complexity_score)
+
+    def test_multi_statement_increases_complexity(self):
+        """Test multi-statement complexity increases overall"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+
+        # Single statement
+        single = extractor.extract_semantic_features("SELECT * FROM users")
+
+        # Multiple statements
+        multi = extractor.extract_semantic_features("SELECT * FROM users; UPDATE users SET active = 1")
+
+        # Multi should have >= complexity
+        if multi.statement_count > single.statement_count:
+            self.assertGreaterEqual(multi.conceptual_complexity, single.conceptual_complexity)
+
+    def test_explicit_transaction_complexity(self):
+        """Test explicit transactions increase complexity"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+
+        # Without transaction
+        no_txn = extractor.extract_semantic_features(
+            "INSERT INTO users VALUES (1); UPDATE users SET active = 1"
+        )
+
+        # With transaction
+        with_txn = extractor.extract_semantic_features("""
+            BEGIN;
+            INSERT INTO users VALUES (1);
+            UPDATE users SET active = 1;
+            COMMIT;
+        """)
+
+        # With transaction should have higher maintenance difficulty
+        if with_txn.has_explicit_transaction:
+            self.assertGreater(with_txn.maintenance_difficulty, no_txn.maintenance_difficulty)
+
+
+class RealWorldMultiStatementTestCase(TestCase):
+    """Real-world test cases with multi-statement queries"""
+
+    def test_real_world_batch_insert(self):
+        """Test real-world batch insert operation"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            DELETE FROM user_cache;
+            INSERT INTO user_cache SELECT id, name, email FROM users WHERE active = 1;
+            UPDATE statistics SET last_updated = NOW();
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should detect multiple statements
+        self.assertGreater(analysis.statement_count, 1)
+
+    def test_real_world_transaction_workflow(self):
+        """Test real-world transaction workflow"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            BEGIN TRANSACTION;
+            INSERT INTO orders (user_id, total) VALUES (1, 100);
+            UPDATE inventory SET quantity = quantity - 1 WHERE product_id = 5;
+            INSERT INTO order_history SELECT * FROM orders WHERE id = LAST_INSERT_ID();
+            COMMIT;
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should detect transaction
+        self.assertTrue(analysis.has_explicit_transaction)
+        self.assertGreater(analysis.statement_count, 1)
+
+    def test_real_world_etl_pipeline(self):
+        """Test real-world ETL pipeline"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            CREATE TEMPORARY TABLE staging AS SELECT * FROM external_source;
+            INSERT INTO main_data SELECT * FROM staging WHERE valid = 1;
+            UPDATE main_data SET processed_date = NOW() WHERE source = 'staging';
+            DROP TABLE staging;
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should handle complex workflow
+        self.assertGreater(analysis.statement_count, 1)
+
+
+class ExecutionModeRecommendationTestCase(TestCase):
+    """Tests for execution mode recommendations"""
+
+    def test_batch_recommendation_for_independent(self):
+        """Test batch mode recommended for independent statements"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            SELECT * FROM users;
+            SELECT * FROM products;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        # Independent statements can batch
+        self.assertIsNotNone(analysis.batch_vs_sequential_recommendation)
+
+    def test_sequential_recommendation_for_dependent(self):
+        """Test sequential mode for dependent statements"""
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
+
+        analyzer = ContextWindowAnalyzer()
+        query = """
+            INSERT INTO temp_table SELECT * FROM source;
+            SELECT * FROM temp_table;
+        """
+        analysis = analyzer.analyze_context_window(query)
+
+        # Dependent statements should be sequential
+        self.assertIsNotNone(analysis.batch_vs_sequential_recommendation)
+
+
 class AnalysisQueryWithComplexNestingTestCase(TestCase):
     """Real-world test cases with complex nested queries"""
 

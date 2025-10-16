@@ -21,6 +21,7 @@ from collections import defaultdict, Counter
 from .nested_subquery_analyzer import NestedSubqueryAnalyzer
 from .join_semantic_analyzer import JoinSemanticAnalyzer
 from .cte_semantic_analyzer import CTESemanticAnalyzer
+from .context_window_analyzer import ContextWindowAnalyzer
 
 
 class QueryIntent(Enum):
@@ -118,6 +119,18 @@ class SemanticMetrics:
     max_recursion_depth_estimate: int = 0  # Estimated recursion depth
     cte_performance_risk: str = "low"  # low/medium/high/critical
 
+    # Context Window Analysis (Phase 4)
+    statement_count: int = 0  # Total number of statements
+    is_multi_statement: bool = False  # Whether query has multiple statements
+    statement_types_distribution: Dict[str, int] = field(default_factory=dict)  # Type breakdown
+    transaction_scope: str = "unknown"  # unknown/auto_commit/implicit/explicit
+    has_explicit_transaction: bool = False  # Whether query has BEGIN/COMMIT
+    data_dependency_count: int = 0  # Number of data dependencies between statements
+    tables_accessed_count: int = 0  # Total unique tables accessed
+    execution_mode_recommended: str = "sequential"  # batch or sequential
+    context_complexity_score: float = 0.0  # Overall context complexity (0-1)
+    context_execution_risk: str = "low"  # low/medium/high/critical
+
     @property
     def overall_score(self) -> float:
         """Calculate overall semantic score (0-100)"""
@@ -165,6 +178,7 @@ class SemanticFeatureExtractor:
         self.subquery_analyzer = NestedSubqueryAnalyzer()
         self.join_analyzer = JoinSemanticAnalyzer()
         self.cte_analyzer = CTESemanticAnalyzer()
+        self.context_analyzer = ContextWindowAnalyzer()
 
     def _compile_patterns(self):
         """Compile regex patterns for semantic analysis"""
@@ -256,6 +270,7 @@ class SemanticFeatureExtractor:
             self._analyze_nested_subqueries(query, parsed, metrics)  # Phase 1
             self._analyze_joins(query, parsed, metrics)  # Phase 2
             self._analyze_ctes(query, parsed, metrics)  # Phase 3
+            self._analyze_context_window(query, parsed, metrics)  # Phase 4
             self._predict_performance_characteristics(query, parsed, metrics)
 
             return metrics
@@ -384,6 +399,41 @@ class SemanticFeatureExtractor:
 
         except Exception as e:
             self.logger.warning(f"Error analyzing CTEs: {e}")
+
+    def _analyze_context_window(self, query: str, parsed: Statement, metrics: SemanticMetrics):
+        """Analyze multi-statement context (Phase 4 enhancement)"""
+        try:
+            analysis = self.context_analyzer.analyze_context_window(query)
+
+            # Update metrics with context window analysis
+            metrics.statement_count = analysis.total_statement_count
+            metrics.is_multi_statement = analysis.total_statement_count > 1
+            metrics.statement_types_distribution = analysis.statement_types
+            metrics.transaction_scope = analysis.transaction_scope.value
+            metrics.has_explicit_transaction = analysis.has_explicit_transaction
+            metrics.data_dependency_count = len(analysis.data_flows)
+            metrics.tables_accessed_count = len(analysis.tables_accessed)
+            metrics.execution_mode_recommended = analysis.batch_vs_sequential_recommendation
+            metrics.context_complexity_score = analysis.overall_complexity_score
+            metrics.context_execution_risk = analysis.execution_risk_level
+
+            # Adjust complexity scores based on multi-statement context
+            if metrics.is_multi_statement:
+                # Multiple statements increase complexity
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + analysis.overall_complexity_score * 0.1)
+                metrics.cognitive_load = min(1.0, metrics.cognitive_load + analysis.overall_complexity_score * 0.15)
+
+            # Explicit transactions add complexity
+            if analysis.has_explicit_transaction:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.15)
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.2)
+
+            # Data dependencies add complexity
+            if len(analysis.data_flows) > 0:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + len(analysis.data_flows) * 0.05)
+
+        except Exception as e:
+            self.logger.warning(f"Error analyzing context window: {e}")
 
     def _analyze_query_intent(self, query: str, parsed: Statement, metrics: SemanticMetrics):
         """Analyze the primary intent/purpose of the query"""
@@ -774,6 +824,18 @@ def analyze_query_semantics(query: str, database_type: str = 'generic') -> Dict[
             'has_recursive_cte': metrics.has_recursive_cte,
             'max_recursion_depth_estimate': metrics.max_recursion_depth_estimate,
             'performance_risk': metrics.cte_performance_risk
+        },
+        'context_window_analysis': {
+            'statement_count': metrics.statement_count,
+            'is_multi_statement': metrics.is_multi_statement,
+            'statement_types': metrics.statement_types_distribution,
+            'transaction_scope': metrics.transaction_scope,
+            'has_explicit_transaction': metrics.has_explicit_transaction,
+            'data_dependencies': metrics.data_dependency_count,
+            'tables_accessed': metrics.tables_accessed_count,
+            'execution_mode_recommended': metrics.execution_mode_recommended,
+            'context_complexity_score': metrics.context_complexity_score,
+            'execution_risk': metrics.context_execution_risk
         }
     }
 
