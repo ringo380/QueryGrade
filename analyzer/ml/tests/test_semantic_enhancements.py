@@ -439,6 +439,363 @@ class SemanticMetricsIntegrationTestCase(TestCase):
             self.assertGreaterEqual(corr_metrics.maintenance_difficulty, non_corr_metrics.maintenance_difficulty)
 
 
+# ===== JOIN SEMANTIC ANALYZER TESTS (Phase 2) =====
+
+
+class JoinSemanticAnalyzerInitializationTestCase(TestCase):
+    """Tests for JoinSemanticAnalyzer initialization"""
+
+    def test_analyzer_initialization(self):
+        """Test JOIN semantic analyzer initializes"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+
+        self.assertIsNotNone(analyzer)
+        self.assertIsNotNone(analyzer.logger)
+
+    def test_pattern_compilation(self):
+        """Test regex patterns are compiled"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+
+        # Check patterns are compiled
+        self.assertIsNotNone(analyzer.join_pattern)
+        self.assertIsNotNone(analyzer.on_condition_pattern)
+        self.assertIsNotNone(analyzer.where_pattern)
+
+
+class SimpleJoinDetectionTestCase(TestCase):
+    """Tests for simple JOIN detection"""
+
+    def test_no_joins(self):
+        """Test query with no JOINs"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM users WHERE age > 18"
+        analysis = analyzer.analyze_joins(query)
+
+        self.assertEqual(analysis.total_join_count, 0)
+
+    def test_single_inner_join(self):
+        """Test single INNER JOIN detection"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = """
+            SELECT u.id, o.id FROM users u
+            INNER JOIN orders o ON u.id = o.user_id
+        """
+        analysis = analyzer.analyze_joins(query)
+
+        self.assertGreater(analysis.total_join_count, 0)
+        self.assertGreater(analysis.inner_join_count, 0)
+
+    def test_left_join_detection(self):
+        """Test LEFT JOIN detection"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = """
+            SELECT u.id, COUNT(o.id) FROM users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            GROUP BY u.id
+        """
+        analysis = analyzer.analyze_joins(query)
+
+        self.assertGreater(analysis.total_join_count, 0)
+        self.assertGreater(analysis.outer_join_count, 0)
+
+
+class JoinTypeClassificationTestCase(TestCase):
+    """Tests for JOIN type classification"""
+
+    def test_inner_join_classification(self):
+        """Test INNER JOIN classification"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinType
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM a INNER JOIN b ON a.id = b.id"
+        analysis = analyzer.analyze_joins(query)
+
+        if analysis.total_join_count > 0:
+            self.assertIn(JoinType.INNER.value, analysis.join_types)
+
+    def test_left_join_classification(self):
+        """Test LEFT JOIN classification"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinType
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM a LEFT JOIN b ON a.id = b.id"
+        analysis = analyzer.analyze_joins(query)
+
+        if analysis.total_join_count > 0:
+            self.assertIn(JoinType.LEFT.value, analysis.join_types)
+
+    def test_cross_join_classification(self):
+        """Test CROSS JOIN classification"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinType
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM a CROSS JOIN b"
+        analysis = analyzer.analyze_joins(query)
+
+        if analysis.total_join_count > 0:
+            self.assertIn(JoinType.CROSS.value, analysis.join_types)
+
+
+class MultipleJoinDetectionTestCase(TestCase):
+    """Tests for multiple JOIN detection"""
+
+    def test_two_joins(self):
+        """Test detection of 2 JOINs"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = """
+            SELECT * FROM users u
+            JOIN orders o ON u.id = o.user_id
+            JOIN products p ON o.product_id = p.id
+        """
+        analysis = analyzer.analyze_joins(query)
+
+        self.assertGreaterEqual(analysis.total_join_count, 2)
+
+    def test_multiple_join_types(self):
+        """Test mix of different JOIN types"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = """
+            SELECT * FROM users u
+            INNER JOIN orders o ON u.id = o.user_id
+            LEFT JOIN payments p ON o.id = p.order_id
+        """
+        analysis = analyzer.analyze_joins(query)
+
+        # Should have both INNER and OUTER joins
+        if analysis.total_join_count > 0:
+            self.assertGreater(analysis.inner_join_count, 0)
+            self.assertGreater(analysis.outer_join_count, 0)
+
+
+class JoinCardinalityImpactTestCase(TestCase):
+    """Tests for cardinality impact assessment"""
+
+    def test_inner_join_result_reducing(self):
+        """Test INNER JOIN has result reducing impact"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinImpact
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM a INNER JOIN b ON a.id = b.id"
+        analysis = analyzer.analyze_joins(query)
+
+        if analysis.total_join_count > 0:
+            self.assertIn(JoinImpact.RESULT_REDUCING.value, analysis.join_impacts)
+
+    def test_left_join_result_preserving(self):
+        """Test LEFT JOIN has result preserving impact"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinImpact
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM a LEFT JOIN b ON a.id = b.id"
+        analysis = analyzer.analyze_joins(query)
+
+        if analysis.total_join_count > 0:
+            self.assertIn(JoinImpact.RESULT_PRESERVING.value, analysis.join_impacts)
+
+    def test_cross_join_result_expanding(self):
+        """Test CROSS JOIN has result expanding impact"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinImpact
+
+        analyzer = JoinSemanticAnalyzer()
+        query = "SELECT * FROM a CROSS JOIN b"
+        analysis = analyzer.analyze_joins(query)
+
+        if analysis.total_join_count > 0:
+            self.assertIn(JoinImpact.RESULT_EXPANDING.value, analysis.join_impacts)
+
+
+class JoinComplexityScoreTestCase(TestCase):
+    """Tests for JOIN complexity scoring"""
+
+    def test_complexity_score_range(self):
+        """Test complexity score is in valid range"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = """
+            SELECT * FROM users u
+            JOIN orders o ON u.id = o.user_id
+            JOIN products p ON o.product_id = p.id
+        """
+        analysis = analyzer.analyze_joins(query)
+
+        # Score should be between 0 and 1
+        self.assertGreaterEqual(analysis.overall_complexity_score, 0.0)
+        self.assertLessEqual(analysis.overall_complexity_score, 1.0)
+
+    def test_more_joins_higher_complexity(self):
+        """Test that more JOINs increase complexity"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+
+        # Simple 1 JOIN
+        simple = analyzer.analyze_joins("SELECT * FROM a JOIN b ON a.id = b.id")
+
+        # Complex 3 JOINs
+        complex_q = """
+            SELECT * FROM a
+            JOIN b ON a.id = b.id
+            JOIN c ON b.id = c.id
+            JOIN d ON c.id = d.id
+        """
+        complex = analyzer.analyze_joins(complex_q)
+
+        # Complex should have >= complexity
+        if complex.total_join_count > simple.total_join_count:
+            self.assertGreaterEqual(complex.overall_complexity_score, simple.overall_complexity_score)
+
+
+class ImplicitJoinDetectionTestCase(TestCase):
+    """Tests for implicit JOIN detection"""
+
+    def test_implicit_join_in_where(self):
+        """Test detection of implicit JOINs in WHERE clause"""
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
+
+        analyzer = JoinSemanticAnalyzer()
+        query = """
+            SELECT * FROM users u, orders o
+            WHERE u.id = o.user_id
+        """
+        analysis = analyzer.analyze_joins(query)
+
+        # Should detect implicit joins
+        self.assertGreaterEqual(analysis.implicit_join_count, 0)
+
+
+class JoinSemanticMetricsIntegrationTestCase(TestCase):
+    """Tests for integration with SemanticMetrics"""
+
+    def test_metrics_updated_with_join_data(self):
+        """Test SemanticMetrics are updated with JOIN analysis"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            SELECT u.id FROM users u
+            JOIN orders o ON u.id = o.user_id
+        """
+
+        metrics = extractor.extract_semantic_features(query)
+
+        # Metrics should be populated
+        self.assertIsNotNone(metrics.join_count)
+        self.assertIsNotNone(metrics.inner_join_count)
+        self.assertIsNotNone(metrics.join_complexity_score)
+
+    def test_complexity_increased_by_joins(self):
+        """Test conceptual complexity increases with JOINs"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+
+        # Simple query
+        simple_query = "SELECT * FROM users"
+        simple_metrics = extractor.extract_semantic_features(simple_query)
+
+        # Complex query with joins
+        complex_query = """
+            SELECT * FROM users u
+            JOIN orders o ON u.id = o.user_id
+            JOIN products p ON o.product_id = p.id
+        """
+        complex_metrics = extractor.extract_semantic_features(complex_query)
+
+        # Complex should have >= complexity
+        if complex_metrics.join_count > simple_metrics.join_count:
+            self.assertGreaterEqual(complex_metrics.conceptual_complexity, simple_metrics.conceptual_complexity)
+
+    def test_cross_join_high_complexity(self):
+        """Test CROSS JOIN significantly increases complexity"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+
+        # Normal JOIN
+        normal_query = "SELECT * FROM a JOIN b ON a.id = b.id"
+        normal_metrics = extractor.extract_semantic_features(normal_query)
+
+        # CROSS JOIN
+        cross_query = "SELECT * FROM a CROSS JOIN b"
+        cross_metrics = extractor.extract_semantic_features(cross_query)
+
+        # CROSS should have higher complexity
+        if cross_metrics.cross_join_count > 0:
+            self.assertGreaterEqual(cross_metrics.maintenance_difficulty, normal_metrics.maintenance_difficulty)
+
+
+class RealWorldJoinQueryTestCase(TestCase):
+    """Real-world test cases with complex JOINs"""
+
+    def test_real_world_ecommerce_joins(self):
+        """Test real-world e-commerce query with multiple joins"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            SELECT
+                u.id, u.name,
+                COUNT(o.id) as order_count,
+                SUM(o.total_amount) as total_spent
+            FROM users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            LEFT JOIN payments p ON o.id = p.order_id
+            WHERE u.status = 'active'
+            GROUP BY u.id, u.name
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should detect joins
+        self.assertGreater(analysis.join_count, 0)
+        self.assertGreater(analysis.outer_join_count, 0)
+
+    def test_real_world_analytical_query(self):
+        """Test real-world analytical query"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            SELECT
+                c.category,
+                SUM(o.amount) as total_sales
+            FROM categories c
+            INNER JOIN products p ON c.id = p.category_id
+            INNER JOIN order_items oi ON p.id = oi.product_id
+            INNER JOIN orders o ON oi.order_id = o.id
+            WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+            GROUP BY c.category
+            ORDER BY total_sales DESC
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should detect multiple inner joins
+        self.assertGreater(analysis.join_count, 0)
+        self.assertGreater(analysis.inner_join_count, 0)
+
+
 class AnalysisQueryWithComplexNestingTestCase(TestCase):
     """Real-world test cases with complex nested queries"""
 

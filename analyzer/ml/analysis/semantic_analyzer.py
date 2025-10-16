@@ -17,8 +17,9 @@ from sqlparse.tokens import Keyword, Name, Punctuation, Number, String
 import numpy as np
 from collections import defaultdict, Counter
 
-# Import nested subquery analyzer
+# Import semantic analyzers
 from .nested_subquery_analyzer import NestedSubqueryAnalyzer
+from .join_semantic_analyzer import JoinSemanticAnalyzer
 
 
 class QueryIntent(Enum):
@@ -82,7 +83,7 @@ class SemanticMetrics:
     index_usage_probability: float = 0.0 # Likelihood of efficient index usage
     parallel_execution_potential: float = 0.0 # Parallelization opportunities
 
-    # Nested Subquery Analysis (NEW - Phase 1)
+    # Nested Subquery Analysis (Phase 1)
     nesting_depth: int = 0  # Maximum nesting level
     subquery_count: int = 0  # Total number of subqueries
     correlated_subquery_count: int = 0  # Correlated subqueries (performance risk)
@@ -90,6 +91,20 @@ class SemanticMetrics:
     nesting_complexity_score: float = 0.0  # Complexity from nesting (0-1)
     subquery_types_distribution: Dict[str, int] = field(default_factory=dict)  # Type distribution
     subquery_performance_risk: str = "low"  # low/medium/high/critical
+
+    # JOIN Semantic Analysis (Phase 2)
+    join_count: int = 0  # Total number of JOINs
+    inner_join_count: int = 0  # INNER JOIN count
+    outer_join_count: int = 0  # LEFT/RIGHT/FULL JOIN count
+    cross_join_count: int = 0  # CROSS JOIN count
+    implicit_join_count: int = 0  # Joins in WHERE clause
+    join_complexity_score: float = 0.0  # Overall JOIN complexity (0-1)
+    join_types_distribution: Dict[str, int] = field(default_factory=dict)  # Type breakdown
+    join_impacts_distribution: Dict[str, int] = field(default_factory=dict)  # Impact breakdown
+    result_cardinality_impact: str = "unknown"  # reducing/preserving/expanding/unknown
+    avg_join_condition_complexity: float = 0.0  # Average condition complexity (0-1)
+    has_implicit_joins: bool = False  # Whether query has implicit joins
+    redundant_join_count: int = 0  # Redundant JOINs
 
     @property
     def overall_score(self) -> float:
@@ -134,8 +149,9 @@ class SemanticFeatureExtractor:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self._compile_patterns()
-        # Initialize nested subquery analyzer
+        # Initialize semantic analyzers
         self.subquery_analyzer = NestedSubqueryAnalyzer()
+        self.join_analyzer = JoinSemanticAnalyzer()
 
     def _compile_patterns(self):
         """Compile regex patterns for semantic analysis"""
@@ -224,7 +240,8 @@ class SemanticFeatureExtractor:
             self._analyze_access_patterns(query, parsed, metrics)
             self._analyze_complexity_indicators(query, parsed, metrics)
             self._analyze_advanced_features(query, parsed, metrics)
-            self._analyze_nested_subqueries(query, parsed, metrics)  # NEW - Phase 1
+            self._analyze_nested_subqueries(query, parsed, metrics)  # Phase 1
+            self._analyze_joins(query, parsed, metrics)  # Phase 2
             self._predict_performance_characteristics(query, parsed, metrics)
 
             return metrics
@@ -284,6 +301,43 @@ class SemanticFeatureExtractor:
 
         except Exception as e:
             self.logger.warning(f"Error analyzing nested subqueries: {e}")
+
+    def _analyze_joins(self, query: str, parsed: Statement, metrics: SemanticMetrics):
+        """Analyze JOIN semantics (Phase 2 enhancement)"""
+        try:
+            analysis = self.join_analyzer.analyze_joins(query)
+
+            # Update metrics with JOIN analysis
+            metrics.join_count = analysis.total_join_count
+            metrics.inner_join_count = analysis.inner_join_count
+            metrics.outer_join_count = analysis.outer_join_count
+            metrics.cross_join_count = analysis.cross_join_count
+            metrics.implicit_join_count = analysis.implicit_join_count
+            metrics.join_complexity_score = analysis.overall_complexity_score
+            metrics.join_types_distribution = analysis.join_types
+            metrics.join_impacts_distribution = analysis.join_impacts
+            metrics.result_cardinality_impact = analysis.result_cardinality_impact
+            metrics.avg_join_condition_complexity = analysis.avg_condition_complexity
+            metrics.has_implicit_joins = analysis.has_implicit_joins
+            metrics.redundant_join_count = analysis.redundant_join_count
+
+            # Adjust complexity scores based on JOINs
+            if analysis.total_join_count > 0:
+                metrics.join_complexity_score = analysis.overall_complexity_score
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + analysis.overall_complexity_score * 0.2)
+
+            # Implicit JOINs are harder to understand
+            if analysis.has_implicit_joins:
+                metrics.cognitive_load = min(1.0, metrics.cognitive_load + 0.15)
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.2)
+
+            # CROSS JOINs indicate high risk
+            if analysis.cross_join_count > 0:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.25)
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.3)
+
+        except Exception as e:
+            self.logger.warning(f"Error analyzing JOINs: {e}")
 
     def _analyze_query_intent(self, query: str, parsed: Statement, metrics: SemanticMetrics):
         """Analyze the primary intent/purpose of the query"""
@@ -649,6 +703,20 @@ def analyze_query_semantics(query: str, database_type: str = 'generic') -> Dict[
             'complexity_score': metrics.nesting_complexity_score,
             'types_distribution': metrics.subquery_types_distribution,
             'performance_risk': metrics.subquery_performance_risk
+        },
+        'join_semantics': {
+            'join_count': metrics.join_count,
+            'inner_join_count': metrics.inner_join_count,
+            'outer_join_count': metrics.outer_join_count,
+            'cross_join_count': metrics.cross_join_count,
+            'implicit_join_count': metrics.implicit_join_count,
+            'complexity_score': metrics.join_complexity_score,
+            'types_distribution': metrics.join_types_distribution,
+            'impacts_distribution': metrics.join_impacts_distribution,
+            'result_cardinality_impact': metrics.result_cardinality_impact,
+            'avg_condition_complexity': metrics.avg_join_condition_complexity,
+            'has_implicit_joins': metrics.has_implicit_joins,
+            'redundant_join_count': metrics.redundant_join_count
         }
     }
 
