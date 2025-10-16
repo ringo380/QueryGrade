@@ -17,6 +17,9 @@ from sqlparse.tokens import Keyword, Name, Punctuation, Number, String
 import numpy as np
 from collections import defaultdict, Counter
 
+# Import nested subquery analyzer
+from .nested_subquery_analyzer import NestedSubqueryAnalyzer
+
 
 class QueryIntent(Enum):
     """Classification of query intent/purpose"""
@@ -79,6 +82,15 @@ class SemanticMetrics:
     index_usage_probability: float = 0.0 # Likelihood of efficient index usage
     parallel_execution_potential: float = 0.0 # Parallelization opportunities
 
+    # Nested Subquery Analysis (NEW - Phase 1)
+    nesting_depth: int = 0  # Maximum nesting level
+    subquery_count: int = 0  # Total number of subqueries
+    correlated_subquery_count: int = 0  # Correlated subqueries (performance risk)
+    derived_table_count: int = 0  # Derived tables in FROM clause
+    nesting_complexity_score: float = 0.0  # Complexity from nesting (0-1)
+    subquery_types_distribution: Dict[str, int] = field(default_factory=dict)  # Type distribution
+    subquery_performance_risk: str = "low"  # low/medium/high/critical
+
     @property
     def overall_score(self) -> float:
         """Calculate overall semantic score (0-100)"""
@@ -122,6 +134,8 @@ class SemanticFeatureExtractor:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self._compile_patterns()
+        # Initialize nested subquery analyzer
+        self.subquery_analyzer = NestedSubqueryAnalyzer()
 
     def _compile_patterns(self):
         """Compile regex patterns for semantic analysis"""
@@ -210,6 +224,7 @@ class SemanticFeatureExtractor:
             self._analyze_access_patterns(query, parsed, metrics)
             self._analyze_complexity_indicators(query, parsed, metrics)
             self._analyze_advanced_features(query, parsed, metrics)
+            self._analyze_nested_subqueries(query, parsed, metrics)  # NEW - Phase 1
             self._predict_performance_characteristics(query, parsed, metrics)
 
             return metrics
@@ -239,6 +254,36 @@ class SemanticFeatureExtractor:
                 index_usage_probability=0.0,
                 parallel_execution_potential=0.0
             )
+
+    def _analyze_nested_subqueries(self, query: str, parsed: Statement, metrics: SemanticMetrics):
+        """Analyze nested subqueries (Phase 1 enhancement)"""
+        try:
+            analysis = self.subquery_analyzer.analyze_nested_subqueries(query)
+
+            # Update metrics with nested subquery analysis
+            metrics.nesting_depth = analysis.max_nesting_depth
+            metrics.subquery_count = analysis.total_subquery_count
+            metrics.correlated_subquery_count = analysis.correlated_count
+            metrics.derived_table_count = analysis.derived_table_count
+            metrics.nesting_complexity_score = analysis.complexity_score
+            metrics.subquery_types_distribution = analysis.subquery_types
+            metrics.subquery_performance_risk = analysis.performance_risk_level
+
+            # Adjust conceptual complexity based on nesting
+            if analysis.max_nesting_depth >= 3:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.3)
+            elif analysis.max_nesting_depth >= 2:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.15)
+
+            # Adjust maintenance difficulty based on subquery complexity
+            if analysis.correlated_count > 0:
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.25)
+
+            if analysis.total_subquery_count > 5:
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.15)
+
+        except Exception as e:
+            self.logger.warning(f"Error analyzing nested subqueries: {e}")
 
     def _analyze_query_intent(self, query: str, parsed: Statement, metrics: SemanticMetrics):
         """Analyze the primary intent/purpose of the query"""
@@ -595,6 +640,15 @@ def analyze_query_semantics(query: str, database_type: str = 'generic') -> Dict[
             'join_selectivity': metrics.join_selectivity,
             'index_usage_probability': metrics.index_usage_probability,
             'parallel_execution_potential': metrics.parallel_execution_potential
+        },
+        'nested_subqueries': {
+            'nesting_depth': metrics.nesting_depth,
+            'subquery_count': metrics.subquery_count,
+            'correlated_count': metrics.correlated_subquery_count,
+            'derived_table_count': metrics.derived_table_count,
+            'complexity_score': metrics.nesting_complexity_score,
+            'types_distribution': metrics.subquery_types_distribution,
+            'performance_risk': metrics.subquery_performance_risk
         }
     }
 
