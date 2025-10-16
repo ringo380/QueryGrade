@@ -20,6 +20,7 @@ from collections import defaultdict, Counter
 # Import semantic analyzers
 from .nested_subquery_analyzer import NestedSubqueryAnalyzer
 from .join_semantic_analyzer import JoinSemanticAnalyzer
+from .cte_semantic_analyzer import CTESemanticAnalyzer
 
 
 class QueryIntent(Enum):
@@ -106,6 +107,17 @@ class SemanticMetrics:
     has_implicit_joins: bool = False  # Whether query has implicit joins
     redundant_join_count: int = 0  # Redundant JOINs
 
+    # CTE Semantic Analysis (Phase 3)
+    cte_count: int = 0  # Total number of CTEs
+    recursive_cte_count: int = 0  # Recursive CTEs
+    cte_purposes_distribution: Dict[str, int] = field(default_factory=dict)  # Purpose breakdown
+    cte_complexity_distribution: Dict[str, int] = field(default_factory=dict)  # Complexity breakdown
+    cte_complexity_score: float = 0.0  # Overall CTE complexity (0-1)
+    unused_cte_count: int = 0  # Unused CTE definitions
+    has_recursive_cte: bool = False  # Whether query has recursive CTEs
+    max_recursion_depth_estimate: int = 0  # Estimated recursion depth
+    cte_performance_risk: str = "low"  # low/medium/high/critical
+
     @property
     def overall_score(self) -> float:
         """Calculate overall semantic score (0-100)"""
@@ -152,6 +164,7 @@ class SemanticFeatureExtractor:
         # Initialize semantic analyzers
         self.subquery_analyzer = NestedSubqueryAnalyzer()
         self.join_analyzer = JoinSemanticAnalyzer()
+        self.cte_analyzer = CTESemanticAnalyzer()
 
     def _compile_patterns(self):
         """Compile regex patterns for semantic analysis"""
@@ -242,6 +255,7 @@ class SemanticFeatureExtractor:
             self._analyze_advanced_features(query, parsed, metrics)
             self._analyze_nested_subqueries(query, parsed, metrics)  # Phase 1
             self._analyze_joins(query, parsed, metrics)  # Phase 2
+            self._analyze_ctes(query, parsed, metrics)  # Phase 3
             self._predict_performance_characteristics(query, parsed, metrics)
 
             return metrics
@@ -338,6 +352,38 @@ class SemanticFeatureExtractor:
 
         except Exception as e:
             self.logger.warning(f"Error analyzing JOINs: {e}")
+
+    def _analyze_ctes(self, query: str, parsed: Statement, metrics: SemanticMetrics):
+        """Analyze CTEs (Phase 3 enhancement)"""
+        try:
+            analysis = self.cte_analyzer.analyze_ctes(query)
+
+            # Update metrics with CTE analysis
+            metrics.cte_count = analysis.total_cte_count
+            metrics.recursive_cte_count = analysis.recursive_cte_count
+            metrics.cte_purposes_distribution = analysis.cte_purposes
+            metrics.cte_complexity_distribution = analysis.cte_complexity_distribution
+            metrics.cte_complexity_score = analysis.overall_complexity_score
+            metrics.unused_cte_count = analysis.unused_cte_count
+            metrics.has_recursive_cte = analysis.has_recursive_cte
+            metrics.cte_performance_risk = analysis.performance_risk_level
+
+            # Adjust complexity scores based on CTEs
+            if analysis.total_cte_count > 0:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + analysis.overall_complexity_score * 0.15)
+                metrics.cognitive_load = min(1.0, metrics.cognitive_load + analysis.overall_complexity_score * 0.1)
+
+            # Recursive CTEs add complexity
+            if analysis.recursive_cte_count > 0:
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.2)
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.25)
+
+            # Unused CTEs indicate dead code
+            if analysis.unused_cte_count > 0:
+                metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.15)
+
+        except Exception as e:
+            self.logger.warning(f"Error analyzing CTEs: {e}")
 
     def _analyze_query_intent(self, query: str, parsed: Statement, metrics: SemanticMetrics):
         """Analyze the primary intent/purpose of the query"""
@@ -717,6 +763,17 @@ def analyze_query_semantics(query: str, database_type: str = 'generic') -> Dict[
             'avg_condition_complexity': metrics.avg_join_condition_complexity,
             'has_implicit_joins': metrics.has_implicit_joins,
             'redundant_join_count': metrics.redundant_join_count
+        },
+        'cte_analysis': {
+            'cte_count': metrics.cte_count,
+            'recursive_cte_count': metrics.recursive_cte_count,
+            'purposes_distribution': metrics.cte_purposes_distribution,
+            'complexity_distribution': metrics.cte_complexity_distribution,
+            'complexity_score': metrics.cte_complexity_score,
+            'unused_cte_count': metrics.unused_cte_count,
+            'has_recursive_cte': metrics.has_recursive_cte,
+            'max_recursion_depth_estimate': metrics.max_recursion_depth_estimate,
+            'performance_risk': metrics.cte_performance_risk
         }
     }
 
