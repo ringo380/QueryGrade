@@ -22,6 +22,7 @@ from .nested_subquery_analyzer import NestedSubqueryAnalyzer
 from .join_semantic_analyzer import JoinSemanticAnalyzer
 from .cte_semantic_analyzer import CTESemanticAnalyzer
 from .context_window_analyzer import ContextWindowAnalyzer
+from .goal_classifier import QueryGoalClassifier
 
 
 class QueryIntent(Enum):
@@ -131,6 +132,16 @@ class SemanticMetrics:
     context_complexity_score: float = 0.0  # Overall context complexity (0-1)
     context_execution_risk: str = "low"  # low/medium/high/critical
 
+    # Query Goal Classification (Phase 5)
+    primary_goal: str = "transactional"  # reporting/transactional/analytical/maintenance/exploratory
+    primary_goal_confidence: float = 0.0  # Confidence in primary goal (0-1)
+    goal_scores: Dict[str, float] = field(default_factory=dict)  # goal -> confidence mapping
+    secondary_goals: List[str] = field(default_factory=list)  # Secondary goal list
+    is_read_only: bool = True  # Whether query is read-only
+    has_data_modification: bool = False  # Whether query modifies data
+    has_schema_change: bool = False  # Whether query changes schema
+    goal_optimization_recommendations: List[str] = field(default_factory=list)  # Goal-specific optimizations
+
     @property
     def overall_score(self) -> float:
         """Calculate overall semantic score (0-100)"""
@@ -179,6 +190,7 @@ class SemanticFeatureExtractor:
         self.join_analyzer = JoinSemanticAnalyzer()
         self.cte_analyzer = CTESemanticAnalyzer()
         self.context_analyzer = ContextWindowAnalyzer()
+        self.goal_classifier = QueryGoalClassifier()
 
     def _compile_patterns(self):
         """Compile regex patterns for semantic analysis"""
@@ -271,6 +283,7 @@ class SemanticFeatureExtractor:
             self._analyze_joins(query, parsed, metrics)  # Phase 2
             self._analyze_ctes(query, parsed, metrics)  # Phase 3
             self._analyze_context_window(query, parsed, metrics)  # Phase 4
+            self._analyze_query_goals(query, parsed, metrics)  # Phase 5
             self._predict_performance_characteristics(query, parsed, metrics)
 
             return metrics
@@ -434,6 +447,49 @@ class SemanticFeatureExtractor:
 
         except Exception as e:
             self.logger.warning(f"Error analyzing context window: {e}")
+
+    def _analyze_query_goals(self, query: str, parsed: Statement, metrics: SemanticMetrics):
+        """Classify query goals (Phase 5 enhancement)"""
+        try:
+            analysis = self.goal_classifier.classify_goal(query)
+
+            # Update metrics with goal classification
+            metrics.primary_goal = analysis.primary_goal.value
+            metrics.primary_goal_confidence = analysis.primary_goal_confidence
+            metrics.goal_scores = analysis.goal_scores
+            metrics.secondary_goals = [goal.value for goal in analysis.secondary_goals]
+            metrics.is_read_only = analysis.is_read_only
+            metrics.has_data_modification = analysis.has_data_modification
+            metrics.has_schema_change = analysis.has_schema_change
+            metrics.goal_optimization_recommendations = analysis.optimization_recommendations
+
+            # Adjust complexity scores based on goal classification
+            if analysis.primary_goal.value == "reporting":
+                # Reporting queries benefit from aggregation optimization
+                metrics.aggregation_complexity = min(1.0, metrics.aggregation_complexity * 0.8)
+
+            elif analysis.primary_goal.value == "transactional":
+                # Transactional queries need simpler WHERE clauses
+                if metrics.selection_complexity > 0.6:
+                    metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.1)
+
+            elif analysis.primary_goal.value == "analytical":
+                # Analytical queries are expected to be complex
+                metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.1)
+                metrics.cognitive_load = min(1.0, metrics.cognitive_load + 0.15)
+
+            elif analysis.primary_goal.value == "maintenance":
+                # Schema changes have high risk
+                if analysis.has_schema_change:
+                    metrics.conceptual_complexity = min(1.0, metrics.conceptual_complexity + 0.2)
+                    metrics.maintenance_difficulty = min(1.0, metrics.maintenance_difficulty + 0.25)
+
+            # Apply goal confidence penalty for uncertainty
+            if metrics.primary_goal_confidence < 0.5:
+                metrics.cognitive_load = min(1.0, metrics.cognitive_load + 0.1)
+
+        except Exception as e:
+            self.logger.warning(f"Error analyzing query goals: {e}")
 
     def _analyze_query_intent(self, query: str, parsed: Statement, metrics: SemanticMetrics):
         """Analyze the primary intent/purpose of the query"""
@@ -836,6 +892,16 @@ def analyze_query_semantics(query: str, database_type: str = 'generic') -> Dict[
             'execution_mode_recommended': metrics.execution_mode_recommended,
             'context_complexity_score': metrics.context_complexity_score,
             'execution_risk': metrics.context_execution_risk
+        },
+        'query_goal_classification': {
+            'primary_goal': metrics.primary_goal,
+            'confidence': metrics.primary_goal_confidence,
+            'goal_scores': metrics.goal_scores,
+            'secondary_goals': metrics.secondary_goals,
+            'is_read_only': metrics.is_read_only,
+            'has_data_modification': metrics.has_data_modification,
+            'has_schema_change': metrics.has_schema_change,
+            'optimization_recommendations': metrics.goal_optimization_recommendations
         }
     }
 

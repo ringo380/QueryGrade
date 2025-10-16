@@ -1549,3 +1549,443 @@ class AnalysisQueryWithComplexNestingTestCase(TestCase):
         # Should detect complex structure
         self.assertGreater(analysis.subquery_count, 0)
         self.assertIsNotNone(analysis.subquery_performance_risk)
+
+
+# ===== QUERY GOAL CLASSIFIER TESTS (Phase 5) =====
+
+
+class QueryGoalClassifierInitializationTestCase(TestCase):
+    """Tests for QueryGoalClassifier initialization"""
+
+    def test_analyzer_initialization(self):
+        """Test goal classifier initializes"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+
+        self.assertIsNotNone(classifier)
+        self.assertIsNotNone(classifier.logger)
+
+    def test_pattern_compilation(self):
+        """Test regex patterns are compiled"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+
+        # Check patterns are compiled
+        self.assertIsNotNone(classifier.insert_pattern)
+        self.assertIsNotNone(classifier.aggregation_functions)
+        self.assertIsNotNone(classifier.window_functions)
+
+
+class ReportingGoalDetectionTestCase(TestCase):
+    """Tests for reporting goal detection"""
+
+    def test_simple_reporting_query(self):
+        """Test simple reporting query detection"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            SELECT category, SUM(amount) as total_sales, COUNT(*) as order_count
+            FROM orders
+            GROUP BY category
+            ORDER BY total_sales DESC
+        """
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "reporting")
+
+    def test_aggregation_reporting(self):
+        """Test aggregation-heavy query is reporting"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            SELECT
+                DATE_TRUNC('month', created_at) as month,
+                COUNT(DISTINCT user_id) as unique_users,
+                SUM(total_amount) as total_sales,
+                AVG(total_amount) as avg_order_value
+            FROM orders
+            GROUP BY DATE_TRUNC('month', created_at)
+        """
+        analysis = classifier.classify_goal(query)
+
+        self.assertIn("reporting", [analysis.primary_goal.value])
+
+
+class TransactionalGoalDetectionTestCase(TestCase):
+    """Tests for transactional goal detection"""
+
+    def test_simple_insert(self):
+        """Test INSERT query is transactional"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "INSERT INTO users (id, name, email) VALUES (1, 'John', 'john@example.com')"
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "transactional")
+        self.assertTrue(analysis.has_data_modification)
+
+    def test_simple_update(self):
+        """Test UPDATE query is transactional"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "UPDATE users SET active = 1 WHERE id = 5"
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "transactional")
+
+    def test_simple_delete(self):
+        """Test DELETE query is transactional"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "DELETE FROM logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "transactional")
+
+
+class AnalyticalGoalDetectionTestCase(TestCase):
+    """Tests for analytical goal detection"""
+
+    def test_window_function_query(self):
+        """Test window function query is analytical"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            SELECT
+                user_id,
+                order_date,
+                order_amount,
+                ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY order_date DESC) as order_rank
+            FROM orders
+        """
+        analysis = classifier.classify_goal(query)
+
+        # Window functions indicate analytical query
+        self.assertIn(analysis.primary_goal.value, ["analytical", "exploratory"])
+
+    def test_cte_query(self):
+        """Test CTE query is analytical"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            WITH user_stats AS (
+                SELECT user_id, COUNT(*) as order_count, SUM(total_amount) as total_spent
+                FROM orders
+                GROUP BY user_id
+            )
+            SELECT * FROM user_stats WHERE order_count > 5
+        """
+        analysis = classifier.classify_goal(query)
+
+        # CTEs with aggregation can be analytical or reporting
+        self.assertIn(analysis.primary_goal.value, ["analytical", "reporting"])
+
+    def test_complex_joins(self):
+        """Test complex join query is analytical"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            SELECT
+                u.id, u.name, COUNT(o.id) as order_count, SUM(o.amount) as total_spent
+            FROM users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            GROUP BY u.id, u.name
+        """
+        analysis = classifier.classify_goal(query)
+
+        self.assertIn(analysis.primary_goal.value, ["analytical", "reporting"])
+
+
+class MaintenanceGoalDetectionTestCase(TestCase):
+    """Tests for maintenance goal detection"""
+
+    def test_create_table(self):
+        """Test CREATE TABLE is maintenance"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            CREATE TABLE users (
+                id INT PRIMARY KEY,
+                name VARCHAR(100),
+                email VARCHAR(100)
+            )
+        """
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "maintenance")
+        self.assertTrue(analysis.has_schema_change)
+
+    def test_alter_table(self):
+        """Test ALTER TABLE is maintenance"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "ALTER TABLE users ADD COLUMN phone VARCHAR(20)"
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "maintenance")
+
+    def test_drop_table(self):
+        """Test DROP TABLE is maintenance"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "DROP TABLE old_logs"
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "maintenance")
+
+
+class ExploratoryGoalDetectionTestCase(TestCase):
+    """Tests for exploratory goal detection"""
+
+    def test_select_star(self):
+        """Test SELECT * is exploratory or transactional"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "SELECT * FROM users LIMIT 10"
+        analysis = classifier.classify_goal(query)
+
+        # SELECT * with LIMIT can be exploratory or transactional (single record retrieval)
+        self.assertIn(analysis.primary_goal.value, ["exploratory", "transactional"])
+
+    def test_describe_table(self):
+        """Test DESCRIBE is exploratory"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "DESCRIBE users"
+        analysis = classifier.classify_goal(query)
+
+        self.assertEqual(analysis.primary_goal.value, "exploratory")
+
+
+class ConfidenceScoreTestCase(TestCase):
+    """Tests for goal classification confidence"""
+
+    def test_confidence_range(self):
+        """Test confidence score is in valid range"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "SELECT * FROM users"
+        analysis = classifier.classify_goal(query)
+
+        self.assertGreaterEqual(analysis.primary_goal_confidence, 0.0)
+        self.assertLessEqual(analysis.primary_goal_confidence, 1.0)
+
+    def test_high_confidence_for_obvious_goal(self):
+        """Test high confidence for obvious goal"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        # Very clear INSERT
+        query = "INSERT INTO users VALUES (1, 'John')"
+        analysis = classifier.classify_goal(query)
+
+        self.assertGreater(analysis.primary_goal_confidence, 0.5)
+
+
+class SecondaryGoalDetectionTestCase(TestCase):
+    """Tests for secondary goal detection"""
+
+    def test_secondary_goals_identified(self):
+        """Test secondary goals are identified"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            SELECT
+                category,
+                SUM(amount) as total
+            FROM orders o
+            JOIN products p ON o.product_id = p.id
+            GROUP BY category
+        """
+        analysis = classifier.classify_goal(query)
+
+        # Should have primary and possibly secondary goals
+        self.assertIsNotNone(analysis.primary_goal)
+        self.assertIsNotNone(analysis.secondary_goals)
+
+
+class OptimizationRecommendationsTestCase(TestCase):
+    """Tests for goal-specific optimization recommendations"""
+
+    def test_reporting_recommendations(self):
+        """Test reporting goal generates relevant recommendations"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = """
+            SELECT category, SUM(amount) as total
+            FROM orders
+            GROUP BY category
+        """
+        analysis = classifier.classify_goal(query)
+
+        # Should have optimization recommendations
+        if analysis.primary_goal.value == "reporting":
+            self.assertIsNotNone(analysis.optimization_recommendations)
+
+    def test_transactional_recommendations(self):
+        """Test transactional goal generates relevant recommendations"""
+        from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
+
+        classifier = QueryGoalClassifier()
+        query = "DELETE FROM logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+        analysis = classifier.classify_goal(query)
+
+        # Should have optimization recommendations
+        self.assertIsNotNone(analysis.optimization_recommendations)
+
+
+class GoalClassifierMetricsIntegrationTestCase(TestCase):
+    """Tests for integration with SemanticMetrics"""
+
+    def test_metrics_updated_with_goal_data(self):
+        """Test SemanticMetrics are updated with goal classification"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            SELECT category, SUM(amount) as total_sales
+            FROM orders
+            GROUP BY category
+        """
+
+        metrics = extractor.extract_semantic_features(query)
+
+        # Metrics should be populated
+        self.assertIsNotNone(metrics.primary_goal)
+        self.assertIsNotNone(metrics.primary_goal_confidence)
+        self.assertIsNotNone(metrics.goal_scores)
+
+    def test_goal_classification_accuracy(self):
+        """Test goal classification accuracy"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+
+        # Test reporting query
+        reporting_query = """
+            SELECT category, COUNT(*) as cnt, SUM(amount) as total
+            FROM orders
+            GROUP BY category
+        """
+        reporting_metrics = extractor.extract_semantic_features(reporting_query)
+        self.assertIn(reporting_metrics.primary_goal, ["reporting", "analytical"])
+
+        # Test transactional query
+        transactional_query = "INSERT INTO users (id, name) VALUES (1, 'John')"
+        transactional_metrics = extractor.extract_semantic_features(transactional_query)
+        self.assertEqual(transactional_metrics.primary_goal, "transactional")
+
+    def test_read_only_flag(self):
+        """Test read-only flag is set correctly"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+
+        # SELECT is read-only
+        select_query = "SELECT * FROM users"
+        select_metrics = extractor.extract_semantic_features(select_query)
+        self.assertTrue(select_metrics.is_read_only)
+
+        # INSERT is not read-only
+        insert_query = "INSERT INTO users VALUES (1, 'John')"
+        insert_metrics = extractor.extract_semantic_features(insert_query)
+        self.assertFalse(insert_metrics.is_read_only)
+
+
+class RealWorldGoalClassificationTestCase(TestCase):
+    """Real-world test cases for goal classification"""
+
+    def test_real_world_dashboard_query(self):
+        """Test real-world dashboard reporting query"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            SELECT
+                DATE(order_date) as date,
+                COUNT(DISTINCT user_id) as unique_users,
+                COUNT(*) as total_orders,
+                SUM(total_amount) as total_revenue,
+                AVG(total_amount) as avg_order_value
+            FROM orders
+            WHERE order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY DATE(order_date)
+            ORDER BY date DESC
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should be identified as reporting
+        self.assertIn(analysis.primary_goal, ["reporting", "analytical"])
+
+    def test_real_world_ecommerce_transaction(self):
+        """Test real-world e-commerce transaction"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            BEGIN TRANSACTION;
+            INSERT INTO orders (user_id, total_amount, order_date) VALUES (123, 99.99, NOW());
+            UPDATE inventory SET quantity = quantity - 1 WHERE product_id = 456;
+            INSERT INTO order_items (order_id, product_id, quantity) VALUES (LAST_INSERT_ID(), 456, 1);
+            COMMIT;
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should be identified as transactional or multi-statement
+        self.assertTrue(analysis.is_multi_statement or analysis.has_data_modification)
+
+    def test_real_world_analytical_query(self):
+        """Test real-world analytical query"""
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+
+        extractor = SemanticFeatureExtractor()
+        query = """
+            WITH monthly_revenue AS (
+                SELECT
+                    DATE_TRUNC('month', order_date) as month,
+                    SUM(total_amount) as revenue
+                FROM orders
+                GROUP BY DATE_TRUNC('month', order_date)
+            ),
+            ranked_months AS (
+                SELECT
+                    month,
+                    revenue,
+                    ROW_NUMBER() OVER (ORDER BY revenue DESC) as rank,
+                    LAG(revenue) OVER (ORDER BY month) as prev_revenue
+                FROM monthly_revenue
+            )
+            SELECT
+                month,
+                revenue,
+                rank,
+                ROUND(((revenue - prev_revenue) / prev_revenue * 100), 2) as growth_percent
+            FROM ranked_months
+            WHERE rank <= 10
+        """
+
+        analysis = extractor.extract_semantic_features(query)
+
+        # Should be identified as analytical
+        self.assertEqual(analysis.primary_goal, "analytical")
