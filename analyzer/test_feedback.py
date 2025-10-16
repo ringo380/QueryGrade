@@ -1,38 +1,101 @@
-from django.test import TestCase, Client
+"""
+Feedback system tests using TransactionTestCase for ATOMIC_REQUESTS compatibility.
+
+Key Changes from Original:
+1. Changed from TestCase to TransactionTestCase (required for ATOMIC_REQUESTS=True)
+2. Added @override_settings with all 4 DummyCache backends
+3. Added cache reinitialization in setUp()
+4. Added proper tearDown() with manual cleanup
+5. Added factory methods with transaction.atomic()
+
+Related Documentation:
+- TESTING.md - Comprehensive testing guide
+- test_integration_refactored.py - Similar pattern for integration tests
+"""
+from django.test import TransactionTestCase, Client, override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+from django.db import transaction
 from .models import Query, QueryAnalysis, UserQueryHistory, QueryFeedback
 from .query_analyzer import analyze_query
 
 
-class FeedbackSystemTestCase(TestCase):
+def create_test_user(username='testuser', password='testpass123', email='test@example.com'):
+    """Factory method to create a test user."""
+    with transaction.atomic():
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+    return user
+
+
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class FeedbackSystemTestCase(TransactionTestCase):
     """Test cases for the feedback system."""
 
     def setUp(self):
         """Set up test data."""
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
         self.client = Client()
 
-        # Create test user
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
+        # Create test user using factory method
+        self.user = create_test_user()
 
         # Create test query and analysis
-        self.query, self.analysis = analyze_query(
-            "SELECT * FROM users WHERE id = 1",
-            database_type='MySQL'
-        )
+        with transaction.atomic():
+            self.query, self.analysis = analyze_query(
+                "SELECT * FROM users WHERE id = 1",
+                database_type='MySQL'
+            )
 
-        # Create user history manually
-        self.user_history = UserQueryHistory.objects.create(
-            user=self.user,
-            query=self.query,
-            database_type='MySQL',
-            database_version='8.0'
-        )
+            # Create user history manually
+            self.user_history = UserQueryHistory.objects.create(
+                user=self.user,
+                query=self.query,
+                database_type='MySQL',
+                database_version='8.0'
+            )
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        QueryFeedback.objects.all().delete()
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def test_feedback_form_access_requires_login(self):
         """Test that feedback form requires login."""
@@ -81,14 +144,15 @@ class FeedbackSystemTestCase(TestCase):
     def test_feedback_update(self):
         """Test updating existing feedback."""
         # Create initial feedback
-        initial_feedback = QueryFeedback.objects.create(
-            user_history=self.user_history,
-            accuracy_rating=3,
-            usefulness_rating=3,
-            clarity_rating=3,
-            suggestions='Initial feedback',
-            would_recommend=False
-        )
+        with transaction.atomic():
+            initial_feedback = QueryFeedback.objects.create(
+                user_history=self.user_history,
+                accuracy_rating=3,
+                usefulness_rating=3,
+                clarity_rating=3,
+                suggestions='Initial feedback',
+                would_recommend=False
+            )
 
         self.client.login(username='testuser', password='testpass123')
         url = reverse('submit_feedback', args=[self.analysis.id])
@@ -106,7 +170,7 @@ class FeedbackSystemTestCase(TestCase):
         # Should redirect to results page
         self.assertEqual(response.status_code, 302)
 
-        # Check feedback was updated
+        # Check feedback was updated - fetch fresh from DB
         updated_feedback = QueryFeedback.objects.get(user_history=self.user_history)
         self.assertEqual(updated_feedback.id, initial_feedback.id)  # Same object
         self.assertEqual(updated_feedback.accuracy_rating, 5)
@@ -117,14 +181,15 @@ class FeedbackSystemTestCase(TestCase):
     def test_feedback_form_prepopulation(self):
         """Test that feedback form is prepopulated with existing data."""
         # Create existing feedback
-        QueryFeedback.objects.create(
-            user_history=self.user_history,
-            accuracy_rating=4,
-            usefulness_rating=3,
-            clarity_rating=5,
-            suggestions='Existing feedback',
-            would_recommend=True
-        )
+        with transaction.atomic():
+            QueryFeedback.objects.create(
+                user_history=self.user_history,
+                accuracy_rating=4,
+                usefulness_rating=3,
+                clarity_rating=5,
+                suggestions='Existing feedback',
+                would_recommend=True
+            )
 
         self.client.login(username='testuser', password='testpass123')
         url = reverse('submit_feedback', args=[self.analysis.id])
@@ -138,23 +203,24 @@ class FeedbackSystemTestCase(TestCase):
     def test_feedback_access_control(self):
         """Test that users can only provide feedback for their own analyses."""
         # Create another user and query
-        other_user = User.objects.create_user(
-            username='otheruser',
-            email='other@example.com',
-            password='otherpass123'
-        )
+        with transaction.atomic():
+            other_user = User.objects.create_user(
+                username='otheruser',
+                email='other@example.com',
+                password='otherpass123'
+            )
 
-        other_query, other_analysis = analyze_query(
-            "SELECT COUNT(*) FROM products",
-            database_type='PostgreSQL'
-        )
+            other_query, other_analysis = analyze_query(
+                "SELECT COUNT(*) FROM products",
+                database_type='PostgreSQL'
+            )
 
-        # Create user history for other user
-        UserQueryHistory.objects.create(
-            user=other_user,
-            query=other_query,
-            database_type='PostgreSQL'
-        )
+            # Create user history for other user
+            UserQueryHistory.objects.create(
+                user=other_user,
+                query=other_query,
+                database_type='PostgreSQL'
+            )
 
         # Try to access other user's feedback with testuser login
         self.client.login(username='testuser', password='testpass123')
@@ -181,37 +247,38 @@ class FeedbackSystemTestCase(TestCase):
     def test_feedback_analytics_display(self):
         """Test feedback analytics page displays correct statistics."""
         # Create some feedback data
-        QueryFeedback.objects.create(
-            user_history=self.user_history,
-            accuracy_rating=4,
-            usefulness_rating=5,
-            clarity_rating=3,
-            would_recommend=True
-        )
+        with transaction.atomic():
+            QueryFeedback.objects.create(
+                user_history=self.user_history,
+                accuracy_rating=4,
+                usefulness_rating=5,
+                clarity_rating=3,
+                would_recommend=True
+            )
 
-        # Create another user and feedback
-        other_user = User.objects.create_user(
-            username='otheruser',
-            email='other@example.com',
-            password='otherpass123'
-        )
+            # Create another user and feedback
+            other_user = User.objects.create_user(
+                username='otheruser',
+                email='other@example.com',
+                password='otherpass123'
+            )
 
-        other_query, other_analysis = analyze_query(
-            "SELECT COUNT(*) FROM orders"
-        )
+            other_query, other_analysis = analyze_query(
+                "SELECT COUNT(*) FROM orders"
+            )
 
-        other_history = UserQueryHistory.objects.create(
-            user=other_user,
-            query=other_query
-        )
+            other_history = UserQueryHistory.objects.create(
+                user=other_user,
+                query=other_query
+            )
 
-        QueryFeedback.objects.create(
-            user_history=other_history,
-            accuracy_rating=5,
-            usefulness_rating=4,
-            clarity_rating=4,
-            would_recommend=False
-        )
+            QueryFeedback.objects.create(
+                user_history=other_history,
+                accuracy_rating=5,
+                usefulness_rating=4,
+                clarity_rating=4,
+                would_recommend=False
+            )
 
         # Make user staff and access analytics
         self.user.is_staff = True
@@ -278,7 +345,7 @@ class FeedbackSystemTestCase(TestCase):
 
         response = self.client.post(url, feedback_data)
 
-        # Check that user history was updated
+        # Check that user history was updated - fetch fresh from DB
         updated_history = UserQueryHistory.objects.get(id=self.user_history.id)
         self.assertTrue(updated_history.was_helpful)
         self.assertEqual(updated_history.feedback_comments, 'Great feedback tracking test')

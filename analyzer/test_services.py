@@ -1,10 +1,20 @@
 """
-Tests for Service Layer
+Service Layer tests using TransactionTestCase for ATOMIC_REQUESTS compatibility.
 
-Basic tests to verify service layer functionality.
+Key Changes from Original:
+1. Changed from TestCase to TransactionTestCase (required for ATOMIC_REQUESTS=True)
+2. Added all 4 DummyCache backends to @override_settings
+3. Added cache reinitialization in setUp()
+4. Added proper tearDown() with manual cleanup
+5. Wrapped object creation in transaction.atomic() where needed
+
+Related Documentation:
+- TESTING.md - Comprehensive testing guide
+- test_integration_refactored.py - Similar pattern with detailed documentation
 """
-from django.test import TestCase
+from django.test import TransactionTestCase, override_settings
 from django.contrib.auth.models import User
+from django.db import transaction
 
 from .models import Query, QueryAnalysis, UserQueryHistory, QueryFeedback
 from .services import QueryAnalysisService, FeedbackService
@@ -12,17 +22,58 @@ from .services.query_analysis_service import QueryAnalysisRequest
 from .services.feedback_service import FeedbackSubmission
 
 
-class QueryAnalysisServiceTests(TestCase):
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class QueryAnalysisServiceTests(TransactionTestCase):
     """Tests for QueryAnalysisService"""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
+        with transaction.atomic():
+            self.user = User.objects.create_user(
+                username='testuser',
+                email='test@example.com',
+                password='testpass123'
+            )
         self.service = QueryAnalysisService()
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        QueryFeedback.objects.all().delete()
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def test_analyze_simple_query(self):
         """Test analyzing a simple SELECT query."""
@@ -84,34 +135,76 @@ class QueryAnalysisServiceTests(TestCase):
         self.assertIsNone(result)
 
 
-class FeedbackServiceTests(TestCase):
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class FeedbackServiceTests(TransactionTestCase):
     """Tests for FeedbackService"""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
+        with transaction.atomic():
+            self.user = User.objects.create_user(
+                username='testuser',
+                email='test@example.com',
+                password='testpass123'
+            )
         self.service = FeedbackService()
 
         # Create a query and analysis for testing
-        self.query = Query.objects.create(
-            sql_text="SELECT * FROM users",
-            query_hash="test_hash_12345"
-        )
-        self.analysis = QueryAnalysis.objects.create(
-            query=self.query,
-            grade='B',
-            score=75.0
-        )
-        self.user_history = UserQueryHistory.objects.create(
-            user=self.user,
-            query=self.query,
-            ip_address='127.0.0.1',
-            user_agent='Test'
-        )
+        with transaction.atomic():
+            self.query = Query.objects.create(
+                sql_text="SELECT * FROM users",
+                query_hash="test_hash_12345"
+            )
+            self.analysis = QueryAnalysis.objects.create(
+                query=self.query,
+                grade='B',
+                score=75.0
+            )
+            self.user_history = UserQueryHistory.objects.create(
+                user=self.user,
+                query=self.query,
+                ip_address='127.0.0.1',
+                user_agent='Test'
+            )
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        QueryFeedback.objects.all().delete()
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def test_submit_new_detailed_feedback(self):
         """Test submitting new detailed feedback."""
@@ -136,12 +229,13 @@ class FeedbackServiceTests(TestCase):
     def test_update_existing_feedback(self):
         """Test updating existing feedback."""
         # Create initial feedback
-        QueryFeedback.objects.create(
-            user_history=self.user_history,
-            accuracy_rating=3,
-            usefulness_rating=3,
-            clarity_rating=3
-        )
+        with transaction.atomic():
+            QueryFeedback.objects.create(
+                user_history=self.user_history,
+                accuracy_rating=3,
+                usefulness_rating=3,
+                clarity_rating=3
+            )
 
         # Update it
         submission = FeedbackSubmission(
@@ -177,12 +271,13 @@ class FeedbackServiceTests(TestCase):
     def test_get_feedback_for_analysis(self):
         """Test retrieving feedback for an analysis."""
         # Create feedback
-        QueryFeedback.objects.create(
-            user_history=self.user_history,
-            accuracy_rating=4,
-            usefulness_rating=4,
-            clarity_rating=4
-        )
+        with transaction.atomic():
+            QueryFeedback.objects.create(
+                user_history=self.user_history,
+                accuracy_rating=4,
+                usefulness_rating=4,
+                clarity_rating=4
+            )
 
         # Retrieve it
         feedback = self.service.get_feedback_for_analysis(
@@ -196,19 +291,20 @@ class FeedbackServiceTests(TestCase):
     def test_feedback_statistics(self):
         """Test feedback statistics calculation."""
         # Create some feedback
-        for i in range(3):
-            user_history = UserQueryHistory.objects.create(
-                user=self.user,
-                query=self.query,
-                ip_address='127.0.0.1'
-            )
-            QueryFeedback.objects.create(
-                user_history=user_history,
-                accuracy_rating=4,
-                usefulness_rating=5,
-                clarity_rating=4,
-                would_recommend=True
-            )
+        with transaction.atomic():
+            for i in range(3):
+                user_history = UserQueryHistory.objects.create(
+                    user=self.user,
+                    query=self.query,
+                    ip_address='127.0.0.1'
+                )
+                QueryFeedback.objects.create(
+                    user_history=user_history,
+                    accuracy_rating=4,
+                    usefulness_rating=5,
+                    clarity_rating=4,
+                    would_recommend=True
+                )
 
         stats = self.service.get_feedback_statistics()
 

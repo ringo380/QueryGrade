@@ -74,7 +74,7 @@ class DatabaseConnectionFormTest(TestCase):
         }
         form = DatabaseConnectionForm(data=form_data)
         self.assertFalse(form.is_valid())
-        self.assertIn('Username is required for mysql', str(form.errors))
+        self.assertIn('Username is required to connect to MYSQL', str(form.errors))
 
     def test_sqlite_without_name_invalid(self):
         """Test SQLite connection without database name is invalid."""
@@ -84,7 +84,7 @@ class DatabaseConnectionFormTest(TestCase):
         }
         form = DatabaseConnectionForm(data=form_data)
         self.assertFalse(form.is_valid())
-        self.assertIn('Database name (file path) is required for SQLite', str(form.errors))
+        self.assertIn('Database file path is required for SQLite', str(form.errors))
 
 
 class DatabaseIntrospectorTest(TestCase):

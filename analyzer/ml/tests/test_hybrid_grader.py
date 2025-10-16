@@ -1,15 +1,24 @@
 """
-Tests for the ML Hybrid Query Grader
+Tests for the ML Hybrid Query Grader using TransactionTestCase for ATOMIC_REQUESTS compatibility.
 
-This module tests the hybrid grading system that combines rule-based
-analysis with machine learning predictions to provide accurate query scores.
+Key Changes from Original:
+1. Changed from TestCase to TransactionTestCase (required for ATOMIC_REQUESTS=True)
+2. Added all 4 DummyCache backends to @override_settings
+3. Added cache reinitialization in setUp()
+4. Added proper tearDown() with manual cleanup
+5. Wrapped object creation in transaction.atomic() where needed
+
+Related Documentation:
+- TESTING.md - Comprehensive testing guide
+- test_integration_refactored.py - Similar pattern with detailed documentation
 """
 
 import unittest
-from django.test import TestCase
+from django.test import TransactionTestCase, override_settings
 from unittest.mock import Mock, patch, MagicMock
 import numpy as np
 from datetime import datetime, timedelta
+from django.db import transaction
 
 from analyzer.models import Query, QueryAnalysis, QueryFeedback, UserQueryHistory
 from analyzer.models import MLModel, TrainingData, LearningMetrics, FeedbackLearning
@@ -18,52 +27,97 @@ from analyzer.exceptions import EmptyQueryError
 from django.contrib.auth.models import User
 
 
-class HybridQueryGraderTestCase(TestCase):
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class HybridQueryGraderTestCase(TransactionTestCase):
     """Test cases for the HybridQueryGrader class."""
 
     def setUp(self):
         """Set up test data."""
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
         self.grader = HybridQueryGrader()
 
-        # Create test user
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass'
-        )
+        with transaction.atomic():
+            # Create test user
+            self.user = User.objects.create_user(
+                username='testuser',
+                email='test@example.com',
+                password='testpass'
+            )
 
-        # Create test queries with different complexity levels
-        self.simple_query = Query.objects.create(
-            sql_text="SELECT id, name FROM users WHERE id = 1",
-            query_type='SELECT',
-            query_hash='simple_test',
-            estimated_complexity=25,
-            table_count=1,
-            join_count=0,
-            where_conditions=1,
-            subquery_count=0
-        )
+            # Create test queries with different complexity levels
+            self.simple_query = Query.objects.create(
+                sql_text="SELECT id, name FROM users WHERE id = 1",
+                query_type='SELECT',
+                query_hash='simple_test',
+                estimated_complexity=25,
+                table_count=1,
+                join_count=0,
+                where_conditions=1,
+                subquery_count=0
+            )
 
-        self.complex_query = Query.objects.create(
-            sql_text="""
-            SELECT u.id, u.name, p.title, COUNT(c.id) as comment_count
-            FROM users u
-            INNER JOIN posts p ON u.id = p.user_id
-            LEFT JOIN comments c ON p.id = c.post_id
-            WHERE u.active = 1 AND p.published_at > '2023-01-01'
-            GROUP BY u.id, u.name, p.title
-            HAVING COUNT(c.id) > 5
-            ORDER BY comment_count DESC
-            LIMIT 10
-            """,
-            query_type='SELECT',
-            query_hash='complex_test',
-            estimated_complexity=75,
-            table_count=3,
-            join_count=2,
-            where_conditions=2,
-            subquery_count=0
-        )
+            self.complex_query = Query.objects.create(
+                sql_text="""
+                SELECT u.id, u.name, p.title, COUNT(c.id) as comment_count
+                FROM users u
+                INNER JOIN posts p ON u.id = p.user_id
+                LEFT JOIN comments c ON p.id = c.post_id
+                WHERE u.active = 1 AND p.published_at > '2023-01-01'
+                GROUP BY u.id, u.name, p.title
+                HAVING COUNT(c.id) > 5
+                ORDER BY comment_count DESC
+                LIMIT 10
+                """,
+                query_type='SELECT',
+                query_hash='complex_test',
+                estimated_complexity=75,
+                table_count=3,
+                join_count=2,
+                where_conditions=2,
+                subquery_count=0
+            )
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        QueryFeedback.objects.all().delete()
+        UserQueryHistory.objects.all().delete()
+        FeedbackLearning.objects.all().delete()
+        LearningMetrics.objects.all().delete()
+        TrainingData.objects.all().delete()
+        MLModel.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def test_initialization(self):
         """Test grader initialization and model loading."""
@@ -165,19 +219,20 @@ class HybridQueryGraderTestCase(TestCase):
 
     def test_feedback_integration(self):
         """Test integration with feedback collection system."""
-        # Create some query history
-        history = UserQueryHistory.objects.create(
-            user=self.user,
-            query=self.simple_query
-        )
+        with transaction.atomic():
+            # Create some query history
+            history = UserQueryHistory.objects.create(
+                user=self.user,
+                query=self.simple_query
+            )
 
-        # Add feedback - uses user_history relationship
-        QueryFeedback.objects.create(
-            user_history=history,
-            accuracy_rating=4,
-            usefulness_rating=5,
-            suggestions="Good score"
-        )
+            # Add feedback - uses user_history relationship
+            QueryFeedback.objects.create(
+                user_history=history,
+                accuracy_rating=4,
+                usefulness_rating=5,
+                suggestions="Good score"
+            )
 
         # Test that feedback collector is accessible
         self.assertIsNotNone(self.grader.feedback_collector)
@@ -227,24 +282,25 @@ class HybridQueryGraderTestCase(TestCase):
 
     def test_model_versioning(self):
         """Test model versioning and updates."""
-        # Create multiple model versions - use status instead of is_active
-        old_model = MLModel.objects.create(
-            name='grader_v1',
-            model_type='QUERY_GRADER',
-            version='1.0.0',
-            file_path='/tmp/old_model.pkl',
-            status='DEPRECATED',
-            training_accuracy=0.75
-        )
+        with transaction.atomic():
+            # Create multiple model versions - use status instead of is_active
+            old_model = MLModel.objects.create(
+                name='grader_v1',
+                model_type='QUERY_GRADER',
+                version='1.0.0',
+                file_path='/tmp/old_model.pkl',
+                status='DEPRECATED',
+                training_accuracy=0.75
+            )
 
-        new_model = MLModel.objects.create(
-            name='grader_v2',
-            model_type='QUERY_GRADER',
-            version='2.0.0',
-            file_path='/tmp/new_model.pkl',
-            status='ACTIVE',
-            training_accuracy=0.85
-        )
+            new_model = MLModel.objects.create(
+                name='grader_v2',
+                model_type='QUERY_GRADER',
+                version='2.0.0',
+                file_path='/tmp/new_model.pkl',
+                status='ACTIVE',
+                training_accuracy=0.85
+            )
 
         # Should load the active model
         active_model = MLModel.objects.filter(
@@ -261,19 +317,64 @@ class HybridQueryGraderTestCase(TestCase):
             raise AssertionError(msg)
 
 
-class HybridQueryGraderIntegrationTestCase(TestCase):
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class HybridQueryGraderIntegrationTestCase(TransactionTestCase):
     """Integration tests for the hybrid grader with real data."""
 
     def setUp(self):
         """Set up integration test data."""
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
         self.grader = HybridQueryGrader()
 
-        # Create test user
-        self.user = User.objects.create_user(
-            username='integrationuser',
-            email='integration@example.com',
-            password='testpass'
-        )
+        with transaction.atomic():
+            # Create test user
+            self.user = User.objects.create_user(
+                username='integrationuser',
+                email='integration@example.com',
+                password='testpass'
+            )
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        QueryFeedback.objects.all().delete()
+        UserQueryHistory.objects.all().delete()
+        FeedbackLearning.objects.all().delete()
+        LearningMetrics.objects.all().delete()
+        TrainingData.objects.all().delete()
+        MLModel.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def assertBetween(self, value, min_val, max_val, msg=None):
         """Custom assertion to check if value is between min and max."""
@@ -338,37 +439,38 @@ class HybridQueryGraderIntegrationTestCase(TestCase):
 
     def test_feedback_aggregation_impact(self):
         """Test how feedback aggregation affects future predictions."""
-        # Create a query with consistent feedback
-        query = Query.objects.create(
-            sql_text="SELECT COUNT(*) FROM users",
-            query_type='SELECT',
-            query_hash='feedback_test',
-            estimated_complexity=30,
-            table_count=1,
-            join_count=0,
-            where_conditions=0,
-            subquery_count=0
-        )
-
-        # Add multiple positive feedback entries
-        for i in range(5):
-            user = User.objects.create_user(
-                username=f'feedbackuser{i}',
-                email=f'feedback{i}@example.com',
-                password='testpass'
+        with transaction.atomic():
+            # Create a query with consistent feedback
+            query = Query.objects.create(
+                sql_text="SELECT COUNT(*) FROM users",
+                query_type='SELECT',
+                query_hash='feedback_test',
+                estimated_complexity=30,
+                table_count=1,
+                join_count=0,
+                where_conditions=0,
+                subquery_count=0
             )
 
-            history = UserQueryHistory.objects.create(
-                user=user,
-                query=query
-            )
+            # Add multiple positive feedback entries
+            for i in range(5):
+                user = User.objects.create_user(
+                    username=f'feedbackuser{i}',
+                    email=f'feedback{i}@example.com',
+                    password='testpass'
+                )
 
-            QueryFeedback.objects.create(
-                user_history=history,
-                accuracy_rating=5,
-                usefulness_rating=5,
-                suggestions="Perfect score"
-            )
+                history = UserQueryHistory.objects.create(
+                    user=user,
+                    query=query
+                )
+
+                QueryFeedback.objects.create(
+                    user_history=history,
+                    accuracy_rating=5,
+                    usefulness_rating=5,
+                    suggestions="Perfect score"
+                )
 
         # Verify feedback was collected
         feedback_count = QueryFeedback.objects.filter(

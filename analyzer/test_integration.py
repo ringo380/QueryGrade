@@ -1,7 +1,23 @@
-from django.test import TestCase, Client, override_settings
+"""
+Integration tests using TransactionTestCase for ATOMIC_REQUESTS compatibility.
+
+Key Changes from Original:
+1. Changed from TestCase to TransactionTestCase (required for ATOMIC_REQUESTS=True)
+2. Added all 4 DummyCache backends to @override_settings
+3. Added cache reinitialization in setUp()
+4. Added proper tearDown() with manual cleanup
+5. Wrapped object creation in transaction.atomic() where needed
+
+Related Documentation:
+- TESTING.md - Comprehensive testing guide
+- test_integration_refactored.py - Similar pattern with detailed documentation
+- test_feedback.py - Same refactoring pattern applied
+"""
+from django.test import TransactionTestCase, Client, override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.http import HttpResponse
+from django.db import transaction
 from analyzer.models import Query, QueryAnalysis, UserQueryHistory
 import json
 
@@ -11,23 +27,57 @@ import json
     RATELIMIT_ENABLE=False,
     CACHES={
         'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         }
     }
 )
-class QueryGradingIntegrationTestCase(TestCase):
+class QueryGradingIntegrationTestCase(TransactionTestCase):
     """Integration tests for the complete query grading workflow."""
 
     def setUp(self):
         """Set up test client and user."""
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
         self.client = Client(enforce_csrf_checks=False)  # Disable CSRF for tests
-        self.test_user = User.objects.create_user(
-            username='integrationuser',
-            email='integration@example.com',
-            password='testpass123'
-        )
+
+        with transaction.atomic():
+            self.test_user = User.objects.create_user(
+                username='integrationuser',
+                email='integration@example.com',
+                password='testpass123'
+            )
+
         # Force login the test user
         self.client.force_login(self.test_user)
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def test_full_query_grading_workflow(self):
         """Test the complete workflow from login to grading to history."""
@@ -277,11 +327,12 @@ class QueryGradingIntegrationTestCase(TestCase):
         """Test that users can only see their own query history."""
 
         # Create second user
-        user2 = User.objects.create_user(
-            username='user2',
-            email='user2@example.com',
-            password='testpass123'
-        )
+        with transaction.atomic():
+            user2 = User.objects.create_user(
+                username='user2',
+                email='user2@example.com',
+                password='testpass123'
+            )
 
         # User 1 submits query
         self.client.login(username='integrationuser', password='testpass123')

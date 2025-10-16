@@ -1,6 +1,22 @@
-from django.test import TestCase
+"""
+API tests using TransactionTestCase for ATOMIC_REQUESTS compatibility.
+
+Key Changes from Original:
+1. Changed from TestCase to TransactionTestCase (required for ATOMIC_REQUESTS=True)
+2. Added all 4 DummyCache backends to @override_settings
+3. Added cache reinitialization in setUp()
+4. Added proper tearDown() with manual cleanup
+5. Wrapped object creation in transaction.atomic() where needed
+
+Related Documentation:
+- TESTING.md - Comprehensive testing guide
+- test_integration_refactored.py - Similar pattern with detailed documentation
+- test_feedback.py - Same refactoring pattern applied
+"""
+from django.test import TransactionTestCase, override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.db import transaction
 from rest_framework.test import APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -9,23 +25,64 @@ import json
 from .models import Query, QueryAnalysis, UserQueryHistory, QueryFeedback
 
 
-class QueryGradingAPITestCase(TestCase):
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class QueryGradingAPITestCase(TransactionTestCase):
     """Test cases for the Query Grading API."""
 
     def setUp(self):
         """Set up test data."""
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
         self.client = APIClient()
 
         # Create test user
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
+        with transaction.atomic():
+            self.user = User.objects.create_user(
+                username='testuser',
+                email='test@example.com',
+                password='testpass123'
+            )
 
         # Get JWT token for authentication
         refresh = RefreshToken.for_user(self.user)
         self.access_token = str(refresh.access_token)
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        QueryFeedback.objects.all().delete()
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def authenticate(self):
         """Authenticate API client with JWT token."""
@@ -184,19 +241,21 @@ class QueryGradingAPITestCase(TestCase):
     def test_analysis_detail_api_access_control(self):
         """Test that users can only access their own analyses."""
         # Create another user and their analysis
-        other_user = User.objects.create_user(
-            username='otheruser',
-            email='other@example.com',
-            password='otherpass123'
-        )
+        with transaction.atomic():
+            other_user = User.objects.create_user(
+                username='otheruser',
+                email='other@example.com',
+                password='otherpass123'
+            )
 
         # Create analysis for other user (manually)
         from .query_analyzer import analyze_query
-        query, analysis = analyze_query("SELECT * FROM other_test")
-        other_history = UserQueryHistory.objects.create(
-            user=other_user,
-            query=query
-        )
+        with transaction.atomic():
+            query, analysis = analyze_query("SELECT * FROM other_test")
+            other_history = UserQueryHistory.objects.create(
+                user=other_user,
+                query=query
+            )
 
         # Try to access other user's analysis
         self.authenticate()  # Authenticate as testuser
@@ -401,11 +460,12 @@ class QueryGradingAPITestCase(TestCase):
     def test_delete_query_history_access_control(self):
         """Test that users can only delete their own query history."""
         # Create another user
-        other_user = User.objects.create_user(
-            username='otheruser',
-            email='other@example.com',
-            password='otherpass123'
-        )
+        with transaction.atomic():
+            other_user = User.objects.create_user(
+                username='otheruser',
+                email='other@example.com',
+                password='otherpass123'
+            )
 
         # Authenticate as first user and create query
         self.authenticate()

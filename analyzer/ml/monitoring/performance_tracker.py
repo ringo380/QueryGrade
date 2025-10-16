@@ -31,7 +31,7 @@ except ImportError:
     SKLEARN_AVAILABLE = False
     logging.warning("sklearn/scipy not available. Some metrics will be limited.")
 
-from ..models import Query, QueryAnalysis, MLModel, LearningMetrics
+from analyzer.models import Query, QueryAnalysis, MLModel, LearningMetrics
 
 logger = logging.getLogger(__name__)
 

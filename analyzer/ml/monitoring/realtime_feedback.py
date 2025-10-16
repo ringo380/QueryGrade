@@ -33,7 +33,7 @@ except ImportError:
     SKLEARN_AVAILABLE = False
     logging.warning("scikit-learn not available. Real-time learning functionality will be limited.")
 
-from ..models import (
+from analyzer.models import (
     Query, QueryAnalysis, UserQueryHistory, QueryFeedback,
     TrainingData, MLModel, LearningMetrics, FeedbackLearning
 )

@@ -1,22 +1,78 @@
-from django.test import TestCase, Client, override_settings
+"""
+Query Optimization tests using TransactionTestCase for ATOMIC_REQUESTS compatibility.
+
+Key Changes from Original:
+1. Changed from TestCase to TransactionTestCase (required for ATOMIC_REQUESTS=True)
+2. Added all 4 DummyCache backends to @override_settings
+3. Added cache reinitialization in setUp()
+4. Added proper tearDown() with manual cleanup
+5. Wrapped object creation in transaction.atomic() where needed
+
+Related Documentation:
+- TESTING.md - Comprehensive testing guide
+- test_integration_refactored.py - Similar pattern with detailed documentation
+"""
+from django.test import TransactionTestCase, Client, override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.db import transaction
 from analyzer.models import Query, QueryAnalysis, UserQueryHistory
 from analyzer.query_optimizer import QueryOptimizer, optimize_query_from_analysis
 
 
-class QueryOptimizationTestCase(TestCase):
+@override_settings(
+    RATELIMIT_ENABLE=False,
+    CACHES={
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'query_analysis_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'process_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'template_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+)
+class QueryOptimizationTestCase(TransactionTestCase):
     """Test cases for query optimization functionality."""
 
     def setUp(self):
         """Set up test client and user."""
+        # Reinitialize cache to use test cache backend
+        from analyzer.performance import query_cache
+        from django.core.cache import caches
+
+        # Force query_cache to use test cache backend
+        query_cache.cache = caches['query_analysis_cache']
+
+        # Clear all caches
+        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+            try:
+                caches[cache_name].clear()
+            except:
+                pass
+
         self.client = Client(enforce_csrf_checks=False)
         self.optimizer = QueryOptimizer()
-        self.test_user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
+
+        with transaction.atomic():
+            self.test_user = User.objects.create_user(
+                username='testuser',
+                email='test@example.com',
+                password='testpass123'
+            )
+
+    def tearDown(self):
+        """Clean up test data."""
+        # Manual cleanup required for TransactionTestCase
+        UserQueryHistory.objects.all().delete()
+        QueryAnalysis.objects.all().delete()
+        Query.objects.all().delete()
+        User.objects.all().delete()
 
     def test_optimizer_basic_functionality(self):
         """Test that the QueryOptimizer class works correctly."""
@@ -50,7 +106,6 @@ class QueryOptimizationTestCase(TestCase):
         self.assertIn('optimized_query', result)
         self.assertGreater(len(result['optimizations_applied']), 0)
 
-    @override_settings(RATELIMIT_ENABLE=False)
     def test_optimization_integration_workflow(self):
         """Test the full workflow including optimization in the web interface."""
         # Login

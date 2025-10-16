@@ -17,7 +17,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Avg, Q
 from django.utils import timezone
 
-from ..models import (
+from analyzer.models import (
     Query, QueryFeedback, UserQueryHistory,
     MLModel, TrainingData, LearningMetrics, FeedbackLearning
 )
