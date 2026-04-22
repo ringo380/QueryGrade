@@ -12,7 +12,7 @@ from typing import Any, Dict
 from celery import shared_task
 from django.contrib.auth.models import User
 from django.core.cache import caches
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Q
 from django.utils import timezone
 
 from ..models import QueryAnalysis

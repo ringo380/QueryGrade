@@ -8,10 +8,9 @@ using natural language generation techniques.
 import logging
 import random
 import re
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 
 class FeedbackTone(Enum):
@@ -152,7 +151,6 @@ class NaturalLanguageFeedbackGenerator:
         overall_score = analysis_results.get("overall_score", 50)
         anti_patterns = analysis_results.get("anti_patterns", [])
         optimizations = analysis_results.get("optimizations", [])
-        complexity_metrics = analysis_results.get("complexity_metrics", {})
 
         # Calculate grade
         grade = self._calculate_grade(overall_score)
@@ -359,9 +357,9 @@ class NaturalLanguageFeedbackGenerator:
         if self.user_level == FeedbackLevel.BEGINNER:
             # Add simple explanation
             explanations = {
-                "SELECT * Usage": "When you use SELECT *, the database fetches every column even if you only need a few. This wastes resources and slows things down.",
-                "Missing Index": "Without an index, the database has to check every single row, like searching a phone book without alphabetical order.",
-                "Nested Subqueries": "Too many queries inside queries make it hard for the database to optimize and for humans to understand.",
+                "SELECT * Usage": "When you use SELECT *, the database fetches every column even if you only need a few. This wastes resources and slows things down.",  # noqa: E501
+                "Missing Index": "Without an index, the database has to check every single row, like searching a phone book without alphabetical order.",  # noqa: E501
+                "Nested Subqueries": "Too many queries inside queries make it hard for the database to optimize and for humans to understand.",  # noqa: E501
             }
 
             pattern_name = anti_pattern.get("name", "")
@@ -758,7 +756,7 @@ def format_feedback_as_markdown(feedback: ComprehensiveFeedback) -> str:
     lines = []
 
     # Header with grade
-    lines.append(f"# Query Analysis Report")
+    lines.append("# Query Analysis Report")
     lines.append(
         f"## Overall Grade: **{feedback.overall_grade}** ({feedback.overall_score:.1f}/100)"
     )

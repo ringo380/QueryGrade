@@ -6,22 +6,15 @@ across multiple dimensions, enabling intelligent benchmark organization and grad
 """
 
 import logging
-import math
 import re
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import sqlparse
-from sqlparse import keywords, sql, tokens
+from sqlparse import keywords
 from sqlparse.sql import (
-    Function,
-    Identifier,
-    IdentifierList,
     Statement,
-    Token,
-    TokenList,
-    Where,
 )
 
 logger = logging.getLogger(__name__)
@@ -443,7 +436,7 @@ class QueryComplexityAnalyzer:
         # Index usage score
         index_indicators = [
             ("WHERE.*=", 0.3),  # Equality conditions
-            ("WHERE.*ID\s*=", 0.5),  # ID equality (likely indexed)
+            (r"WHERE.*ID\s*=", 0.5),  # ID equality (likely indexed)
             ("ORDER BY.*ID", 0.2),  # Ordering by ID
             ("GROUP BY", 0.1),  # Grouping operations
         ]
@@ -790,7 +783,7 @@ if __name__ == "__main__":
     test_queries = [
         "SELECT * FROM users WHERE id = 1",
         "SELECT u.name, COUNT(o.id) FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id",
-        "WITH RECURSIVE dept_tree AS (SELECT id, name, parent_id FROM departments WHERE parent_id IS NULL UNION ALL SELECT d.id, d.name, d.parent_id FROM departments d JOIN dept_tree dt ON d.parent_id = dt.id) SELECT * FROM dept_tree",
+        "WITH RECURSIVE dept_tree AS (SELECT id, name, parent_id FROM departments WHERE parent_id IS NULL UNION ALL SELECT d.id, d.name, d.parent_id FROM departments d JOIN dept_tree dt ON d.parent_id = dt.id) SELECT * FROM dept_tree",  # noqa: E501
     ]
 
     analyzer = QueryComplexityAnalyzer()

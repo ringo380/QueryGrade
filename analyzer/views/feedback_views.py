@@ -62,7 +62,7 @@ def submit_feedback(request, analysis_id):
                 messages.success(request, "Thank you! Your feedback has been updated.")
             else:
                 # Create new feedback
-                feedback = QueryFeedback.objects.create(
+                QueryFeedback.objects.create(
                     user_history=user_history,
                     accuracy_rating=int(form.cleaned_data["accuracy_rating"]),
                     usefulness_rating=int(form.cleaned_data["usefulness_rating"]),
@@ -178,13 +178,13 @@ def quick_feedback(request, analysis_id):
             logger.warning(f"ML processing failed for quick feedback: {str(ml_error)}")
 
         logger.info(
-            f"User {request.user.username} submitted quick feedback ({'helpful' if was_helpful else 'not helpful'}) for analysis {analysis_id}"
+            f"User {request.user.username} submitted quick feedback ({'helpful' if was_helpful else 'not helpful'}) for analysis {analysis_id}"  # noqa: E501
         )
 
         return JsonResponse(
             {
                 "success": True,
-                "message": f"Thank you for your feedback! This helps us improve QueryGrade.",
+                "message": "Thank you for your feedback! This helps us improve QueryGrade.",
                 "feedback_type": "helpful" if was_helpful else "not_helpful",
             }
         )

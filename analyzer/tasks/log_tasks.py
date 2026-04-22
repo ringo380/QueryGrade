@@ -78,7 +78,7 @@ def process_log_file_async(
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-            except:
+            except Exception:
                 pass
 
         # Retry logic

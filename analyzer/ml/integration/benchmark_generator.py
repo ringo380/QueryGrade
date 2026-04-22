@@ -13,22 +13,17 @@ import random
 import re
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from typing import List, Optional
 
-import requests
 import sqlparse
-from bs4 import BeautifulSoup
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from sqlparse import sql, tokens
+from sqlparse import tokens
 
-from ...models import Query, QueryAnalysis, TrainingData
+from ...models import Query, TrainingData
 from .documentation_loader import (
-    BenchmarkResult,
     DocumentationLoader,
-    DocumentationRule,
 )
 
 logger = logging.getLogger(__name__)
@@ -585,7 +580,8 @@ class BenchmarkGenerator:
                     try:
                         # Create or get Query object
                         query_hash = hashlib.md5(
-                            f"{benchmark.query_text.lower()}|{benchmark.database_type}".encode()
+                            f"{benchmark.query_text.lower()}|{benchmark.database_type}".encode(),
+                            usedforsecurity=False,
                         ).hexdigest()
 
                         query, created = Query.objects.get_or_create(

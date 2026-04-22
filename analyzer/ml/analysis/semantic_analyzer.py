@@ -5,18 +5,14 @@ This module implements sophisticated semantic analysis of SQL queries, extractin
 features that capture the deeper meaning and structure beyond basic syntax.
 """
 
-import hashlib
 import logging
 import re
-from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Any, Dict, List, Set
 
-import numpy as np
 import sqlparse
-from sqlparse.sql import Statement, Token, TokenList
-from sqlparse.tokens import Keyword, Name, Number, Punctuation, String
+from sqlparse.sql import Statement
 
 from .context_window_analyzer import ContextWindowAnalyzer
 from .cte_semantic_analyzer import CTESemanticAnalyzer

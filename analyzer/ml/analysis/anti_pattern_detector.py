@@ -9,11 +9,10 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import sqlparse
-from sqlparse.sql import Statement, Token, TokenList
-from sqlparse.tokens import Keyword, Name
+from sqlparse.sql import Statement
 
 
 class AntiPatternSeverity(Enum):
@@ -497,7 +496,7 @@ class AntiPatternDetector:
                             estimated_performance_impact=0.6,
                         )
                     )
-            except:
+            except Exception:
                 pass
 
         # UNION instead of UNION ALL

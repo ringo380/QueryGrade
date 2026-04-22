@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 import sqlparse
-from django.core.cache import caches
 from sqlparse import tokens
 from sqlparse.sql import Statement
 
@@ -64,13 +63,11 @@ class BaseAnalyzer(ABC):
             Implementations should modify context.issues, context.recommendations,
             and context.performance_notes in place.
         """
-        pass
 
     @property
     @abstractmethod
     def name(self) -> str:
         """Return the analyzer name for logging and debugging."""
-        pass
 
 
 class QueryGrader:
@@ -149,7 +146,6 @@ class QueryGrader:
             EmptyQueryError: If the query is empty or whitespace
             ValueError: If the query cannot be parsed
         """
-        start_time = time.time()
 
         # Validate input
         if not sql_text or not sql_text.strip():
@@ -246,7 +242,7 @@ class QueryGrader:
     def _generate_query_hash(self, normalized_sql: str, database_type: str = "") -> str:
         """Generate MD5 hash for normalized query including database type."""
         hash_input = f"{normalized_sql}|{database_type}"
-        return hashlib.md5(hash_input.encode()).hexdigest()
+        return hashlib.md5(hash_input.encode(), usedforsecurity=False).hexdigest()
 
     def _validate_query_syntax(self, sql_text: str):
         """Validate query for common syntax errors and typos."""

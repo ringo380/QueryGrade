@@ -5,12 +5,11 @@ This module provides views for the ML performance monitoring dashboard,
 displaying real-time metrics, model performance, and system health.
 """
 
-import json
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -24,10 +23,8 @@ from analyzer.models import (
     Query,
     QueryFeedback,
     TrainingData,
-    UserQueryHistory,
 )
 
-from .core.hybrid_grader import HybridQueryGrader
 from .core.training_pipeline import TrainingPipelineManager
 
 

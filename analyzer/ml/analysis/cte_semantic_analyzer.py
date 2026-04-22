@@ -11,10 +11,9 @@ Advanced analysis of Common Table Expressions (CTEs) with semantic understanding
 
 import logging
 import re
-from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List
 
 
 class CTEPurpose(Enum):

@@ -70,7 +70,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                 {
                     "type": "LIKE_BOTH_WILDCARDS",
                     "severity": "high",
-                    "description": "LIKE with wildcards on both ends (LIKE '%pattern%') cannot use indexes - requires full table scan",
+                    "description": "LIKE with wildcards on both ends (LIKE '%pattern%') cannot use indexes - requires full table scan",  # noqa: E501
                 }
             )
             context.recommendations.append(
@@ -78,7 +78,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                     "type": "USE_FULLTEXT_SEARCH",
                     "priority": "critical",
                     "description": "Replace LIKE '%pattern%' with full-text search for better performance",
-                    "example": "CREATE FULLTEXT INDEX idx_text ON table(column); SELECT * FROM table WHERE MATCH(column) AGAINST('pattern')",
+                    "example": "CREATE FULLTEXT INDEX idx_text ON table(column); SELECT * FROM table WHERE MATCH(column) AGAINST('pattern')",  # noqa: E501
                 }
             )
             context.recommendations.append(
@@ -106,7 +106,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                         "type": "FULLTEXT_FOR_LEADING_WILDCARD",
                         "priority": "high",
                         "description": "Use full-text search for patterns with leading wildcards",
-                        "example": "CREATE FULLTEXT INDEX idx_text ON table(column); WHERE MATCH(column) AGAINST('pattern')",
+                        "example": "CREATE FULLTEXT INDEX idx_text ON table(column); WHERE MATCH(column) AGAINST('pattern')",  # noqa: E501
                     }
                 )
 
@@ -124,7 +124,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                 {
                     "type": "LIKE_NO_WILDCARD",
                     "severity": "low",
-                    "description": "LIKE without wildcards should be replaced with = for better performance and clarity",
+                    "description": "LIKE without wildcards should be replaced with = for better performance and clarity",  # noqa: E501
                 }
             )
             context.recommendations.append(
@@ -147,7 +147,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                 {
                     "type": "MULTIPLE_LIKE_OR",
                     "severity": "medium",
-                    "description": f"Query has {like_count} LIKE patterns with OR - each requires separate pattern match",
+                    "description": f"Query has {like_count} LIKE patterns with OR - each requires separate pattern match",  # noqa: E501
                 }
             )
             context.recommendations.append(
@@ -163,7 +163,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                     "type": "NORMALIZE_SEARCH_DATA",
                     "priority": "medium",
                     "description": "Consider normalizing search data into separate searchable columns or table",
-                    "example": "CREATE TABLE search_terms (id INT, term VARCHAR); SELECT ... WHERE id IN (SELECT id FROM search_terms WHERE term IN (...))",
+                    "example": "CREATE TABLE search_terms (id INT, term VARCHAR); SELECT ... WHERE id IN (SELECT id FROM search_terms WHERE term IN (...))",  # noqa: E501
                 }
             )
 
@@ -185,7 +185,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                         "type": "EXTRACT_LIKE_FROM_SUBQUERY",
                         "priority": "high",
                         "description": "Move LIKE pattern matching out of subquery using JOIN or CTE",
-                        "example": "WITH matched AS (SELECT id FROM table WHERE column LIKE 'pattern%') SELECT ... FROM outer JOIN matched ON outer.id = matched.id",
+                        "example": "WITH matched AS (SELECT id FROM table WHERE column LIKE 'pattern%') SELECT ... FROM outer JOIN matched ON outer.id = matched.id",  # noqa: E501
                     }
                 )
 
@@ -213,7 +213,7 @@ class WildcardAnalyzer(BaseAnalyzer):
                     "type": "CASE_INSENSITIVE_INDEX",
                     "priority": "high",
                     "description": "Create case-insensitive index or computed column",
-                    "example": "CREATE INDEX idx_lower ON table(LOWER(column)); WHERE LOWER(column) LIKE LOWER('pattern%')",
+                    "example": "CREATE INDEX idx_lower ON table(LOWER(column)); WHERE LOWER(column) LIKE LOWER('pattern%')",  # noqa: E501
                 }
             )
 
@@ -230,7 +230,7 @@ class WildcardAnalyzer(BaseAnalyzer):
             {
                 "type": "AVOID_REGEXP",
                 "priority": "critical",
-                "description": "Avoid REGEXP in WHERE clause on large tables - use simpler patterns or full-text search",
+                "description": "Avoid REGEXP in WHERE clause on large tables - use simpler patterns or full-text search",  # noqa: E501
                 "example": "Use LIKE for simple patterns or full-text search for complex patterns",
             }
         )
@@ -280,6 +280,6 @@ class WildcardAnalyzer(BaseAnalyzer):
                     "type": "NOT_LIKE_ALTERNATIVE",
                     "priority": "medium",
                     "description": "Consider alternative approaches for NOT LIKE queries",
-                    "example": "Use positive matching with exclusion: WHERE column LIKE 'valid%' AND column NOT IN (SELECT ...)",
+                    "example": "Use positive matching with exclusion: WHERE column LIKE 'valid%' AND column NOT IN (SELECT ...)",  # noqa: E501
                 }
             )

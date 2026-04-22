@@ -382,7 +382,7 @@ class QueryGradingAPITestCase(TransactionTestCase):
 
         # Create 25 queries (more than default page size of 20)
         for i in range(25):
-            query_data = {"sql_text": f"SELECT * FROM pagination_test_{i}"}
+            query_data = {"sql_text": f"SELECT * FROM pagination_test_{i}"}  # nosec
             self.client.post(grade_url, query_data, format="json")
 
         # Test first page

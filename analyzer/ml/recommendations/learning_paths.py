@@ -5,13 +5,10 @@ This module generates personalized learning paths for SQL skill improvement
 based on user performance, identified weaknesses, and learning goals.
 """
 
-import json
 import logging
-from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 
 class SkillLevel(Enum):

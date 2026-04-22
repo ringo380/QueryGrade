@@ -5,14 +5,13 @@ This module extracts numerical features from SQL queries for machine learning mo
 Features include structural, complexity, and semantic characteristics of queries.
 """
 
-import hashlib
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import sqlparse
 from sqlparse import tokens as sqltokens
-from sqlparse.sql import Statement, Token, TokenList
+from sqlparse.sql import Statement
 
 from ...models import Query
 

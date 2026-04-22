@@ -8,7 +8,6 @@ cleanup operations, and housekeeping functions.
 import logging
 import os
 import tempfile
-from typing import Any, Dict
 
 from celery import shared_task
 from django.utils import timezone

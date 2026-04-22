@@ -298,7 +298,7 @@ class HybridQueryGraderTestCase(TransactionTestCase):
                 name="grader_v1",
                 model_type="QUERY_GRADER",
                 version="1.0.0",
-                file_path="/tmp/old_model.pkl",
+                file_path="/tmp/old_model.pkl",  # nosec
                 status="DEPRECATED",
                 training_accuracy=0.75,
             )
@@ -307,7 +307,7 @@ class HybridQueryGraderTestCase(TransactionTestCase):
                 name="grader_v2",
                 model_type="QUERY_GRADER",
                 version="2.0.0",
-                file_path="/tmp/new_model.pkl",
+                file_path="/tmp/new_model.pkl",  # nosec
                 status="ACTIVE",
                 training_accuracy=0.85,
             )

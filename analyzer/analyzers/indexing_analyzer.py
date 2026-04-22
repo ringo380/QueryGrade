@@ -84,7 +84,7 @@ class IndexingAnalyzer(BaseAnalyzer):
                     {
                         "type": "FULL_TEXT_SEARCH",
                         "priority": "medium",
-                        "description": "Consider using full-text search indexes for LIKE queries with leading wildcards",
+                        "description": "Consider using full-text search indexes for LIKE queries with leading wildcards",  # noqa: E501
                         "example": "CREATE FULLTEXT INDEX idx_text_search ON table_name(text_column)",
                     }
                 )
@@ -110,7 +110,7 @@ class IndexingAnalyzer(BaseAnalyzer):
                     {
                         "type": "COMPOSITE_JOIN_INDEX",
                         "priority": "high",
-                        "description": f"Query has {join_count} JOINs - consider composite indexes for frequently joined columns",
+                        "description": f"Query has {join_count} JOINs - consider composite indexes for frequently joined columns",  # noqa: E501
                         "example": "CREATE INDEX idx_composite ON table_name(col1, col2, col3)",
                     }
                 )
@@ -195,7 +195,7 @@ class IndexingAnalyzer(BaseAnalyzer):
                 {
                     "type": "COMPOSITE_INDEX",
                     "priority": "high",
-                    "description": f"Query has {where_and_count + 1} AND conditions - composite index may improve performance",
+                    "description": f"Query has {where_and_count + 1} AND conditions - composite index may improve performance",  # noqa: E501
                     "example": "CREATE INDEX idx_composite ON table_name(col1, col2, col3) -- ordered by selectivity",
                 }
             )
@@ -206,7 +206,7 @@ class IndexingAnalyzer(BaseAnalyzer):
                 {
                     "type": "COVERING_INDEX",
                     "priority": "medium",
-                    "description": "Consider covering index including WHERE columns + ORDER BY columns + SELECT columns",
+                    "description": "Consider covering index including WHERE columns + ORDER BY columns + SELECT columns",  # noqa: E501
                     "example": "CREATE INDEX idx_covering ON table_name(where_col, order_col) INCLUDE (select_col)",
                 }
             )
@@ -223,7 +223,7 @@ class IndexingAnalyzer(BaseAnalyzer):
         for hint in hint_patterns:
             if hint in sql_text:
                 context.performance_notes.append(
-                    f"Query uses explicit index hint ({hint}). Verify this is still optimal as data distribution changes."
+                    f"Query uses explicit index hint ({hint}). Verify this is still optimal as data distribution changes."  # noqa: E501
                 )
                 context.recommendations.append(
                     {

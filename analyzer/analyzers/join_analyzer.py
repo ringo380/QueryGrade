@@ -62,7 +62,7 @@ class JoinAnalyzer(BaseAnalyzer):
     ) -> None:
         """Check for Cartesian products (comma-separated tables without proper join conditions)."""
         # Check for implicit joins (comma-separated tables)
-        comma_join_pattern = r"\bFROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_][a-zA-Z0-9_]*\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*|FROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*"
+        comma_join_pattern = r"\bFROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_][a-zA-Z0-9_]*\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*|FROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*"  # noqa: E501
         if re.search(comma_join_pattern, sql_text):
             context.issues.append(
                 {
@@ -75,8 +75,8 @@ class JoinAnalyzer(BaseAnalyzer):
                 {
                     "type": "USE_EXPLICIT_JOINS",
                     "priority": "critical",
-                    "description": "Use explicit JOIN syntax with proper ON conditions instead of comma-separated tables",
-                    "example": 'Replace "FROM table1, table2" with "FROM table1 INNER JOIN table2 ON table1.id = table2.id"',
+                    "description": "Use explicit JOIN syntax with proper ON conditions instead of comma-separated tables",  # noqa: E501
+                    "example": 'Replace "FROM table1, table2" with "FROM table1 INNER JOIN table2 ON table1.id = table2.id"',  # noqa: E501
                 }
             )
 

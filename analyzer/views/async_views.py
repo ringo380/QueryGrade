@@ -18,7 +18,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import caches
 from django.core.paginator import Paginator
-from django.db.models import Avg
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -29,7 +28,6 @@ from ..forms import BatchQueryForm
 from ..ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
 from ..models import QueryAnalysis
 from ..query_analyzer import analyze_query
-from .utils import get_client_ip
 
 logger = logging.getLogger(__name__)
 

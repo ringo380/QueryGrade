@@ -5,14 +5,12 @@ This module predicts query execution plans without actually executing queries,
 providing insights into potential performance characteristics and optimization opportunities.
 """
 
-import hashlib
-import json
 import logging
 import re
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 

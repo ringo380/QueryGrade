@@ -103,6 +103,6 @@ class MySQLAnalyzer(BaseAnalyzer):
                 {
                     "type": "MYSQL_PERFORMANCE_OPTIMIZATION",
                     "priority": "low",
-                    "description": "Consider MySQL-specific optimizations like proper storage engine selection and query cache usage",
+                    "description": "Consider MySQL-specific optimizations like proper storage engine selection and query cache usage",  # noqa: E501
                 }
             )

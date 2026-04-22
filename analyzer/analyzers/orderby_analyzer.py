@@ -67,7 +67,7 @@ class OrderByAnalyzer(BaseAnalyzer):
                     {
                         "type": "ORDER_BY_NO_LIMIT",
                         "severity": "medium",
-                        "description": "ORDER BY without LIMIT sorts the entire result set - consider adding LIMIT if you only need top N rows",
+                        "description": "ORDER BY without LIMIT sorts the entire result set - consider adding LIMIT if you only need top N rows",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
@@ -101,15 +101,15 @@ class OrderByAnalyzer(BaseAnalyzer):
                     {
                         "type": "FUNCTION_IN_ORDER_BY",
                         "severity": "medium",
-                        "description": f"Using {func_name}() in ORDER BY prevents index usage and requires computing the function for all rows",
+                        "description": f"Using {func_name}() in ORDER BY prevents index usage and requires computing the function for all rows",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
                     {
                         "type": "PRECOMPUTE_ORDER_COLUMN",
                         "priority": "medium",
-                        "description": f"Consider storing {func_name}(column) as a computed/generated column with an index",
-                        "example": "ALTER TABLE table_name ADD COLUMN computed_col GENERATED ALWAYS AS (function(col)) STORED; CREATE INDEX idx_computed ON table_name(computed_col);",
+                        "description": f"Consider storing {func_name}(column) as a computed/generated column with an index",  # noqa: E501
+                        "example": "ALTER TABLE table_name ADD COLUMN computed_col GENERATED ALWAYS AS (function(col)) STORED; CREATE INDEX idx_computed ON table_name(computed_col);",  # noqa: E501
                     }
                 )
                 break  # Only report once
@@ -130,7 +130,7 @@ class OrderByAnalyzer(BaseAnalyzer):
                     {
                         "type": "EXPRESSION_IN_ORDER_BY",
                         "severity": "medium",
-                        "description": "Complex expression in ORDER BY cannot use indexes and must be computed for all rows",
+                        "description": "Complex expression in ORDER BY cannot use indexes and must be computed for all rows",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
@@ -138,7 +138,7 @@ class OrderByAnalyzer(BaseAnalyzer):
                         "type": "COMPUTED_COLUMN_FOR_ORDER",
                         "priority": "medium",
                         "description": "Consider creating a computed/generated column for complex ORDER BY expressions",
-                        "example": "ALTER TABLE table_name ADD COLUMN order_value AS (expression) STORED; CREATE INDEX ON table_name(order_value);",
+                        "example": "ALTER TABLE table_name ADD COLUMN order_value AS (expression) STORED; CREATE INDEX ON table_name(order_value);",  # noqa: E501
                     }
                 )
                 break
@@ -158,7 +158,7 @@ class OrderByAnalyzer(BaseAnalyzer):
                     {
                         "type": "MULTI_COLUMN_INDEX",
                         "priority": "high",
-                        "description": f"ORDER BY uses {comma_count + 1} columns - composite index with columns in the same order can improve performance",
+                        "description": f"ORDER BY uses {comma_count + 1} columns - composite index with columns in the same order can improve performance",  # noqa: E501
                         "example": "CREATE INDEX idx_multi_order ON table_name(col1, col2, col3) -- in ORDER BY order",
                     }
                 )
@@ -170,7 +170,7 @@ class OrderByAnalyzer(BaseAnalyzer):
                         "type": "MIXED_SORT_ORDER",
                         "priority": "medium",
                         "description": "Mixed ASC/DESC in ORDER BY may prevent full index usage on some databases",
-                        "example": "Some databases support mixed-order indexes: CREATE INDEX idx_mixed ON table(col1 ASC, col2 DESC)",
+                        "example": "Some databases support mixed-order indexes: CREATE INDEX idx_mixed ON table(col1 ASC, col2 DESC)",  # noqa: E501
                     }
                 )
 
@@ -229,15 +229,15 @@ class OrderByAnalyzer(BaseAnalyzer):
                     {
                         "type": "ORDER_BY_RANDOM",
                         "severity": "high",
-                        "description": f"ORDER BY {pattern} requires sorting the entire table - very expensive on large tables",
+                        "description": f"ORDER BY {pattern} requires sorting the entire table - very expensive on large tables",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
                     {
                         "type": "AVOID_RANDOM_ORDERING",
                         "priority": "high",
-                        "description": "For random sampling, use alternative methods like sampling algorithms or pre-randomized data",
-                        "example": "Use: WHERE id >= (SELECT FLOOR(RAND() * MAX(id)) FROM table) LIMIT 1 for single random row",
+                        "description": "For random sampling, use alternative methods like sampling algorithms or pre-randomized data",  # noqa: E501
+                        "example": "Use: WHERE id >= (SELECT FLOOR(RAND() * MAX(id)) FROM table) LIMIT 1 for single random row",  # noqa: E501
                     }
                 )
                 break

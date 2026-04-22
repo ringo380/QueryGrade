@@ -62,7 +62,7 @@ class ConfidenceAnalyzer:
                 # Calculate correlation between confidence and accuracy
                 correlation, _ = stats.pearsonr(confidences, accuracies)
                 return max(0.0, correlation)
-            except:
+            except Exception:
                 pass
 
         # Fallback: simple binned analysis

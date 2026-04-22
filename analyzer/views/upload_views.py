@@ -105,7 +105,7 @@ def index(request):
 
                     messages.info(
                         request,
-                        f"File upload successful! Your {log_type} log is being processed in the background. You'll be notified when it's complete.",
+                        f"File upload successful! Your {log_type} log is being processed in the background. You'll be notified when it's complete.",  # noqa: E501
                     )
                     return redirect("async_processing_status")
 
@@ -215,7 +215,7 @@ def index(request):
                     )
                     messages.error(
                         request,
-                        "An unexpected error occurred while processing the log file. Please check the file format and try again.",
+                        "An unexpected error occurred while processing the log file. Please check the file format and try again.",  # noqa: E501
                     )
                     _cleanup_file(fs, filename)
                     return HttpResponseRedirect(reverse("index"))

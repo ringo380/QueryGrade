@@ -6,11 +6,10 @@ optimized versions of SQL queries based on common performance patterns.
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 import sqlparse
-from sqlparse import tokens
-from sqlparse.sql import Statement, Token, TokenList
+from sqlparse.sql import Statement
 
 
 class QueryOptimizer:
@@ -60,7 +59,7 @@ class QueryOptimizer:
                     optimized_sql = result["query"]
                     optimizations.append("Replaced SELECT * with specific columns")
                     explanation.append(
-                        "Specified only necessary columns instead of SELECT * to reduce data transfer and improve performance"
+                        "Specified only necessary columns instead of SELECT * to reduce data transfer and improve performance"  # noqa: E501
                     )
 
             elif issue_type == "FUNCTION_ON_COLUMN":
@@ -151,7 +150,7 @@ class QueryOptimizer:
 
         # For demonstration, replace with common columns
         # In a real implementation, this would analyze table schema
-        suggested_columns = [
+        suggested_columns = [  # noqa: F841
             "id, name, email, created_at",  # User tables
             "id, title, content, author_id, created_at",  # Content tables
             "id, user_id, total, status, created_at",  # Order tables
@@ -208,7 +207,7 @@ class QueryOptimizer:
             for match in matches:
                 # Suggest full-text search for patterns that start with %
                 old_pattern = f"LIKE '%{match}%'"
-                new_pattern = f"-- Consider full-text search: MATCH({match}) AGAINST ('{match}' IN BOOLEAN MODE)\n    LIKE '%{match}%'"
+                new_pattern = f"-- Consider full-text search: MATCH({match}) AGAINST ('{match}' IN BOOLEAN MODE)\n    LIKE '%{match}%'"  # noqa: E501
                 optimized = optimized.replace(old_pattern, new_pattern)
                 modified = True
 
@@ -355,7 +354,7 @@ class QueryOptimizer:
             summary += f"{i}. {opt}\n"
 
         summary += f"\nEstimated performance improvement: {optimization_result['improvement_estimate']}%\n"
-        summary += "\nNote: These are automated suggestions. Always test optimized queries in your specific environment."
+        summary += "\nNote: These are automated suggestions. Always test optimized queries in your specific environment."  # noqa: E501
 
         return summary
 

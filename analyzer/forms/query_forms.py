@@ -23,7 +23,7 @@ class QueryGradeForm(forms.Form):
             attrs={
                 "class": "form-control",
                 "rows": 12,
-                "placeholder": "Paste your SQL query here...\n\nExample:\nSELECT u.name, u.email, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE u.created_at >= '2023-01-01'\nGROUP BY u.id, u.name, u.email\nORDER BY order_count DESC;",
+                "placeholder": "Paste your SQL query here...\n\nExample:\nSELECT u.name, u.email, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE u.created_at >= '2023-01-01'\nGROUP BY u.id, u.name, u.email\nORDER BY order_count DESC;",  # noqa: E501
                 "style": "font-family: monospace; font-size: 14px;",
             }
         ),
@@ -55,7 +55,7 @@ class QueryGradeForm(forms.Form):
             attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Optional: Describe what this query is used for, expected data volume, frequency of execution, etc.",
+                "placeholder": "Optional: Describe what this query is used for, expected data volume, frequency of execution, etc.",  # noqa: E501
             }
         ),
         required=False,
@@ -127,7 +127,7 @@ class QueryCompareForm(forms.Form):
             attrs={
                 "class": "form-control sql-editor",
                 "rows": 10,
-                "placeholder": "Enter your second SQL query...\n\nExample:\nSELECT id, name, email FROM users WHERE active = 1;",
+                "placeholder": "Enter your second SQL query...\n\nExample:\nSELECT id, name, email FROM users WHERE active = 1;",  # noqa: E501
                 "style": "font-family: monospace; font-size: 14px;",
             }
         ),
@@ -189,7 +189,7 @@ class QueryCompareForm(forms.Form):
             attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Optional: Add notes about what you're comparing or what differences you expect to see...",
+                "placeholder": "Optional: Add notes about what you're comparing or what differences you expect to see...",  # noqa: E501
             }
         ),
         required=False,
@@ -247,7 +247,7 @@ class BatchQueryForm(forms.Form):
             attrs={
                 "class": "form-control sql-editor",
                 "rows": 15,
-                "placeholder": "Enter multiple SQL queries separated by semicolons...\n\nExample:\nSELECT * FROM users WHERE active = 1;\nSELECT COUNT(*) FROM orders;\nSELECT u.name, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nGROUP BY u.id;",
+                "placeholder": "Enter multiple SQL queries separated by semicolons...\n\nExample:\nSELECT * FROM users WHERE active = 1;\nSELECT COUNT(*) FROM orders;\nSELECT u.name, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nGROUP BY u.id;",  # noqa: E501
                 "style": "font-family: monospace; font-size: 14px;",
             }
         ),
@@ -279,7 +279,7 @@ class BatchQueryForm(forms.Form):
             attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Optional: Describe the context for these queries, their purpose, expected data volume, etc.",
+                "placeholder": "Optional: Describe the context for these queries, their purpose, expected data volume, etc.",  # noqa: E501
             }
         ),
         required=False,

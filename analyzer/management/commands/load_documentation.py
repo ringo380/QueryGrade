@@ -11,7 +11,6 @@ Usage:
 
 import json
 
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from analyzer.ml.core.feature_extractor import FeatureExtractor
@@ -222,7 +221,7 @@ class Command(BaseCommand):
                         sql_text=benchmark.query_text,
                         query_type=loader._extract_query_type(benchmark.query_text),
                         query_hash=hashlib.md5(
-                            benchmark.query_text.encode()
+                            benchmark.query_text.encode(), usedforsecurity=False
                         ).hexdigest(),
                     )
 
@@ -318,7 +317,9 @@ class Command(BaseCommand):
             temp_query = Query(
                 sql_text=sql_text,
                 query_type=loader._extract_query_type(sql_text),
-                query_hash=hashlib.md5(sql_text.encode()).hexdigest(),
+                query_hash=hashlib.md5(
+                    sql_text.encode(), usedforsecurity=False
+                ).hexdigest(),
             )
 
             # Apply rules

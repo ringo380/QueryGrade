@@ -7,11 +7,11 @@ import time
 
 from django.conf import settings
 from django.core.cache import caches
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import connection
 
-from analyzer.models import Query, QueryAnalysis, UserQueryHistory
-from analyzer.performance import memory_optimizer, query_cache
+from analyzer.models import Query, UserQueryHistory
+from analyzer.performance import query_cache
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ class Command(BaseCommand):
 
             for cache_name, description in cache_configs:
                 try:
-                    cache = caches[cache_name]
+                    caches[cache_name]
                     # Note: Redis doesn't have a direct way to get all keys
                     # In production, you might want to implement TTL-based cleanup
                     self.stdout.write(f"Cleaned {description}")

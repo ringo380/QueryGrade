@@ -5,15 +5,13 @@ Includes caching, query optimization, and monitoring tools.
 
 import hashlib
 import logging
-import pickle
 import time
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, List, Optional
 
 from django.conf import settings
 from django.core.cache import caches
 from django.db import connection
-from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 
@@ -124,7 +122,7 @@ class QueryCache:
         # Normalize the SQL for consistent caching
         normalized_sql = " ".join(sql_text.strip().split())
         key_data = f"{normalized_sql}|{database_type}|{version}"
-        return hashlib.md5(key_data.encode("utf-8")).hexdigest()
+        return hashlib.md5(key_data.encode("utf-8"), usedforsecurity=False).hexdigest()
 
     def get_analysis(self, sql_text: str, database_type: str = "") -> Optional[Any]:
         """
@@ -228,7 +226,7 @@ def cached_analysis(timeout: int = 3600):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Generate cache key from function arguments
-            cache_key = f"analysis_{func.__name__}_{hashlib.md5(str(args + tuple(kwargs.items())).encode()).hexdigest()}"
+            cache_key = f"analysis_{func.__name__}_{hashlib.md5(str(args + tuple(kwargs.items())).encode(), usedforsecurity=False).hexdigest()}"  # noqa: E501
 
             cache = caches["query_analysis_cache"]
             result = cache.get(cache_key)

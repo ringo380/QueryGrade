@@ -39,8 +39,6 @@ class QueryGrader(ModularQueryGrader):
         from analyzer.analyzers import QueryGrader
     """
 
-    pass
-
 
 # Legacy convenience functions for backward compatibility
 def analyze_query(

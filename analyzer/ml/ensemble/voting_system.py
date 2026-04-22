@@ -11,17 +11,16 @@ import math
 import statistics
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from django.core.cache import caches
 from django.utils import timezone
 
 try:
-    from scipy import stats
-    from sklearn.metrics import mean_absolute_error, mean_squared_error
+    pass
 
     SCIPY_AVAILABLE = True
 except ImportError:
@@ -790,7 +789,7 @@ class EnsembleVotingSystem:
                         {
                             "type": "warning",
                             "metric": "confidence",
-                            "message": f"Average confidence is low ({analysis['average_confidence']:.2f}). Consider retraining models or adjusting voting strategy.",
+                            "message": f"Average confidence is low ({analysis['average_confidence']:.2f}). Consider retraining models or adjusting voting strategy.",  # noqa: E501
                         }
                     )
 
@@ -800,7 +799,7 @@ class EnsembleVotingSystem:
                         {
                             "type": "warning",
                             "metric": "variance",
-                            "message": f"High confidence variance ({analysis['confidence_std']:.2f}) indicates inconsistent predictions. Review model diversity.",
+                            "message": f"High confidence variance ({analysis['confidence_std']:.2f}) indicates inconsistent predictions. Review model diversity.",  # noqa: E501
                         }
                     )
 
@@ -810,7 +809,7 @@ class EnsembleVotingSystem:
                         {
                             "type": "improvement",
                             "metric": "quality",
-                            "message": f"Average quality score is {analysis['average_quality']:.2f}. Consider ensemble optimization or model updates.",
+                            "message": f"Average quality score is {analysis['average_quality']:.2f}. Consider ensemble optimization or model updates.",  # noqa: E501
                         }
                     )
                 elif analysis["average_quality"] > 0.85:
@@ -818,7 +817,7 @@ class EnsembleVotingSystem:
                         {
                             "type": "success",
                             "metric": "quality",
-                            "message": f"Excellent quality score ({analysis['average_quality']:.2f}). Current ensemble is performing well.",
+                            "message": f"Excellent quality score ({analysis['average_quality']:.2f}). Current ensemble is performing well.",  # noqa: E501
                         }
                     )
 
@@ -829,7 +828,7 @@ class EnsembleVotingSystem:
                         {
                             "type": "warning",
                             "metric": "ensemble_size",
-                            "message": f"Low average model count ({avg_model_count:.1f}). Add more models for better ensemble performance.",
+                            "message": f"Low average model count ({avg_model_count:.1f}). Add more models for better ensemble performance.",  # noqa: E501
                         }
                     )
 
@@ -841,7 +840,7 @@ class EnsembleVotingSystem:
                     {
                         "type": "info",
                         "metric": "data",
-                        "message": f"No voting results found in the last {days_back} days. System may be new or cache may have been cleared.",
+                        "message": f"No voting results found in the last {days_back} days. System may be new or cache may have been cleared.",  # noqa: E501
                     }
                 ]
 

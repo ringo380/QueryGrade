@@ -16,7 +16,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from analyzer.models import LearningMetrics, MLModel, TrainingData
+from analyzer.models import MLModel, TrainingData
 
 
 class Command(BaseCommand):
@@ -33,7 +33,7 @@ class Command(BaseCommand):
         list_parser.add_argument("--model-type", type=str, help="Filter by model type")
 
         # Status command
-        status_parser = subparsers.add_parser("status", help="Show ML system status")
+        subparsers.add_parser("status", help="Show ML system status")
 
         # Activate command
         activate_parser = subparsers.add_parser("activate", help="Activate a model")

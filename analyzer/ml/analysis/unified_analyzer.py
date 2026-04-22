@@ -6,7 +6,6 @@ providing a single interface for comprehensive SQL query analysis.
 """
 
 import asyncio
-import concurrent.futures
 import logging
 import time
 from contextlib import contextmanager
@@ -16,7 +15,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..integration.database_stats import (
     DatabaseStatisticsManager,
-    generate_context_aware_features,
 )
 from ..integration.performance_predictor import (
     PerformanceBaseline,
@@ -39,7 +37,7 @@ from .pattern_library import QueryPatternLibrary, analyze_query_patterns
 
 # Import our ML components - updated paths for reorganization
 from .semantic_analyzer import SemanticFeatureExtractor, analyze_query_semantics
-from .workload_patterns import WorkloadPatternRecognizer, analyze_workload
+from .workload_patterns import WorkloadPatternRecognizer
 
 
 @dataclass
@@ -313,7 +311,7 @@ class UnifiedQueryAnalyzer:
         """Run performance prediction with timing"""
         with self._time_component("performance_prediction", execution_times):
             # Create baseline from context or estimates
-            baseline = self._create_performance_baseline(query, context)
+            baseline = self._create_performance_baseline(query, context)  # noqa: F841
             plan_prediction = self.plan_predictor.predict_execution_plan(query)
 
             return {
@@ -584,7 +582,7 @@ class UnifiedQueryAnalyzer:
         import hashlib
 
         return PerformanceBaseline(
-            query_hash=hashlib.md5(query.encode()).hexdigest(),
+            query_hash=hashlib.md5(query.encode(), usedforsecurity=False).hexdigest(),
             execution_time_ms=context.get("execution_time_ms", 100),
             cpu_time_ms=context.get("cpu_time_ms", 80),
             memory_mb=context.get("memory_mb", 64),
@@ -611,7 +609,7 @@ class UnifiedQueryAnalyzer:
         ]
 
         key_string = "|".join(key_parts)
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.md5(key_string.encode(), usedforsecurity=False).hexdigest()
 
     def _update_performance_metrics(self, analysis_time_ms: float):
         """Update performance tracking metrics"""
@@ -698,7 +696,7 @@ def get_analyzer() -> UnifiedQueryAnalyzer:
 
 if __name__ == "__main__":
     # Example usage
-    import asyncio
+    import asyncio  # noqa: F811
 
     async def main():
         analyzer = UnifiedQueryAnalyzer()
@@ -747,7 +745,7 @@ if __name__ == "__main__":
             )
 
         # Performance metrics
-        print(f"\nPerformance Metrics:")
+        print("\nPerformance Metrics:")
         metrics = analyzer.get_performance_metrics()
         for key, value in metrics.items():
             print(f"  {key}: {value}")

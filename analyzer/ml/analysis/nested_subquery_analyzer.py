@@ -7,10 +7,10 @@ dependency graph construction, and performance impact assessment.
 
 import logging
 import re
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 class SubqueryType(Enum):
@@ -280,9 +280,7 @@ class NestedSubqueryAnalyzer:
         self, full_query: str, position: int, subquery_text: str
     ) -> SubqueryType:
         """Classify the type of subquery"""
-        query_upper = full_query.upper()
         before = full_query[:position].upper()
-        after = full_query[position + 6 : position + 20].upper()  # After SELECT keyword
 
         # Check for EXISTS
         if "EXISTS" in before[-10:]:

@@ -7,7 +7,6 @@ to provide improved query grading that learns from user feedback.
 
 import logging
 import os
-import pickle
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -18,7 +17,7 @@ from django.utils import timezone
 
 try:
     import joblib
-    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+    from sklearn.ensemble import GradientBoostingRegressor
     from sklearn.metrics import mean_squared_error, r2_score
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import StandardScaler
@@ -80,7 +79,6 @@ class HybridQueryGrader:
         Returns:
             Tuple of Query and QueryAnalysis objects
         """
-        start_time = timezone.now()
 
         # Get rule-based analysis first
         query, rule_analysis = self.rule_based_grader.analyze_query(
@@ -432,7 +430,7 @@ class HybridQueryGrader:
 
         # Create database record
         ml_model = MLModel.objects.create(
-            name=f"Hybrid Query Grader",
+            name="Hybrid Query Grader",
             model_type="HYBRID_SCORER",
             version=timestamp,
             status="ACTIVE",

@@ -201,7 +201,7 @@ class DatabaseIntrospectionService:
                     "severity": "high",
                     "table": table_name,
                     "type": "missing_primary_key",
-                    "message": f"Table '{table_name}' does not have a primary key. Consider adding one for data integrity.",
+                    "message": f"Table '{table_name}' does not have a primary key. Consider adding one for data integrity.",  # noqa: E501
                     "recommendation": f"ALTER TABLE {table_name} ADD PRIMARY KEY (id);",
                 }
             )
@@ -217,8 +217,8 @@ class DatabaseIntrospectionService:
                             "table": table_name,
                             "column": col["name"],
                             "type": "large_varchar_no_index",
-                            "message": f"Large VARCHAR({length}) column '{col['name']}' in '{table_name}' may benefit from an index if used in WHERE clauses.",
-                            "recommendation": f"CREATE INDEX idx_{table_name}_{col['name']} ON {table_name} ({col['name']});",
+                            "message": f"Large VARCHAR({length}) column '{col['name']}' in '{table_name}' may benefit from an index if used in WHERE clauses.",  # noqa: E501
+                            "recommendation": f"CREATE INDEX idx_{table_name}_{col['name']} ON {table_name} ({col['name']});",  # noqa: E501
                         }
                     )
 
@@ -239,8 +239,8 @@ class DatabaseIntrospectionService:
                         "table": table_name,
                         "column": col["name"],
                         "type": "timestamp_no_index",
-                        "message": f"Timestamp column '{col['name']}' in '{table_name}' often benefits from indexing for date range queries.",
-                        "recommendation": f"CREATE INDEX idx_{table_name}_{col['name']} ON {table_name} ({col['name']});",
+                        "message": f"Timestamp column '{col['name']}' in '{table_name}' often benefits from indexing for date range queries.",  # noqa: E501
+                        "recommendation": f"CREATE INDEX idx_{table_name}_{col['name']} ON {table_name} ({col['name']});",  # noqa: E501
                     }
                 )
 
@@ -286,7 +286,7 @@ class DatabaseIntrospectionService:
                         "column": fk_column,
                         "issue": "missing_index",
                         "severity": "high",
-                        "message": f"Foreign key column '{fk_column}' in '{table_name}' should have an index for optimal JOIN performance.",
+                        "message": f"Foreign key column '{fk_column}' in '{table_name}' should have an index for optimal JOIN performance.",  # noqa: E501
                     }
                 )
 

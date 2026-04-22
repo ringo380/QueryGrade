@@ -5,13 +5,12 @@ This module predicts the performance impact of query changes and optimizations,
 providing quantitative estimates and confidence intervals.
 """
 
-import hashlib
 import logging
 import pickle
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -717,7 +716,7 @@ class PerformanceImpactPredictor:
 
         try:
             with open(path, "rb") as f:
-                model_data = pickle.load(f)
+                model_data = pickle.load(f)  # nosec
 
             self.model = model_data["model"]
             self.scaler = model_data["scaler"]

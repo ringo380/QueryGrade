@@ -11,7 +11,6 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 
 from ..forms import BatchQueryForm, QueryCompareForm
@@ -424,7 +423,7 @@ def generate_batch_summary(results, batch_data):
     successful_count = len(successful_results)
     failed_count = len(failed_results)
 
-    summary_lines.append(f"Batch Analysis Summary")
+    summary_lines.append("Batch Analysis Summary")
     summary_lines.append(f"Total Queries Analyzed: {total_queries}")
     summary_lines.append(f"Successfully Analyzed: {successful_count}")
     if failed_count > 0:
@@ -435,7 +434,7 @@ def generate_batch_summary(results, batch_data):
         grades = [r["analysis"].grade for r in successful_results]
         grade_counts = {grade: grades.count(grade) for grade in set(grades)}
 
-        summary_lines.append(f"\nGrade Distribution:")
+        summary_lines.append("\nGrade Distribution:")
         for grade in ["A", "B", "C", "D", "F"]:
             if grade in grade_counts:
                 summary_lines.append(f"• Grade {grade}: {grade_counts[grade]} queries")
@@ -450,11 +449,11 @@ def generate_batch_summary(results, batch_data):
         worst_result = min(successful_results, key=lambda x: x["analysis"].score)
 
         summary_lines.append(
-            f"\nBest Query: Query #{best_result['query_number']} (Grade {best_result['analysis'].grade}, {best_result['analysis'].score:.1f} points)"
+            f"\nBest Query: Query #{best_result['query_number']} (Grade {best_result['analysis'].grade}, {best_result['analysis'].score:.1f} points)"  # noqa: E501
         )
         if best_result != worst_result:
             summary_lines.append(
-                f"Query Needing Most Improvement: Query #{worst_result['query_number']} (Grade {worst_result['analysis'].grade}, {worst_result['analysis'].score:.1f} points)"
+                f"Query Needing Most Improvement: Query #{worst_result['query_number']} (Grade {worst_result['analysis'].grade}, {worst_result['analysis'].score:.1f} points)"  # noqa: E501
             )
 
         # Common issues analysis
@@ -473,7 +472,7 @@ def generate_batch_summary(results, batch_data):
                 issue: count for issue, count in issue_counts.items() if count > 1
             }
             if common_issues:
-                summary_lines.append(f"\nCommon Issues Found:")
+                summary_lines.append("\nCommon Issues Found:")
                 for issue, count in sorted(
                     common_issues.items(), key=lambda x: x[1], reverse=True
                 ):

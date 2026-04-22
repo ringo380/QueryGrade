@@ -10,20 +10,10 @@ import random
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import sqlparse
-from sqlparse import keywords, sql, tokens
-from sqlparse.sql import (
-    Comparison,
-    Function,
-    Identifier,
-    IdentifierList,
-    Statement,
-    Token,
-    TokenList,
-    Where,
-)
+from sqlparse import keywords
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +308,7 @@ class QueryMutationEngine:
         """Apply case variations to SQL keywords."""
         variation_type = random.choice(["lowercase", "uppercase", "mixed"])
 
-        keywords_pattern = r"\b(SELECT|FROM|WHERE|JOIN|INNER|LEFT|RIGHT|OUTER|ON|GROUP|ORDER|BY|HAVING|UNION|ALL|DISTINCT|AS|AND|OR|NOT|IN|EXISTS|LIKE|BETWEEN|IS|NULL|COUNT|SUM|AVG|MIN|MAX|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|ALTER|DROP|INDEX)\b"
+        keywords_pattern = r"\b(SELECT|FROM|WHERE|JOIN|INNER|LEFT|RIGHT|OUTER|ON|GROUP|ORDER|BY|HAVING|UNION|ALL|DISTINCT|AS|AND|OR|NOT|IN|EXISTS|LIKE|BETWEEN|IS|NULL|COUNT|SUM|AVG|MIN|MAX|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|ALTER|DROP|INDEX)\b"  # noqa: E501
 
         def case_replacer(match):
             keyword = match.group(1)

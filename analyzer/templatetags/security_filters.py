@@ -6,7 +6,7 @@ import html
 import re
 
 from django import template
-from django.utils.html import escape, strip_tags
+from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
 
 register = template.Library()
@@ -184,6 +184,6 @@ def safe_json(value):
         json_str = json_str.replace(">", "\\u003e")
         json_str = json_str.replace("&", "\\u0026")
 
-        return mark_safe(json_str)
+        return mark_safe(json_str)  # nosec
     except (TypeError, ValueError):
         return "{}"

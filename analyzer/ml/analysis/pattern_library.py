@@ -5,14 +5,13 @@ This module maintains a comprehensive library of SQL query patterns for
 pattern matching, template generation, and best practice recommendations.
 """
 
-import hashlib
 import json
 import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 
 class PatternCategory(Enum):
@@ -162,7 +161,7 @@ class QueryPatternLibrary:
                 description="Grouping data with aggregate functions",
                 pattern_regex=r"SELECT\s+.+(?:COUNT|SUM|AVG|MAX|MIN)\s*\(.+\).+GROUP\s+BY\s+",
                 template="SELECT {group_columns}, {aggregate_functions} FROM {table} GROUP BY {group_columns}",
-                example_query="SELECT department, COUNT(*) as count, AVG(salary) as avg_salary FROM employees GROUP BY department",
+                example_query="SELECT department, COUNT(*) as count, AVG(salary) as avg_salary FROM employees GROUP BY department",  # noqa: E501
                 use_cases=["Summarizing data", "Statistical analysis", "Reporting"],
                 performance_notes="Indexes on GROUP BY columns improve performance",
                 alternatives=["Window functions for running totals"],
@@ -179,7 +178,7 @@ class QueryPatternLibrary:
                 description="Filtering grouped results using HAVING",
                 pattern_regex=r"GROUP\s+BY\s+.+\s+HAVING\s+",
                 template="SELECT {columns} FROM {table} GROUP BY {group_columns} HAVING {aggregate_condition}",
-                example_query="SELECT department, COUNT(*) as cnt FROM employees GROUP BY department HAVING COUNT(*) > 10",
+                example_query="SELECT department, COUNT(*) as cnt FROM employees GROUP BY department HAVING COUNT(*) > 10",  # noqa: E501
                 use_cases=[
                     "Filtering aggregated results",
                     "Finding groups meeting criteria",
@@ -199,8 +198,8 @@ class QueryPatternLibrary:
                 quality=PatternQuality.ACCEPTABLE,
                 description="Subquery that references outer query",
                 pattern_regex=r"WHERE\s+.+\s+(?:IN|EXISTS|=|>|<)\s*\(\s*SELECT\s+",
-                template="SELECT {columns} FROM {table1} WHERE {column} IN (SELECT {column2} FROM {table2} WHERE {correlation})",
-                example_query="SELECT name FROM employees e WHERE salary > (SELECT AVG(salary) FROM employees WHERE department = e.department)",
+                template="SELECT {columns} FROM {table1} WHERE {column} IN (SELECT {column2} FROM {table2} WHERE {correlation})",  # noqa: E501
+                example_query="SELECT name FROM employees e WHERE salary > (SELECT AVG(salary) FROM employees WHERE department = e.department)",  # noqa: E501
                 use_cases=["Complex filtering", "Comparing against aggregates"],
                 performance_notes="Can be slow for large datasets, consider JOINs",
                 alternatives=["JOIN with derived table", "CTE"],
@@ -218,7 +217,7 @@ class QueryPatternLibrary:
                 description="Subquery returning single value in SELECT clause",
                 pattern_regex=r"SELECT\s+.+\(\s*SELECT\s+.+\)\s+",
                 template="SELECT {columns}, (SELECT {aggregate} FROM {table2} WHERE {condition}) as {alias}",
-                example_query="SELECT name, (SELECT COUNT(*) FROM orders WHERE customer_id = c.id) as order_count FROM customers c",
+                example_query="SELECT name, (SELECT COUNT(*) FROM orders WHERE customer_id = c.id) as order_count FROM customers c",  # noqa: E501
                 use_cases=["Adding calculated columns", "Inline aggregations"],
                 performance_notes="Executed once per row, can be inefficient",
                 alternatives=["LEFT JOIN with GROUP BY"],
@@ -236,7 +235,7 @@ class QueryPatternLibrary:
                 description="Assigning row numbers within partitions",
                 pattern_regex=r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(",
                 template="SELECT {columns}, ROW_NUMBER() OVER (PARTITION BY {partition} ORDER BY {order}) as rn",
-                example_query="SELECT name, department, salary, ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) as rank FROM employees",
+                example_query="SELECT name, department, salary, ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) as rank FROM employees",  # noqa: E501
                 use_cases=["Ranking within groups", "Pagination", "Deduplication"],
                 performance_notes="Efficient for ranking operations",
                 database_specific={
@@ -256,8 +255,8 @@ class QueryPatternLibrary:
                 quality=PatternQuality.BEST_PRACTICE,
                 description="Calculating running totals using window functions",
                 pattern_regex=r"SUM\s*\([^)]+\)\s*OVER\s*\(",
-                template="SELECT {columns}, SUM({column}) OVER (ORDER BY {order_column} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as running_total",
-                example_query="SELECT date, amount, SUM(amount) OVER (ORDER BY date) as running_total FROM transactions",
+                template="SELECT {columns}, SUM({column}) OVER (ORDER BY {order_column} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as running_total",  # noqa: E501
+                example_query="SELECT date, amount, SUM(amount) OVER (ORDER BY date) as running_total FROM transactions",  # noqa: E501
                 use_cases=["Running totals", "Cumulative calculations"],
                 performance_notes="More efficient than self-joins for running calculations",
                 alternatives=["Recursive CTE", "Application-level calculation"],
@@ -302,7 +301,7 @@ class QueryPatternLibrary:
                 description="Using EXISTS for better performance than IN with subquery",
                 pattern_regex=r"WHERE\s+EXISTS\s*\(",
                 template="SELECT {columns} FROM {table1} WHERE EXISTS (SELECT 1 FROM {table2} WHERE {condition})",
-                example_query="SELECT * FROM orders o WHERE EXISTS (SELECT 1 FROM customers c WHERE c.id = o.customer_id AND c.status = 'active')",
+                example_query="SELECT * FROM orders o WHERE EXISTS (SELECT 1 FROM customers c WHERE c.id = o.customer_id AND c.status = 'active')",  # noqa: E501
                 use_cases=["Checking existence", "Optimized filtering"],
                 performance_notes="EXISTS stops at first match, more efficient than IN for large datasets",
                 alternatives=["IN clause for small lists", "JOIN"],

@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import requests
 import sqlparse
@@ -205,7 +205,7 @@ class DocumentationLoader:
             url = urljoin(source.base_url, pattern)
 
             # Check cache first
-            cache_key = hashlib.md5(url.encode()).hexdigest()
+            cache_key = hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()
             cache_file = os.path.join(self.cache_dir, f"{cache_key}.html")
 
             content = None
@@ -321,7 +321,7 @@ class DocumentationLoader:
             ):
                 rules.append(
                     DocumentationRule(
-                        rule_id=f"mysql_select_star_{hashlib.md5(text.encode()).hexdigest()[:8]}",
+                        rule_id=f"mysql_select_star_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:8]}",  # noqa: E501
                         title="Avoid SELECT * in production queries",
                         description="SELECT * can impact performance and maintainability",
                         rule_type="performance",
@@ -340,7 +340,7 @@ class DocumentationLoader:
             ):
                 rules.append(
                     DocumentationRule(
-                        rule_id=f"mysql_index_{hashlib.md5(text.encode()).hexdigest()[:8]}",
+                        rule_id=f"mysql_index_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:8]}",
                         title="Proper index usage improves performance",
                         description=text[:200] + "..." if len(text) > 200 else text,
                         rule_type="performance",
@@ -371,7 +371,7 @@ class DocumentationLoader:
             if "EXPLAIN" in text.upper() and "performance" in text.lower():
                 rules.append(
                     DocumentationRule(
-                        rule_id=f"postgresql_explain_{hashlib.md5(text.encode()).hexdigest()[:8]}",
+                        rule_id=f"postgresql_explain_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:8]}",  # noqa: E501
                         title="Use EXPLAIN to analyze query performance",
                         description="EXPLAIN helps identify performance bottlenecks",
                         rule_type="best_practice",
@@ -462,7 +462,7 @@ class DocumentationLoader:
 
                 benchmarks.append(
                     BenchmarkResult(
-                        benchmark_id=f"benchmark_{hashlib.md5(sql_text.encode()).hexdigest()[:8]}",
+                        benchmark_id=f"benchmark_{hashlib.md5(sql_text.encode(), usedforsecurity=False).hexdigest()[:8]}",  # noqa: E501
                         query_text=sql_text,
                         expected_score=expected_score,
                         explanation=f"Example from {source.name}",
@@ -509,7 +509,7 @@ class DocumentationLoader:
         try:
             parsed = sqlparse.parse(sql_text)
             return len(parsed) > 0 and parsed[0].tokens
-        except:
+        except Exception:
             return False
 
     def _estimate_benchmark_score(self, sql_text: str) -> float:
@@ -607,7 +607,9 @@ class DocumentationLoader:
             for benchmark in self.benchmarks:
                 if benchmark.validated:
                     # Create or update Query
-                    query_hash = hashlib.md5(benchmark.query_text.encode()).hexdigest()
+                    query_hash = hashlib.md5(
+                        benchmark.query_text.encode(), usedforsecurity=False
+                    ).hexdigest()
 
                     query, created = Query.objects.get_or_create(
                         query_hash=query_hash,

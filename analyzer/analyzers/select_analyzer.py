@@ -67,7 +67,7 @@ class SelectAnalyzer(BaseAnalyzer):
                 {
                     "type": "UNNECESSARY_DISTINCT",
                     "priority": "low",
-                    "description": "DISTINCT may be unnecessary without JOINs; verify if duplicates are actually possible",
+                    "description": "DISTINCT may be unnecessary without JOINs; verify if duplicates are actually possible",  # noqa: E501
                 }
             )
 
@@ -80,7 +80,7 @@ class SelectAnalyzer(BaseAnalyzer):
                 {
                     "type": "COUNT_OPTIMIZATION",
                     "priority": "low",
-                    "description": "Consider using COUNT(primary_key) instead of COUNT(*) for better performance on some databases",
+                    "description": "Consider using COUNT(primary_key) instead of COUNT(*) for better performance on some databases",  # noqa: E501
                 }
             )
 

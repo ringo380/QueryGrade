@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 
 from decouple import Csv, config
@@ -9,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# Generate a new secret key with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+# Generate a new secret key with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"  # noqa: E501
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-CHANGE-ME-IN-PRODUCTION")
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -304,7 +303,7 @@ REST_FRAMEWORK = {
 }
 
 # JWT Configuration
-from datetime import timedelta
+from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),

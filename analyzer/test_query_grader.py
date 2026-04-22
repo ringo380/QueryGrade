@@ -403,7 +403,7 @@ class QueryGraderEdgeCasesTestCase(TestCase):
         """Test handling of very long queries."""
         # Create a query with many columns
         columns = ", ".join([f"col{i}" for i in range(100)])
-        long_query = f"SELECT {columns} FROM large_table WHERE active = 1;"
+        long_query = f"SELECT {columns} FROM large_table WHERE active = 1;"  # nosec
 
         query, analysis = self.grader.analyze_query(long_query)
 

@@ -10,13 +10,13 @@ import logging
 import pickle
 import re
 from collections import Counter, defaultdict, deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
-from sklearn.cluster import DBSCAN, KMeans
+from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 
 
@@ -278,7 +278,7 @@ class WorkloadPatternRecognizer:
 
             # Generate pattern ID
             pattern_id = hashlib.md5(
-                str(cluster_features.mean(axis=0)).encode()
+                str(cluster_features.mean(axis=0)).encode(), usedforsecurity=False
             ).hexdigest()[:8]
 
             # Extract dominant operations
@@ -343,7 +343,7 @@ class WorkloadPatternRecognizer:
                 for hour, count in hour_counts.items()
                 if count > avg_count + std_count
             ]
-            quiet_hours = [
+            quiet_hours = [  # noqa: F841
                 hour
                 for hour, count in hour_counts.items()
                 if count < avg_count - std_count

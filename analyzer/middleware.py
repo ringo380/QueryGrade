@@ -5,7 +5,6 @@ Custom security middleware for enhanced CSRF and XSS protection.
 import logging
 import re
 
-from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpResponseForbidden, JsonResponse
 from django.utils.deprecation import MiddlewareMixin

@@ -11,10 +11,9 @@ Advanced analysis of multi-statement SQL queries with semantic understanding of:
 
 import logging
 import re
-from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, Set
 
 
 class StatementType(Enum):

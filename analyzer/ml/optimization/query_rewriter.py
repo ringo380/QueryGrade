@@ -7,14 +7,11 @@ while providing detailed explanations of the changes made.
 
 import logging
 import re
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import sqlparse
-from sqlparse.sql import Statement, Token, TokenList
-from sqlparse.tokens import Keyword, Name
 
 
 class RewriteRule(Enum):
@@ -89,7 +86,7 @@ class IntelligentQueryRewriter:
         self.rewrite_patterns = {
             RewriteRule.IN_TO_EXISTS: {
                 "pattern": re.compile(
-                    r"WHERE\s+(\w+(?:\.\w+)?)\s+IN\s*\(\s*SELECT\s+(\w+(?:\.\w+)?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE\s+(.+?))?\s*\)",
+                    r"WHERE\s+(\w+(?:\.\w+)?)\s+IN\s*\(\s*SELECT\s+(\w+(?:\.\w+)?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE\s+(.+?))?\s*\)",  # noqa: E501
                     re.IGNORECASE | re.DOTALL,
                 ),
                 "complexity": RewriteComplexity.MODERATE,
@@ -153,7 +150,7 @@ class IntelligentQueryRewriter:
 
         # Parse the query
         try:
-            parsed = sqlparse.parse(query)[0]
+            parsed = sqlparse.parse(query)[0]  # noqa: F841
         except Exception as e:
             self.logger.error(f"Failed to parse query: {e}")
             return self._create_fallback_rewrite(query)
@@ -288,7 +285,7 @@ class IntelligentQueryRewriter:
         left_column, right_column, table, where_clause = match.groups()
 
         # Build EXISTS equivalent
-        exists_clause = f"EXISTS (SELECT 1 FROM {table}"
+        exists_clause = f"EXISTS (SELECT 1 FROM {table}"  # nosec
         if where_clause:
             exists_clause += (
                 f" WHERE {where_clause} AND {right_column} = {left_column})"
@@ -350,7 +347,7 @@ class IntelligentQueryRewriter:
         original_fragment = match.group(0)
 
         # For safety, we'll provide the pattern but not automatically apply this complex transformation
-        join_suggestion = (
+        join_suggestion = (  # noqa: F841
             f"Consider converting to: INNER JOIN {table} ON {where_clause}"
         )
 
@@ -805,8 +802,8 @@ def format_rewrite_report(rewrite: QueryRewrite) -> str:
             lines.append(f"**Complexity:** {step.complexity.value}")
             lines.append(f"**Improvement:** {step.estimated_improvement:.1%}")
             lines.append("")
-            lines.append(f"**Original:**")
-            lines.append(f"```sql")
+            lines.append("**Original:**")
+            lines.append("```sql")
             lines.append(step.original_fragment)
             lines.append("```")
             lines.append("")

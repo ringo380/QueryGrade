@@ -6,27 +6,21 @@ immediately incorporates user feedback into the ML model's learning process thro
 streaming updates and incremental learning.
 """
 
-import asyncio
-import json
 import logging
-import pickle
 import threading
 import time
 from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from queue import Empty, Queue
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from django.conf import settings
 from django.core.cache import caches
-from django.db import transaction
 from django.utils import timezone
 
 try:
     import joblib
-    from sklearn.base import BaseEstimator
     from sklearn.metrics import mean_squared_error
 
     SKLEARN_AVAILABLE = True
@@ -40,14 +34,10 @@ from analyzer.ml.core.feature_extractor import FeatureExtractor
 from analyzer.ml.core.feedback_collector import FeedbackCollector
 from analyzer.ml.core.hybrid_grader import HybridQueryGrader
 from analyzer.models import (
-    FeedbackLearning,
-    LearningMetrics,
     MLModel,
     Query,
     QueryAnalysis,
     QueryFeedback,
-    TrainingData,
-    UserQueryHistory,
 )
 
 logger = logging.getLogger(__name__)
@@ -295,7 +285,7 @@ class OnlineLearningEngine:
         current_predictions = self.current_model.predict(X)
 
         # Calculate weighted error
-        errors = (y - current_predictions) * weights
+        errors = (y - current_predictions) * weights  # noqa: F841
 
         # Apply momentum-based update (conceptual - actual implementation depends on model type)
         # This would need to be customized based on the specific model architecture

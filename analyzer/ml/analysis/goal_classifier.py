@@ -14,7 +14,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import Dict, List
 
 
 class QueryGoal(Enum):
@@ -95,7 +95,7 @@ class QueryGoalClassifier:
 
         # Analytical indicators
         self.window_functions = re.compile(
-            r"\b(ROW_NUMBER|RANK|DENSE_RANK|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|SUM|AVG|COUNT|MAX|MIN)\s*\(\s*.*?\)\s+OVER\s*\(",
+            r"\b(ROW_NUMBER|RANK|DENSE_RANK|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|SUM|AVG|COUNT|MAX|MIN)\s*\(\s*.*?\)\s+OVER\s*\(",  # noqa: E501
             re.IGNORECASE,
         )
         self.cte_pattern = re.compile(r"\bWITH\b", re.IGNORECASE)

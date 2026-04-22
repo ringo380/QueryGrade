@@ -5,16 +5,13 @@ This module provides intelligent, context-aware recommendations for SQL query im
 based on query patterns, database context, user history, and best practices.
 """
 
-import json
 import logging
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
-
-import numpy as np
+from typing import Any, Dict, List, Optional, Set
 
 
 class RecommendationType(Enum):
@@ -272,10 +269,10 @@ class ContextualRecommendationsEngine:
             description=f"Query analysis detected missing index opportunity on columns: {', '.join(columns)}",
             rationale="Indexes significantly improve query performance by allowing rapid data lookup",
             implementation_steps=[
-                f"1. Analyze column cardinality and selectivity",
+                "1. Analyze column cardinality and selectivity",
                 f"2. Create index: CREATE INDEX idx_name ON table({', '.join(columns)})",
-                f"3. Test query performance with EXPLAIN",
-                f"4. Monitor index usage statistics",
+                "3. Test query performance with EXPLAIN",
+                "4. Monitor index usage statistics",
             ],
             expected_impact=pattern_info["impact"],
             prerequisites=["Verify column data distribution", "Check existing indexes"],
@@ -609,9 +606,9 @@ class ContextualRecommendationsEngine:
             rationale=f"High {resource_type} usage impacts system stability",
             implementation_steps=[
                 f"1. Profile {resource_type} usage patterns",
-                f"2. Optimize resource-intensive operations",
-                f"3. Consider hardware/configuration upgrades",
-                f"4. Implement resource limits",
+                "2. Optimize resource-intensive operations",
+                "3. Consider hardware/configuration upgrades",
+                "4. Implement resource limits",
             ],
             expected_impact={"stability": 0.6, "performance": 0.4},
             prerequisites=["Resource monitoring tools"],

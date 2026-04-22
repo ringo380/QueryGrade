@@ -63,7 +63,7 @@ class UnionAnalyzer(BaseAnalyzer):
                 {
                     "type": "UNION_WITHOUT_ALL",
                     "severity": "medium",
-                    "description": f"Query uses UNION ({plain_union_count}x) which removes duplicates - expensive operation",
+                    "description": f"Query uses UNION ({plain_union_count}x) which removes duplicates - expensive operation",  # noqa: E501
                 }
             )
             context.recommendations.append(

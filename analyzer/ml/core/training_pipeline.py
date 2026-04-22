@@ -5,17 +5,14 @@ This module manages the complete machine learning training pipeline,
 including data preparation, model training, validation, and deployment.
 """
 
-import json
 import logging
 import os
-import pickle
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import joblib
 import numpy as np
-import pandas as pd
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -24,7 +21,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from ...models import LearningMetrics, MLModel, Query, QueryFeedback, TrainingData
+from ...models import LearningMetrics, MLModel, QueryFeedback, TrainingData
 from .feature_extractor import FeatureExtractor
 from .feedback_collector import FeedbackCollector
 
@@ -397,7 +394,7 @@ class TrainingPipelineManager:
         """Record training metrics in database."""
         with transaction.atomic():
             # Create MLModel record
-            model_record = MLModel.objects.create(
+            model_record = MLModel.objects.create(  # noqa: F841
                 name=self.config.model_name,
                 model_type=self.config.model_type,
                 version=model_version,

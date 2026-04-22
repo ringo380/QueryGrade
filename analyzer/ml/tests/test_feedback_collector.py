@@ -210,7 +210,7 @@ class FeedbackCollectorTestCase(TestCase):
         # Create some feedback history for user
         for i in range(5):
             query = Query.objects.create(
-                sql_text=f"SELECT * FROM table_{i}",
+                sql_text=f"SELECT * FROM table_{i}",  # nosec
                 query_type="SELECT",
                 query_hash=f"test_hash_{i}",
             )
@@ -339,7 +339,7 @@ class FeedbackCollectorTestCase(TestCase):
         queries = []
         for i in range(3):
             query = Query.objects.create(
-                sql_text=f"SELECT * FROM table_{i}",
+                sql_text=f"SELECT * FROM table_{i}",  # nosec
                 query_type="SELECT",
                 query_hash=f"batch_test_{i}",
                 estimated_complexity=30 + i * 10,
@@ -375,7 +375,7 @@ class FeedbackCollectorTestCase(TestCase):
         # Create training data
         for i in range(5):
             query = Query.objects.create(
-                sql_text=f"SELECT * FROM table_{i}",
+                sql_text=f"SELECT * FROM table_{i}",  # nosec
                 query_type="SELECT",
                 query_hash=f"dataset_test_{i}",
             )

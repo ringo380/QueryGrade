@@ -6,11 +6,8 @@ automatic model selection, A/B testing capabilities, and intelligent model
 lifecycle management.
 """
 
-import json
 import logging
-import statistics
-import threading
-import time
+import math
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
@@ -19,20 +16,18 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from django.core.cache import caches
-from django.db import transaction
-from django.db.models import Avg, Count, Max, Min
 from django.utils import timezone
 
 try:
     from scipy import stats
-    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from sklearn.metrics import r2_score
 
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
     logging.warning("sklearn/scipy not available. Some metrics will be limited.")
 
-from analyzer.models import LearningMetrics, MLModel, Query, QueryAnalysis
+from analyzer.models import MLModel
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +251,7 @@ class PerformanceTracker:
                 rmse = math.sqrt(mse)
                 mean_actual = np.mean(actuals)
                 return max(0.0, 1.0 - (rmse / max(1.0, mean_actual)))
-        except:
+        except Exception:
             return 0.0
 
     def _calculate_calibration(
@@ -406,7 +401,7 @@ class PerformanceTracker:
                 return (avg_satisfaction - 1) / 4
             else:
                 return 0.5
-        except:
+        except Exception:
             return 0.5
 
     def _calculate_confidence_accuracy(

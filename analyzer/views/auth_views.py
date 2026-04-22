@@ -166,7 +166,7 @@ def password_reset_request(request):
                             [user.email],
                             fail_silently=False,
                         )
-                    except Exception as e:
+                    except Exception:
                         # In development, just show the reset URL
                         messages.warning(
                             request, f"Email not configured. Reset URL: {reset_url}"

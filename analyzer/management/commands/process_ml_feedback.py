@@ -11,7 +11,6 @@ Usage:
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 from django.utils import timezone
 
 from analyzer.ml.core.feature_extractor import FeatureExtractor
@@ -143,7 +142,7 @@ class Command(BaseCommand):
         )
         total_queries = Query.objects.count()
         self.stdout.write(
-            f"Queries with feedback: {queries_with_feedback}/{total_queries} ({queries_with_feedback/total_queries*100:.1f}%)"
+            f"Queries with feedback: {queries_with_feedback}/{total_queries} ({queries_with_feedback/total_queries*100:.1f}%)"  # noqa: E501
         )
 
         # Training data status

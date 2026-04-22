@@ -5,7 +5,6 @@ This module implements the main retraining decision system that evaluates
 model health and determines when retraining should be triggered.
 """
 
-import json
 import logging
 import time
 from collections import deque
@@ -16,18 +15,10 @@ from typing import Any, Dict, List
 
 import numpy as np
 from django.core.cache import caches
-from django.db import transaction
-from django.db.models import Avg, Count, Max, Min
 from django.utils import timezone
 
 from ...models import (
-    FeedbackLearning,
-    LearningMetrics,
     MLModel,
-    Query,
-    QueryAnalysis,
-    TrainingData,
-    UserQueryHistory,
 )
 from .confidence_analyzer import ConfidenceAnalyzer
 from .drift_detection import DataDriftDetector, PerformanceMonitor

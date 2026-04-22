@@ -11,7 +11,7 @@ from django.urls import path
 from .ml import dashboard_views
 
 # Import from modular views package
-from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views
+from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views  # noqa: E501
     account_view,
     analyze,
     api_unified_query_analysis,

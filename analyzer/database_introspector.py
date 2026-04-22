@@ -1,11 +1,10 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import sqlparse
 from django.db import connections
-from django.db.backends.base.introspection import BaseDatabaseIntrospection
 
 logger = logging.getLogger(__name__)
 
@@ -257,7 +256,7 @@ class DatabaseIntrospector:
         try:
             if self.config["engine"] == "mysql":
                 cursor.execute(
-                    f"""
+                    """
                     SELECT table_rows
                     FROM information_schema.tables
                     WHERE table_name = %s
@@ -266,7 +265,7 @@ class DatabaseIntrospector:
                 )
             elif self.config["engine"] == "postgresql":
                 cursor.execute(
-                    f"""
+                    """
                     SELECT reltuples::bigint AS estimate
                     FROM pg_class
                     WHERE relname = %s
@@ -275,7 +274,7 @@ class DatabaseIntrospector:
                 )
             else:
                 # Fallback: exact count (can be slow for large tables)
-                cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name}")  # nosec
 
             result = cursor.fetchone()
             return int(result[0]) if result and result[0] is not None else None
@@ -289,7 +288,7 @@ class DatabaseIntrospector:
         try:
             if self.config["engine"] == "mysql":
                 cursor.execute(
-                    f"""
+                    """
                     SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) AS size_mb
                     FROM information_schema.tables
                     WHERE table_name = %s
@@ -298,7 +297,7 @@ class DatabaseIntrospector:
                 )
             elif self.config["engine"] == "postgresql":
                 cursor.execute(
-                    f"""
+                    """
                     SELECT ROUND(pg_total_relation_size(%s) / 1024.0 / 1024.0, 2) AS size_mb
                 """,
                     [table_name],

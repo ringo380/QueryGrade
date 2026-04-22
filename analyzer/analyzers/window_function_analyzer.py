@@ -83,7 +83,7 @@ class WindowFunctionAnalyzer(BaseAnalyzer):
                     {
                         "type": "WINDOW_NO_PARTITION",
                         "severity": "medium",
-                        "description": "Window function without PARTITION BY processes entire table - may be slow on large datasets",
+                        "description": "Window function without PARTITION BY processes entire table - may be slow on large datasets",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
@@ -132,7 +132,7 @@ class WindowFunctionAnalyzer(BaseAnalyzer):
                     {
                         "type": "USE_NAMED_WINDOW",
                         "priority": "medium",
-                        "description": f"Query has {over_count} window functions - consider using named windows (WINDOW clause)",
+                        "description": f"Query has {over_count} window functions - consider using named windows (WINDOW clause)",  # noqa: E501
                         "example": "WINDOW w AS (PARTITION BY category ORDER BY date) then use: SUM(amount) OVER w",
                     }
                 )
@@ -158,8 +158,8 @@ class WindowFunctionAnalyzer(BaseAnalyzer):
                 {
                     "type": "WINDOW_VS_GROUP_BY",
                     "priority": "low",
-                    "description": "If you only need aggregates without row-level detail, consider GROUP BY instead of window functions",
-                    "example": "SELECT category, SUM(amount) FROM table GROUP BY category -- simpler than window function",
+                    "description": "If you only need aggregates without row-level detail, consider GROUP BY instead of window functions",  # noqa: E501
+                    "example": "SELECT category, SUM(amount) FROM table GROUP BY category -- simpler than window function",  # noqa: E501
                 }
             )
 
@@ -217,7 +217,7 @@ class WindowFunctionAnalyzer(BaseAnalyzer):
                         "type": "COMPUTED_PARTITION_COLUMN",
                         "priority": "medium",
                         "description": "Create computed/generated column for function used in PARTITION BY",
-                        "example": "ALTER TABLE table ADD COLUMN partition_value AS (function(col)) STORED; CREATE INDEX ON table(partition_value);",
+                        "example": "ALTER TABLE table ADD COLUMN partition_value AS (function(col)) STORED; CREATE INDEX ON table(partition_value);",  # noqa: E501
                     }
                 )
 
@@ -236,7 +236,7 @@ class WindowFunctionAnalyzer(BaseAnalyzer):
                     {
                         "type": "LIMIT_WINDOW_FRAME",
                         "priority": "low",
-                        "description": "Unbounded window frames process many rows - consider limiting frame size if possible",
+                        "description": "Unbounded window frames process many rows - consider limiting frame size if possible",  # noqa: E501
                         "example": "ROWS BETWEEN 10 PRECEDING AND CURRENT ROW -- instead of UNBOUNDED PRECEDING",
                     }
                 )
@@ -275,7 +275,7 @@ class WindowFunctionAnalyzer(BaseAnalyzer):
                         "type": "SPECIFY_FRAME_CLAUSE",
                         "priority": "medium",
                         "description": "FIRST_VALUE/LAST_VALUE may need explicit frame clause for expected results",
-                        "example": "LAST_VALUE(col) OVER (ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)",
+                        "example": "LAST_VALUE(col) OVER (ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)",  # noqa: E501
                     }
                 )
 

@@ -11,13 +11,12 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django_ratelimit.decorators import ratelimit
 
 from ..forms import DatabaseConnectionForm, QueryGradeForm
 from ..models import UserQueryHistory
 from ..query_analyzer import analyze_query
-from ..query_optimizer import optimize_query_from_analysis
 from .constants import GRADE_COLORS
 from .utils import get_client_ip
 
@@ -339,7 +338,7 @@ def analyze_database_schema(tables, db_config):
                         {
                             "table": table.name,
                             "column": fk_column,
-                            "references": f"{fk['referenced_table']}.{fk['referenced_columns'][0] if fk['referenced_columns'] else '?'}",
+                            "references": f"{fk['referenced_table']}.{fk['referenced_columns'][0] if fk['referenced_columns'] else '?'}",  # noqa: E501
                         }
                     )
 

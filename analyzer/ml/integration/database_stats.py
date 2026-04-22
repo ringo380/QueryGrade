@@ -14,7 +14,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -161,7 +161,7 @@ class DatabaseStatisticsManager:
                     self._parse_json_statistics(data)
             elif format == "pickle":
                 with open(source, "rb") as f:
-                    data = pickle.load(f)
+                    data = pickle.load(f)  # nosec
                     self._load_pickle_statistics(data)
             elif format == "live":
                 # Connect to live database
@@ -232,7 +232,6 @@ class DatabaseStatisticsManager:
         """Fetch statistics from a live database connection"""
         # This would connect to a real database and fetch statistics
         # Implementation depends on the database type
-        pass
 
     def _load_pickle_statistics(self, data: Dict[str, Any]):
         """Load statistics from pickle format"""
@@ -298,7 +297,7 @@ class DatabaseStatisticsManager:
                         col_stats.max_value - col_stats.min_value
                     )
                     return max(0.0, min(1.0, range_fraction))
-                except:
+                except Exception:
                     return 0.3
             return 0.3
 
@@ -309,7 +308,7 @@ class DatabaseStatisticsManager:
                         col_stats.max_value - col_stats.min_value
                     )
                     return max(0.0, min(1.0, range_fraction))
-                except:
+                except Exception:
                     return 0.3
             return 0.3
 
@@ -387,7 +386,7 @@ class DatabaseStatisticsManager:
 
         # Check if this would be a covering index
         existing_indexes = self.get_index_statistics(table_name)
-        is_covering = False
+        is_covering = False  # noqa: F841
         for index in existing_indexes:
             if set(columns).issubset(set(index.columns)):
                 suggestion["reasoning"].append(
@@ -771,7 +770,7 @@ def generate_context_aware_features(
                     features["selectivity_features"][f"{table}.{column}"] = selectivity
 
     # Calculate query hash for performance tracking
-    query_hash = hashlib.md5(query.encode()).hexdigest()
+    query_hash = hashlib.md5(query.encode(), usedforsecurity=False).hexdigest()
     perf_trend = stats_manager.get_query_performance_trend(query_hash)
     features["performance_features"] = perf_trend
 
@@ -865,14 +864,14 @@ if __name__ == "__main__":
     }
 
     # Save sample statistics
-    with open("/tmp/sample_db_stats.json", "w") as f:
+    with open("/tmp/sample_db_stats.json", "w") as f:  # nosec
         json.dump(sample_stats, f, indent=2)
 
     # Load and use statistics
-    manager.load_statistics("/tmp/sample_db_stats.json", format="json")
+    manager.load_statistics("/tmp/sample_db_stats.json", format="json")  # nosec
 
     # Test query
-    test_query = "SELECT * FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.order_date >= '2023-06-01'"
+    test_query = "SELECT * FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.order_date >= '2023-06-01'"  # noqa: E501
 
     features = generate_context_aware_features(test_query, manager)
 

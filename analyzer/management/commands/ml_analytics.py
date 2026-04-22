@@ -10,12 +10,11 @@ Usage:
 """
 
 import json
-import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count
 from django.utils import timezone
 
 from analyzer.models import (
@@ -25,7 +24,6 @@ from analyzer.models import (
     Query,
     QueryFeedback,
     TrainingData,
-    UserQueryHistory,
 )
 
 
@@ -38,9 +36,7 @@ class Command(BaseCommand):
         )
 
         # Dashboard command
-        dashboard_parser = subparsers.add_parser(
-            "dashboard", help="Show ML system dashboard"
-        )
+        subparsers.add_parser("dashboard", help="Show ML system dashboard")
 
         # Model performance command
         performance_parser = subparsers.add_parser(
@@ -54,7 +50,7 @@ class Command(BaseCommand):
         )
 
         # Feature analysis command
-        feature_parser = subparsers.add_parser(
+        subparsers.add_parser(
             "feature-analysis", help="Analyze feature importance and distribution"
         )
 

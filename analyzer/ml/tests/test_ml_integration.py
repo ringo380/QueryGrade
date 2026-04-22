@@ -175,7 +175,7 @@ class MLIntegrationTestCase(TransactionTestCase):
             name="test_lifecycle_model",
             model_type="QUERY_GRADER",
             version="1.0.0",
-            file_path="/tmp/test_model.pkl",
+            file_path="/tmp/test_model.pkl",  # nosec
             status="TRAINING",
             checksum="a" * 64,
         )
@@ -231,7 +231,7 @@ class MLIntegrationTestCase(TransactionTestCase):
             name="test_metrics_model",
             model_type="QUERY_GRADER",
             version="1.0.0",
-            file_path="/tmp/test.pkl",
+            file_path="/tmp/test.pkl",  # nosec
             status="ACTIVE",
             checksum="b" * 64,
         )
@@ -458,7 +458,7 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
         queries = []
         for i in range(50):  # Test with 50 queries
             query = Query.objects.create(
-                sql_text=f"SELECT * FROM table_{i} WHERE id = {i}",
+                sql_text=f"SELECT * FROM table_{i} WHERE id = {i}",  # nosec
                 query_type="SELECT",
                 query_hash=f"bulk_test_{i}",
                 estimated_complexity=30 + i,

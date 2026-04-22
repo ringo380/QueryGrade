@@ -1,7 +1,6 @@
 import argparse
 import os
 import re
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,7 @@ def parse_mysql_general_log(file_path):
 
     Returns:
         pd.DataFrame: A DataFrame containing the parsed log entries with columns for timestamp, thread_id, command_type,
-                      and additional information depending on the command type (e.g., user_host for 'Connect', query for 'Query').
+                      and additional information depending on the command type (e.g., user_host for 'Connect', query for 'Query').  # noqa: E501
     """
     entries = []
 
@@ -331,11 +330,11 @@ def display_general_anomalies(df_anomalies):
     )
 
 
-import logging
-import time
-import tracemalloc
+import logging  # noqa: E402
+import time  # noqa: E402
+import tracemalloc  # noqa: E402
 
-from django.core.cache import caches
+from django.core.cache import caches  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

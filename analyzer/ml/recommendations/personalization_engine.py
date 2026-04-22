@@ -7,9 +7,7 @@ learning style, and historical interaction patterns.
 
 import json
 import logging
-from collections import Counter, defaultdict
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -710,7 +708,7 @@ class FeedbackPersonalizationEngine:
         if not adaptations:
             return "Standard feedback provided with no personalization."
 
-        notes = f"Personalized for {profile.skill_level} {profile.role} with {profile.learning_style.value} learning style. "
+        notes = f"Personalized for {profile.skill_level} {profile.role} with {profile.learning_style.value} learning style. "  # noqa: E501
         notes += f"Applied {len(adaptations)} adaptations: {', '.join(adaptations[:3])}"
 
         if len(adaptations) > 3:

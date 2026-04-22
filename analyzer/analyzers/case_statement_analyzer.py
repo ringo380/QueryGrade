@@ -73,8 +73,8 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     {
                         "type": "SIMPLIFY_CASE",
                         "priority": "high",
-                        "description": "Consider using lookup table, separate computed columns, or breaking into multiple queries",
-                        "example": "CREATE TABLE status_mapping (input VARCHAR, output VARCHAR); SELECT mapping.output FROM table JOIN status_mapping...",
+                        "description": "Consider using lookup table, separate computed columns, or breaking into multiple queries",  # noqa: E501
+                        "example": "CREATE TABLE status_mapping (input VARCHAR, output VARCHAR); SELECT mapping.output FROM table JOIN status_mapping...",  # noqa: E501
                     }
                 )
 
@@ -86,7 +86,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                 {
                     "type": "CASE_IN_WHERE",
                     "severity": "high",
-                    "description": "CASE statement in WHERE clause prevents index usage and requires evaluation for all rows",
+                    "description": "CASE statement in WHERE clause prevents index usage and requires evaluation for all rows",  # noqa: E501
                 }
             )
             context.recommendations.append(
@@ -102,7 +102,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     "type": "COMPUTED_COLUMN_FOR_CASE",
                     "priority": "medium",
                     "description": "Create computed column for CASE logic with index",
-                    "example": "ALTER TABLE table ADD COLUMN case_result AS (CASE WHEN ... THEN ... END) STORED; CREATE INDEX ON table(case_result);",
+                    "example": "ALTER TABLE table ADD COLUMN case_result AS (CASE WHEN ... THEN ... END) STORED; CREATE INDEX ON table(case_result);",  # noqa: E501
                 }
             )
 
@@ -113,7 +113,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                 {
                     "type": "CASE_IN_ORDERBY",
                     "severity": "medium",
-                    "description": "CASE in ORDER BY requires evaluating expression for all rows and prevents index usage",
+                    "description": "CASE in ORDER BY requires evaluating expression for all rows and prevents index usage",  # noqa: E501
                 }
             )
             context.recommendations.append(
@@ -121,7 +121,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     "type": "COMPUTED_ORDER_COLUMN",
                     "priority": "medium",
                     "description": "Create computed column for CASE logic used in ORDER BY",
-                    "example": "ALTER TABLE table ADD COLUMN sort_value AS (CASE WHEN ... THEN ... END) STORED; CREATE INDEX ON table(sort_value);",
+                    "example": "ALTER TABLE table ADD COLUMN sort_value AS (CASE WHEN ... THEN ... END) STORED; CREATE INDEX ON table(sort_value);",  # noqa: E501
                 }
             )
 
@@ -140,7 +140,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     "type": "COMPUTED_GROUP_COLUMN",
                     "priority": "medium",
                     "description": "Create computed column for CASE grouping logic with index",
-                    "example": "ALTER TABLE table ADD COLUMN group_value AS (CASE WHEN ... THEN ... END) STORED; CREATE INDEX ON table(group_value);",
+                    "example": "ALTER TABLE table ADD COLUMN group_value AS (CASE WHEN ... THEN ... END) STORED; CREATE INDEX ON table(group_value);",  # noqa: E501
                 }
             )
 
@@ -163,8 +163,8 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                 {
                     "type": "USE_LOOKUP_TABLE",
                     "priority": "high",
-                    "description": "Replace large CASE with lookup table JOIN for better maintainability and performance",
-                    "example": "CREATE TABLE lookup (input VARCHAR, output VARCHAR); SELECT t.*, l.output FROM table t JOIN lookup l ON t.col = l.input",
+                    "description": "Replace large CASE with lookup table JOIN for better maintainability and performance",  # noqa: E501
+                    "example": "CREATE TABLE lookup (input VARCHAR, output VARCHAR); SELECT t.*, l.output FROM table t JOIN lookup l ON t.col = l.input",  # noqa: E501
                 }
             )
 
@@ -179,7 +179,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     "type": "USE_COALESCE",
                     "priority": "low",
                     "description": "Simple NULL handling CASE can often be replaced with COALESCE for clarity",
-                    "example": "COALESCE(column, default_value) -- instead of CASE WHEN column IS NULL THEN default_value ELSE column END",
+                    "example": "COALESCE(column, default_value) -- instead of CASE WHEN column IS NULL THEN default_value ELSE column END",  # noqa: E501
                 }
             )
 
@@ -212,7 +212,7 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     "type": "EXTRACT_SUBQUERY_FROM_CASE",
                     "priority": "critical",
                     "description": "Move subquery out of CASE using JOIN or CTE",
-                    "example": "WITH lookup AS (SELECT ...) SELECT CASE WHEN EXISTS(SELECT 1 FROM lookup WHERE ...) THEN ... END",
+                    "example": "WITH lookup AS (SELECT ...) SELECT CASE WHEN EXISTS(SELECT 1 FROM lookup WHERE ...) THEN ... END",  # noqa: E501
                 }
             )
 
@@ -235,8 +235,8 @@ class CaseStatementAnalyzer(BaseAnalyzer):
                     {
                         "type": "MULTIPLE_CASE_IN_SELECT",
                         "priority": "medium",
-                        "description": f"SELECT has {case_in_select} CASE statements - consider computed columns or views",
-                        "example": "CREATE VIEW enriched_data AS SELECT *, CASE ... END as computed1, CASE ... END as computed2 FROM table",
+                        "description": f"SELECT has {case_in_select} CASE statements - consider computed columns or views",  # noqa: E501
+                        "example": "CREATE VIEW enriched_data AS SELECT *, CASE ... END as computed1, CASE ... END as computed2 FROM table",  # noqa: E501
                     }
                 )
 

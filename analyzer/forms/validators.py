@@ -2,7 +2,6 @@ import os
 import re
 
 import sqlparse
-from django import forms
 from django.core.exceptions import ValidationError
 
 

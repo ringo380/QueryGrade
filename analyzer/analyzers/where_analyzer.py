@@ -70,7 +70,7 @@ class WhereAnalyzer(BaseAnalyzer):
                         "type": "AVOID_FUNCTIONS_ON_COLUMNS",
                         "priority": "medium",
                         "description": "Avoid using functions on columns in WHERE conditions",
-                        "example": "Instead of WHERE YEAR(date_col) = 2024, use WHERE date_col >= '2024-01-01' AND date_col < '2025-01-01'",
+                        "example": "Instead of WHERE YEAR(date_col) = 2024, use WHERE date_col >= '2024-01-01' AND date_col < '2025-01-01'",  # noqa: E501
                     }
                 )
                 break

@@ -20,7 +20,7 @@ from django_ratelimit.decorators import ratelimit
 
 from ..forms import BatchQueryForm, QueryCompareForm, QueryGradeForm
 from ..ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
-from ..models import Query, QueryAnalysis, UserQueryHistory
+from ..models import QueryAnalysis, UserQueryHistory
 from ..performance import PerformanceMonitor
 from ..query_analyzer import analyze_query
 from ..query_optimizer import optimize_query_from_analysis
@@ -129,7 +129,7 @@ def grade_query(request):
                 if "typos in keywords" in error_msg:
                     messages.error(
                         request,
-                        "SQL syntax error: Your query contains apparent typos in SQL keywords. Please check your spelling.",
+                        "SQL syntax error: Your query contains apparent typos in SQL keywords. Please check your spelling.",  # noqa: E501
                     )
                 elif "Unable to parse" in error_msg:
                     messages.error(
@@ -179,7 +179,7 @@ def grade_results(request, analysis_id):
     """
     try:
         analysis = get_object_or_404(QueryAnalysis, id=analysis_id)
-    except:
+    except Exception:
         messages.error(request, "The requested analysis could not be found.")
         return redirect("grade_query")
 
@@ -233,7 +233,7 @@ def enhanced_grade_results(request, analysis_id):
     """
     try:
         analysis = get_object_or_404(QueryAnalysis, id=analysis_id)
-    except:
+    except Exception:
         messages.error(request, "The requested analysis could not be found.")
         return redirect("grade_query")
 

@@ -5,22 +5,16 @@ This module implements multiple ML algorithms (Random Forest, XGBoost, Neural Ne
 with automatic model selection and ensemble capabilities for optimal query grading performance.
 """
 
-import hashlib
 import json
 import logging
-import os
-import pickle
 import threading
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from django.conf import settings
 from django.core.cache import caches
-from django.db import transaction
 from django.utils import timezone
 
 try:
@@ -28,8 +22,8 @@ try:
     import joblib
     from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.linear_model import ElasticNet, Ridge
-    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-    from sklearn.model_selection import GridSearchCV, cross_val_score
+    from sklearn.metrics import r2_score
+    from sklearn.model_selection import cross_val_score
     from sklearn.preprocessing import RobustScaler, StandardScaler
 
     SKLEARN_AVAILABLE = True
@@ -59,7 +53,7 @@ except ImportError:
     TENSORFLOW_AVAILABLE = False
     logging.warning("TensorFlow not available. Neural network models will be skipped.")
 
-from analyzer.models import MLModel, Query, QueryAnalysis, TrainingData
+from analyzer.models import TrainingData
 
 from ..core.feature_extractor import FeatureExtractor
 
@@ -983,5 +977,5 @@ if __name__ == "__main__":
     print("Multi-model ensemble system initialized")
     print(f"Available model types: {[mt.value for mt in ModelType]}")
     print(
-        f"Libraries available - sklearn: {SKLEARN_AVAILABLE}, XGBoost: {XGBOOST_AVAILABLE}, TensorFlow: {TENSORFLOW_AVAILABLE}"
+        f"Libraries available - sklearn: {SKLEARN_AVAILABLE}, XGBoost: {XGBOOST_AVAILABLE}, TensorFlow: {TENSORFLOW_AVAILABLE}"  # noqa: E501
     )

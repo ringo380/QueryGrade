@@ -12,10 +12,9 @@ Advanced analysis of SQL JOIN operations with semantic understanding of:
 
 import logging
 import re
-from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List
 
 
 class JoinType(Enum):
@@ -217,7 +216,6 @@ class JoinSemanticAnalyzer:
     def _extract_joins(self, query: str) -> List[JoinNode]:
         """Extract all JOIN operations from query"""
         nodes = []
-        query_upper = query.upper()
 
         # Find all JOIN keywords
         join_matches = list(self.join_pattern.finditer(query))

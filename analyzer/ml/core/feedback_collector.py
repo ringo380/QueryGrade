@@ -6,8 +6,8 @@ to create training data for machine learning models.
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import timedelta
+from typing import Dict, List, Optional
 
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from ...models import (
     FeedbackLearning,
-    MLModel,
     Query,
     QueryAnalysis,
     QueryFeedback,

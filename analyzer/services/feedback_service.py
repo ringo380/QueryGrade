@@ -295,7 +295,7 @@ class FeedbackService:
                 analysis = user_history.query.analysis
                 original_grade = analysis.grade
                 original_score = analysis.score
-            except:
+            except Exception:
                 logger.warning(
                     f"Could not retrieve analysis for query {user_history.query.id}"
                 )

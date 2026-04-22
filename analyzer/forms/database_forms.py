@@ -88,7 +88,6 @@ class DatabaseConnectionForm(forms.Form):
         name = cleaned_data.get("name")
         host = cleaned_data.get("host")
         user = cleaned_data.get("user")
-        password = cleaned_data.get("password")
 
         if engine == "sqlite":
             # SQLite only needs the database name (file path)

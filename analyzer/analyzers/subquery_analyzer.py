@@ -118,8 +118,8 @@ class SubqueryAnalyzer(BaseAnalyzer):
                 {
                     "type": "IN_VS_EXISTS",
                     "priority": "medium",
-                    "description": "Consider using EXISTS instead of IN for better performance with large subquery results",
-                    "example": "WHERE EXISTS (SELECT 1 FROM table WHERE condition) instead of WHERE col IN (SELECT col FROM table)",
+                    "description": "Consider using EXISTS instead of IN for better performance with large subquery results",  # noqa: E501
+                    "example": "WHERE EXISTS (SELECT 1 FROM table WHERE condition) instead of WHERE col IN (SELECT col FROM table)",  # noqa: E501
                 }
             )
 
@@ -150,14 +150,14 @@ class SubqueryAnalyzer(BaseAnalyzer):
                 {
                     "type": "DEEP_SUBQUERY_NESTING",
                     "severity": "medium",
-                    "description": f"Query has {subquery_count} levels of subquery nesting - difficult to optimize and maintain",
+                    "description": f"Query has {subquery_count} levels of subquery nesting - difficult to optimize and maintain",  # noqa: E501
                 }
             )
             context.recommendations.append(
                 {
                     "type": "SIMPLIFY_SUBQUERIES",
                     "priority": "medium",
-                    "description": "Break complex nested subqueries into CTEs (WITH clause) for readability and optimization",
+                    "description": "Break complex nested subqueries into CTEs (WITH clause) for readability and optimization",  # noqa: E501
                     "example": "WITH cte1 AS (...), cte2 AS (...) SELECT ... FROM cte1 JOIN cte2",
                 }
             )
@@ -173,7 +173,7 @@ class SubqueryAnalyzer(BaseAnalyzer):
                 {
                     "type": "USE_CTE",
                     "priority": "medium",
-                    "description": "Multiple subqueries detected - consider using CTEs (WITH clause) for better readability and potential optimization",
+                    "description": "Multiple subqueries detected - consider using CTEs (WITH clause) for better readability and potential optimization",  # noqa: E501
                     "example": "WITH subquery_name AS (SELECT ...) SELECT ... FROM subquery_name",
                 }
             )
@@ -184,7 +184,7 @@ class SubqueryAnalyzer(BaseAnalyzer):
                 {
                     "type": "CTE_FOR_REUSE",
                     "priority": "medium",
-                    "description": "If the same subquery is used multiple times, extract it to a CTE to avoid duplicate computation",
+                    "description": "If the same subquery is used multiple times, extract it to a CTE to avoid duplicate computation",  # noqa: E501
                     "example": "WITH repeated_logic AS (SELECT ...) SELECT ... FROM repeated_logic JOIN repeated_logic",
                 }
             )
@@ -201,7 +201,7 @@ class SubqueryAnalyzer(BaseAnalyzer):
                     "type": "NOT_IN_NULL_HANDLING",
                     "priority": "high",
                     "description": "NOT IN with NULLs can produce unexpected results",
-                    "example": "Use: WHERE NOT EXISTS (SELECT 1 FROM table WHERE condition) OR WHERE t1.id NOT IN (SELECT id FROM t2 WHERE id IS NOT NULL)",
+                    "example": "Use: WHERE NOT EXISTS (SELECT 1 FROM table WHERE condition) OR WHERE t1.id NOT IN (SELECT id FROM t2 WHERE id IS NOT NULL)",  # noqa: E501
                 }
             )
 
@@ -212,7 +212,7 @@ class SubqueryAnalyzer(BaseAnalyzer):
                 {
                     "type": "DERIVED_TABLE",
                     "priority": "low",
-                    "description": "Derived table (subquery in FROM) detected - ensure it's necessary and consider CTE for clarity",
+                    "description": "Derived table (subquery in FROM) detected - ensure it's necessary and consider CTE for clarity",  # noqa: E501
                     "example": "WITH derived AS (SELECT ...) SELECT ... FROM derived",
                 }
             )

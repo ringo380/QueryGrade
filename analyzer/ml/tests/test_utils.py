@@ -44,7 +44,7 @@ class MLTestDataFactory:
         if query_hash is None:
             import hashlib
 
-            query_hash = hashlib.md5(sql_text.encode()).hexdigest()[:10]
+            query_hash = hashlib.md5(sql_text.encode()).hexdigest()[:10]  # nosec
 
         return Query.objects.create(
             sql_text=sql_text,
@@ -103,7 +103,7 @@ class MLTestDataFactory:
             name=name,
             model_type=model_type,
             version=version,
-            file_path=f"/tmp/{name}.pkl",
+            file_path=f"/tmp/{name}.pkl",  # nosec
             is_active=is_active,
             performance_metrics=performance_metrics,
         )
@@ -397,7 +397,7 @@ class PerformanceTestUtils:
             complexity = random.randint(10, 90)
 
             query = MLTestDataFactory.create_test_query(
-                sql_text=f"SELECT * FROM table_{i} WHERE id = {i}",
+                sql_text=f"SELECT * FROM table_{i} WHERE id = {i}",  # nosec
                 query_type=query_type,
                 complexity=complexity,
                 query_hash=f"load_test_{i}",

@@ -11,7 +11,7 @@ Handles all business logic related to SQL query analysis including:
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from django.contrib.auth.models import User
 

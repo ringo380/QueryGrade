@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..exceptions import QueryAnalysisError
-from ..models import Query, QueryAnalysis, UserQueryHistory
+from ..models import UserQueryHistory
 from ..query_analyzer import analyze_query
 from ..serializers import (
     BatchQueryRequestSerializer,
@@ -48,7 +48,7 @@ def grade_query_api(request):
         )
 
         # Create user history record
-        user_history = UserQueryHistory.objects.create(
+        UserQueryHistory.objects.create(
             user=request.user,
             query=query,
             database_type=serializer.validated_data["database_type"],
@@ -138,7 +138,7 @@ def batch_analysis_api(request):
             query, analysis = analyze_query(sql_text, database_type)
 
             # Create user history record
-            user_history = UserQueryHistory.objects.create(
+            UserQueryHistory.objects.create(
                 user=request.user,
                 query=query,
                 database_type=database_type,

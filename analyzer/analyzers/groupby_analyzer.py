@@ -83,7 +83,7 @@ class GroupByAnalyzer(BaseAnalyzer):
                     {
                         "type": "COMPOSITE_GROUP_INDEX",
                         "priority": "high",
-                        "description": f"GROUP BY uses {comma_count + 1} columns - composite index can improve performance",
+                        "description": f"GROUP BY uses {comma_count + 1} columns - composite index can improve performance",  # noqa: E501
                         "example": "CREATE INDEX idx_composite_group ON table_name(col1, col2, col3)",
                     }
                 )
@@ -110,15 +110,15 @@ class GroupByAnalyzer(BaseAnalyzer):
                     {
                         "type": "FUNCTION_IN_GROUP_BY",
                         "severity": "medium",
-                        "description": f"Using {func_name}() in GROUP BY prevents index usage and requires computing function for all rows",
+                        "description": f"Using {func_name}() in GROUP BY prevents index usage and requires computing function for all rows",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
                     {
                         "type": "COMPUTED_COLUMN_FOR_GROUP",
                         "priority": "medium",
-                        "description": f"Consider creating a computed/generated column for {func_name}(column) with an index",
-                        "example": "ALTER TABLE table_name ADD COLUMN grouped_value AS (function(col)) STORED; CREATE INDEX ON table_name(grouped_value);",
+                        "description": f"Consider creating a computed/generated column for {func_name}(column) with an index",  # noqa: E501
+                        "example": "ALTER TABLE table_name ADD COLUMN grouped_value AS (function(col)) STORED; CREATE INDEX ON table_name(grouped_value);",  # noqa: E501
                     }
                 )
                 break
@@ -157,15 +157,15 @@ class GroupByAnalyzer(BaseAnalyzer):
                     {
                         "type": "MANY_GROUP_COLUMNS",
                         "severity": "low",
-                        "description": f"GROUP BY has {column_count} columns - may indicate design issue or denormalization opportunity",
+                        "description": f"GROUP BY has {column_count} columns - may indicate design issue or denormalization opportunity",  # noqa: E501
                     }
                 )
                 context.recommendations.append(
                     {
                         "type": "REVIEW_GROUP_DESIGN",
                         "priority": "low",
-                        "description": "Consider whether all GROUP BY columns are necessary or if data model could be optimized",
-                        "example": "Review if grouping requirements indicate missing aggregation table or summary table",
+                        "description": "Consider whether all GROUP BY columns are necessary or if data model could be optimized",  # noqa: E501
+                        "example": "Review if grouping requirements indicate missing aggregation table or summary table",  # noqa: E501
                     }
                 )
 
@@ -190,14 +190,14 @@ class GroupByAnalyzer(BaseAnalyzer):
                         {
                             "type": "HAVING_WITHOUT_AGGREGATE",
                             "severity": "medium",
-                            "description": "HAVING clause filters non-aggregated columns - should use WHERE instead for better performance",
+                            "description": "HAVING clause filters non-aggregated columns - should use WHERE instead for better performance",  # noqa: E501
                         }
                     )
                     context.recommendations.append(
                         {
                             "type": "MOVE_TO_WHERE",
                             "priority": "high",
-                            "description": "Move non-aggregate filters from HAVING to WHERE clause to filter before grouping",
+                            "description": "Move non-aggregate filters from HAVING to WHERE clause to filter before grouping",  # noqa: E501
                             "example": "WHERE condition AND ... GROUP BY ... HAVING aggregate_condition",
                         }
                     )
@@ -213,7 +213,7 @@ class GroupByAnalyzer(BaseAnalyzer):
                 {
                     "type": "GROUP_COLUMN_ORDER",
                     "priority": "medium",
-                    "description": "Order GROUP BY columns by selectivity (most selective first) for better index usage",
+                    "description": "Order GROUP BY columns by selectivity (most selective first) for better index usage",  # noqa: E501
                     "example": "GROUP BY high_cardinality_col, low_cardinality_col -- most selective first",
                 }
             )
@@ -272,7 +272,7 @@ class GroupByAnalyzer(BaseAnalyzer):
                     "type": "OPTIMIZE_DISTINCT_AGGREGATE",
                     "priority": "medium",
                     "description": "DISTINCT in aggregate functions can be expensive - consider preprocessing or CTEs",
-                    "example": "WITH distinct_values AS (SELECT DISTINCT col FROM table) SELECT COUNT(*) FROM distinct_values",
+                    "example": "WITH distinct_values AS (SELECT DISTINCT col FROM table) SELECT COUNT(*) FROM distinct_values",  # noqa: E501
                 }
             )
 
@@ -285,7 +285,7 @@ class GroupByAnalyzer(BaseAnalyzer):
                 {
                     "type": "DISTINCT_WITH_GROUP_BY",
                     "severity": "low",
-                    "description": "DISTINCT is usually unnecessary when using GROUP BY - they both perform deduplication",
+                    "description": "DISTINCT is usually unnecessary when using GROUP BY - they both perform deduplication",  # noqa: E501
                 }
             )
             context.recommendations.append(

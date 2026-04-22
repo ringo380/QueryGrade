@@ -6,27 +6,20 @@ adaptive learning rates, and streaming data processing capabilities for continuo
 model improvement without full retraining.
 """
 
-import hashlib
-import json
 import logging
-import math
 import pickle
 import threading
 import time
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from django.core.cache import caches
-from django.db import transaction
 from django.utils import timezone
 
 try:
-    import joblib
-    from sklearn.base import BaseEstimator, RegressorMixin
-    from sklearn.ensemble import RandomForestRegressor
     from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from sklearn.preprocessing import StandardScaler
@@ -39,7 +32,6 @@ except ImportError:
     )
 
 from analyzer.ml.core.feature_extractor import FeatureExtractor
-from analyzer.models import LearningMetrics, MLModel, Query, QueryAnalysis, TrainingData
 
 logger = logging.getLogger(__name__)
 
@@ -758,7 +750,7 @@ class IncrementalLearningEngine:
         """Load model state from file."""
         try:
             with open(filepath, "rb") as f:
-                state = pickle.load(f)
+                state = pickle.load(f)  # nosec
 
             self.primary_model = state["primary_model"]
             self.backup_models = state["backup_models"]
