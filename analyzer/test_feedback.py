@@ -12,22 +12,24 @@ Related Documentation:
 - TESTING.md - Comprehensive testing guide
 - test_integration_refactored.py - Similar pattern for integration tests
 """
-from django.test import TransactionTestCase, Client, override_settings
+
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.test import Client, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.db import transaction
-from .models import Query, QueryAnalysis, UserQueryHistory, QueryFeedback
+
+from .models import Query, QueryAnalysis, QueryFeedback, UserQueryHistory
 from .query_analyzer import analyze_query
 
 
-def create_test_user(username='testuser', password='testpass123', email='test@example.com'):
+def create_test_user(
+    username="testuser", password="testpass123", email="test@example.com"
+):
     """Factory method to create a test user."""
     with transaction.atomic():
         user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
+            username=username, email=email, password=password
         )
     return user
 
@@ -35,19 +37,19 @@ def create_test_user(username='testuser', password='testpass123', email='test@ex
 @override_settings(
     RATELIMIT_ENABLE=False,
     CACHES={
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'query_analysis_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "query_analysis_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'process_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "process_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'template_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        }
-    }
+        "template_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        },
+    },
 )
 class FeedbackSystemTestCase(TransactionTestCase):
     """Test cases for the feedback system."""
@@ -55,14 +57,20 @@ class FeedbackSystemTestCase(TransactionTestCase):
     def setUp(self):
         """Set up test data."""
         # Reinitialize cache to use test cache backend
-        from analyzer.performance import query_cache
         from django.core.cache import caches
 
+        from analyzer.performance import query_cache
+
         # Force query_cache to use test cache backend
-        query_cache.cache = caches['query_analysis_cache']
+        query_cache.cache = caches["query_analysis_cache"]
 
         # Clear all caches
-        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+        for cache_name in [
+            "default",
+            "query_analysis_cache",
+            "process_cache",
+            "template_cache",
+        ]:
             try:
                 caches[cache_name].clear()
             except:
@@ -76,16 +84,15 @@ class FeedbackSystemTestCase(TransactionTestCase):
         # Create test query and analysis
         with transaction.atomic():
             self.query, self.analysis = analyze_query(
-                "SELECT * FROM users WHERE id = 1",
-                database_type='MySQL'
+                "SELECT * FROM users WHERE id = 1", database_type="MySQL"
             )
 
             # Create user history manually
             self.user_history = UserQueryHistory.objects.create(
                 user=self.user,
                 query=self.query,
-                database_type='MySQL',
-                database_version='8.0'
+                database_type="MySQL",
+                database_version="8.0",
             )
 
     def tearDown(self):
@@ -99,33 +106,33 @@ class FeedbackSystemTestCase(TransactionTestCase):
 
     def test_feedback_form_access_requires_login(self):
         """Test that feedback form requires login."""
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        url = reverse("submit_feedback", args=[self.analysis.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)  # Redirect to login
 
     def test_feedback_form_display(self):
         """Test that feedback form displays correctly for authenticated user."""
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[self.analysis.id])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Provide Feedback')
-        self.assertContains(response, 'How accurate was the analysis?')
-        self.assertContains(response, 'How useful were the recommendations?')
-        self.assertContains(response, 'How clear was the feedback?')
+        self.assertContains(response, "Provide Feedback")
+        self.assertContains(response, "How accurate was the analysis?")
+        self.assertContains(response, "How useful were the recommendations?")
+        self.assertContains(response, "How clear was the feedback?")
 
     def test_feedback_submission(self):
         """Test submitting new feedback."""
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[self.analysis.id])
 
         feedback_data = {
-            'accuracy_rating': '4',
-            'usefulness_rating': '5',
-            'clarity_rating': '4',
-            'suggestions': 'Great analysis! Could use more specific examples.',
-            'would_recommend': True
+            "accuracy_rating": "4",
+            "usefulness_rating": "5",
+            "clarity_rating": "4",
+            "suggestions": "Great analysis! Could use more specific examples.",
+            "would_recommend": True,
         }
 
         response = self.client.post(url, feedback_data)
@@ -138,7 +145,9 @@ class FeedbackSystemTestCase(TransactionTestCase):
         self.assertEqual(feedback.accuracy_rating, 4)
         self.assertEqual(feedback.usefulness_rating, 5)
         self.assertEqual(feedback.clarity_rating, 4)
-        self.assertEqual(feedback.suggestions, 'Great analysis! Could use more specific examples.')
+        self.assertEqual(
+            feedback.suggestions, "Great analysis! Could use more specific examples."
+        )
         self.assertTrue(feedback.would_recommend)
 
     def test_feedback_update(self):
@@ -150,19 +159,19 @@ class FeedbackSystemTestCase(TransactionTestCase):
                 accuracy_rating=3,
                 usefulness_rating=3,
                 clarity_rating=3,
-                suggestions='Initial feedback',
-                would_recommend=False
+                suggestions="Initial feedback",
+                would_recommend=False,
             )
 
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[self.analysis.id])
 
         updated_data = {
-            'accuracy_rating': '5',
-            'usefulness_rating': '4',
-            'clarity_rating': '5',
-            'suggestions': 'Updated feedback after using more features',
-            'would_recommend': True
+            "accuracy_rating": "5",
+            "usefulness_rating": "4",
+            "clarity_rating": "5",
+            "suggestions": "Updated feedback after using more features",
+            "would_recommend": True,
         }
 
         response = self.client.post(url, updated_data)
@@ -187,44 +196,39 @@ class FeedbackSystemTestCase(TransactionTestCase):
                 accuracy_rating=4,
                 usefulness_rating=3,
                 clarity_rating=5,
-                suggestions='Existing feedback',
-                would_recommend=True
+                suggestions="Existing feedback",
+                would_recommend=True,
             )
 
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[self.analysis.id])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Update Your Feedback')
+        self.assertContains(response, "Update Your Feedback")
         # Check form has existing values (this is a basic check)
-        self.assertContains(response, 'Existing feedback')
+        self.assertContains(response, "Existing feedback")
 
     def test_feedback_access_control(self):
         """Test that users can only provide feedback for their own analyses."""
         # Create another user and query
         with transaction.atomic():
             other_user = User.objects.create_user(
-                username='otheruser',
-                email='other@example.com',
-                password='otherpass123'
+                username="otheruser", email="other@example.com", password="otherpass123"
             )
 
             other_query, other_analysis = analyze_query(
-                "SELECT COUNT(*) FROM products",
-                database_type='PostgreSQL'
+                "SELECT COUNT(*) FROM products", database_type="PostgreSQL"
             )
 
             # Create user history for other user
             UserQueryHistory.objects.create(
-                user=other_user,
-                query=other_query,
-                database_type='PostgreSQL'
+                user=other_user, query=other_query, database_type="PostgreSQL"
             )
 
         # Try to access other user's feedback with testuser login
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[other_analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[other_analysis.id])
         response = self.client.get(url)
 
         # Should redirect with error
@@ -233,8 +237,8 @@ class FeedbackSystemTestCase(TransactionTestCase):
     def test_feedback_analytics_access_control(self):
         """Test that feedback analytics is restricted to staff users."""
         # Regular user should be denied
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('feedback_analytics')
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("feedback_analytics")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)  # Redirect with error
 
@@ -253,23 +257,18 @@ class FeedbackSystemTestCase(TransactionTestCase):
                 accuracy_rating=4,
                 usefulness_rating=5,
                 clarity_rating=3,
-                would_recommend=True
+                would_recommend=True,
             )
 
             # Create another user and feedback
             other_user = User.objects.create_user(
-                username='otheruser',
-                email='other@example.com',
-                password='otherpass123'
+                username="otheruser", email="other@example.com", password="otherpass123"
             )
 
-            other_query, other_analysis = analyze_query(
-                "SELECT COUNT(*) FROM orders"
-            )
+            other_query, other_analysis = analyze_query("SELECT COUNT(*) FROM orders")
 
             other_history = UserQueryHistory.objects.create(
-                user=other_user,
-                query=other_query
+                user=other_user, query=other_query
             )
 
             QueryFeedback.objects.create(
@@ -277,70 +276,76 @@ class FeedbackSystemTestCase(TransactionTestCase):
                 accuracy_rating=5,
                 usefulness_rating=4,
                 clarity_rating=4,
-                would_recommend=False
+                would_recommend=False,
             )
 
         # Make user staff and access analytics
         self.user.is_staff = True
         self.user.save()
-        self.client.login(username='testuser', password='testpass123')
+        self.client.login(username="testuser", password="testpass123")
 
-        url = reverse('feedback_analytics')
+        url = reverse("feedback_analytics")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Feedback Analytics')
+        self.assertContains(response, "Feedback Analytics")
         # Template shows "Feedback will appear here" when no aggregated stats available
         # The analytics view may require minimum feedback threshold
         # Just verify page renders successfully
-        self.assertIn('Feedback Analytics', response.content.decode())
+        self.assertIn("Feedback Analytics", response.content.decode())
 
     def test_feedback_analytics_no_data(self):
         """Test feedback analytics page with no feedback data."""
         self.user.is_staff = True
         self.user.save()
-        self.client.login(username='testuser', password='testpass123')
+        self.client.login(username="testuser", password="testpass123")
 
-        url = reverse('feedback_analytics')
+        url = reverse("feedback_analytics")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
         # Template shows "Feedback will appear here once users start providing ratings"
-        self.assertContains(response, 'Feedback will appear here once users start providing ratings')
+        self.assertContains(
+            response, "Feedback will appear here once users start providing ratings"
+        )
 
     def test_feedback_form_validation(self):
         """Test feedback form validation."""
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[self.analysis.id])
 
         # Submit form with missing required fields
         response = self.client.post(url, {})
 
         self.assertEqual(response.status_code, 200)  # Form redisplayed with errors
         # No feedback should be created
-        self.assertFalse(QueryFeedback.objects.filter(user_history=self.user_history).exists())
+        self.assertFalse(
+            QueryFeedback.objects.filter(user_history=self.user_history).exists()
+        )
 
     def test_feedback_button_in_results(self):
         """Test that feedback button appears in grade results page."""
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('grade_results', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("grade_results", args=[self.analysis.id])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Provide Feedback')
-        self.assertContains(response, reverse('submit_feedback', args=[self.analysis.id]))
+        self.assertContains(response, "Provide Feedback")
+        self.assertContains(
+            response, reverse("submit_feedback", args=[self.analysis.id])
+        )
 
     def test_user_history_feedback_tracking(self):
         """Test that user history tracks feedback submission."""
-        self.client.login(username='testuser', password='testpass123')
-        url = reverse('submit_feedback', args=[self.analysis.id])
+        self.client.login(username="testuser", password="testpass123")
+        url = reverse("submit_feedback", args=[self.analysis.id])
 
         feedback_data = {
-            'accuracy_rating': '4',
-            'usefulness_rating': '5',
-            'clarity_rating': '4',
-            'suggestions': 'Great feedback tracking test',
-            'would_recommend': True
+            "accuracy_rating": "4",
+            "usefulness_rating": "5",
+            "clarity_rating": "4",
+            "suggestions": "Great feedback tracking test",
+            "would_recommend": True,
         }
 
         response = self.client.post(url, feedback_data)
@@ -348,4 +353,6 @@ class FeedbackSystemTestCase(TransactionTestCase):
         # Check that user history was updated - fetch fresh from DB
         updated_history = UserQueryHistory.objects.get(id=self.user_history.id)
         self.assertTrue(updated_history.was_helpful)
-        self.assertEqual(updated_history.feedback_comments, 'Great feedback tracking test')
+        self.assertEqual(
+            updated_history.feedback_comments, "Great feedback tracking test"
+        )

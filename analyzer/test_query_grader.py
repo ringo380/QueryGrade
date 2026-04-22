@@ -1,8 +1,10 @@
-from django.test import TestCase
+import time
+
 from django.contrib.auth.models import User
+from django.test import TestCase
+
 from analyzer.models import Query, QueryAnalysis, UserQueryHistory
 from analyzer.query_analyzer import QueryGrader, analyze_query
-import time
 
 
 class QueryGraderTestCase(TestCase):
@@ -12,9 +14,7 @@ class QueryGraderTestCase(TestCase):
         """Set up test data."""
         self.grader = QueryGrader()
         self.test_user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
+            username="testuser", email="test@example.com", password="testpass123"
         )
 
     def test_grade_excellent_query(self):
@@ -33,9 +33,9 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(excellent_query)
 
-        self.assertEqual(analysis.grade, 'A')
+        self.assertEqual(analysis.grade, "A")
         self.assertGreaterEqual(analysis.score, 90.0)
-        self.assertEqual(query.query_type, 'SELECT')
+        self.assertEqual(query.query_type, "SELECT")
         self.assertGreaterEqual(query.table_count, 2)  # users and orders
         self.assertEqual(query.join_count, 1)  # LEFT JOIN
 
@@ -53,14 +53,14 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(poor_query)
 
-        self.assertIn(analysis.grade, ['C', 'D', 'F'])  # Allow C due to new scoring
+        self.assertIn(analysis.grade, ["C", "D", "F"])  # Allow C due to new scoring
         self.assertLessEqual(analysis.score, 75.0)  # Slightly higher threshold
         self.assertTrue(len(analysis.issues_found) > 0)
 
         # Check for specific issues
-        issue_types = [issue['type'] for issue in analysis.issues_found]
-        self.assertIn('SELECT_STAR', issue_types)
-        self.assertIn('FUNCTION_ON_COLUMN', issue_types)
+        issue_types = [issue["type"] for issue in analysis.issues_found]
+        self.assertIn("SELECT_STAR", issue_types)
+        self.assertIn("FUNCTION_ON_COLUMN", issue_types)
 
     def test_grade_average_query(self):
         """Test that an average query gets a B or C grade."""
@@ -74,9 +74,9 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(average_query)
 
-        self.assertIn(analysis.grade, ['A', 'B', 'C'])
+        self.assertIn(analysis.grade, ["A", "B", "C"])
         self.assertGreaterEqual(analysis.score, 70.0)
-        self.assertEqual(query.query_type, 'SELECT')
+        self.assertEqual(query.query_type, "SELECT")
 
     def test_insert_query_grading(self):
         """Test grading of INSERT queries."""
@@ -87,9 +87,9 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(insert_query)
 
-        self.assertEqual(query.query_type, 'INSERT')
+        self.assertEqual(query.query_type, "INSERT")
         self.assertIsInstance(analysis.score, float)
-        self.assertIn(analysis.grade, ['A', 'B', 'C', 'D', 'F'])
+        self.assertIn(analysis.grade, ["A", "B", "C", "D", "F"])
 
     def test_update_query_grading(self):
         """Test grading of UPDATE queries."""
@@ -101,7 +101,7 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(update_query)
 
-        self.assertEqual(query.query_type, 'UPDATE')
+        self.assertEqual(query.query_type, "UPDATE")
         self.assertIsInstance(analysis.score, float)
 
     def test_delete_query_grading(self):
@@ -114,7 +114,7 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(delete_query)
 
-        self.assertEqual(query.query_type, 'DELETE')
+        self.assertEqual(query.query_type, "DELETE")
         self.assertIsInstance(analysis.score, float)
 
     def test_complex_subquery_detection(self):
@@ -139,8 +139,10 @@ class QueryGraderTestCase(TestCase):
 
         self.assertGreaterEqual(query.subquery_count, 2)
         # Should have recommendations about subquery complexity
-        recommendation_types = [rec['type'] for rec in analysis.recommendations]
-        self.assertTrue(any('SUBQUERY' in rec_type for rec_type in recommendation_types))
+        recommendation_types = [rec["type"] for rec in analysis.recommendations]
+        self.assertTrue(
+            any("SUBQUERY" in rec_type for rec_type in recommendation_types)
+        )
 
     def test_cartesian_product_detection(self):
         """Test detection of dangerous Cartesian products."""
@@ -171,8 +173,8 @@ class QueryGraderTestCase(TestCase):
         self.assertGreaterEqual(query.join_count, 4)
         # Should warn about excessive joins if > 4
         if query.join_count > 4:
-            issue_types = [issue['type'] for issue in analysis.issues_found]
-            self.assertIn('EXCESSIVE_JOINS', issue_types)
+            issue_types = [issue["type"] for issue in analysis.issues_found]
+            self.assertIn("EXCESSIVE_JOINS", issue_types)
 
     def test_leading_wildcard_detection(self):
         """Test detection of inefficient LIKE patterns."""
@@ -184,9 +186,9 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(wildcard_query)
 
-        issue_types = [issue['type'] for issue in analysis.issues_found]
-        self.assertIn('LEADING_WILDCARD', issue_types)
-        self.assertIn('SELECT_STAR', issue_types)
+        issue_types = [issue["type"] for issue in analysis.issues_found]
+        self.assertIn("LEADING_WILDCARD", issue_types)
+        self.assertIn("SELECT_STAR", issue_types)
 
     def test_function_on_column_detection(self):
         """Test detection of functions on columns in WHERE clauses."""
@@ -199,8 +201,8 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(function_query)
 
-        issue_types = [issue['type'] for issue in analysis.issues_found]
-        self.assertIn('FUNCTION_ON_COLUMN', issue_types)
+        issue_types = [issue["type"] for issue in analysis.issues_found]
+        self.assertIn("FUNCTION_ON_COLUMN", issue_types)
 
     def test_not_in_usage_detection(self):
         """Test detection of NOT IN with potential NULL issues."""
@@ -211,8 +213,10 @@ class QueryGraderTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(not_in_query)
 
-        issue_types = [issue['type'] for issue in analysis.issues_found]
-        self.assertIn('NOT_IN_SUBQUERY', issue_types)  # New architecture uses NOT_IN_SUBQUERY
+        issue_types = [issue["type"] for issue in analysis.issues_found]
+        self.assertIn(
+            "NOT_IN_SUBQUERY", issue_types
+        )  # New architecture uses NOT_IN_SUBQUERY
 
     def test_distinct_usage_detection(self):
         """Test detection of DISTINCT usage."""
@@ -280,14 +284,14 @@ class QueryGraderTestCase(TestCase):
 
         # With the new diminishing returns algorithm, we can't predict exact scores,
         # but we can verify the score is reasonable based on issues found
-        issue_severities = [issue['severity'] for issue in analysis.issues_found]
+        issue_severities = [issue["severity"] for issue in analysis.issues_found]
 
         # If there are issues, score should be less than 100
         if len(analysis.issues_found) > 0:
             self.assertLess(analysis.score, 100.0)
 
         # If there are high or critical issues, score should be significantly lower
-        if any(severity in ['critical', 'high'] for severity in issue_severities):
+        if any(severity in ["critical", "high"] for severity in issue_severities):
             self.assertLessEqual(analysis.score, 85.0)
 
         # Score should always be between 0 and 100
@@ -298,22 +302,25 @@ class QueryGraderTestCase(TestCase):
         """Test grade boundary calculations."""
         # Test each grade boundary
         test_cases = [
-            (95.0, 'A'),
-            (90.0, 'A'),
-            (85.0, 'B'),
-            (80.0, 'B'),
-            (75.0, 'C'),
-            (70.0, 'C'),
-            (65.0, 'D'),
-            (60.0, 'D'),
-            (55.0, 'F'),
-            (0.0, 'F')
+            (95.0, "A"),
+            (90.0, "A"),
+            (85.0, "B"),
+            (80.0, "B"),
+            (75.0, "C"),
+            (70.0, "C"),
+            (65.0, "D"),
+            (60.0, "D"),
+            (55.0, "F"),
+            (0.0, "F"),
         ]
 
         for score, expected_grade in test_cases:
             grade = self.grader._score_to_grade(score)
-            self.assertEqual(grade, expected_grade,
-                           f"Score {score} should get grade {expected_grade}, got {grade}")
+            self.assertEqual(
+                grade,
+                expected_grade,
+                f"Score {score} should get grade {expected_grade}, got {grade}",
+            )
 
     def test_analysis_metadata(self):
         """Test that analysis metadata is properly recorded."""
@@ -324,9 +331,13 @@ class QueryGraderTestCase(TestCase):
         end_time = time.time()
 
         # Check metadata
-        self.assertEqual(analysis.analysis_version, "2.0")  # New modular analyzer architecture
+        self.assertEqual(
+            analysis.analysis_version, "2.0"
+        )  # New modular analyzer architecture
         self.assertGreater(analysis.execution_time_ms, 0)
-        self.assertLess(analysis.execution_time_ms, (end_time - start_time) * 1000 + 100)  # Allow some margin
+        self.assertLess(
+            analysis.execution_time_ms, (end_time - start_time) * 1000 + 100
+        )  # Allow some margin
         self.assertIsNotNone(analysis.created_at)
 
     def test_query_hash_generation(self):
@@ -366,7 +377,9 @@ class QueryGraderTestCase(TestCase):
         complex_q, _ = self.grader.analyze_query(complex_query)
 
         self.assertLess(simple_q.estimated_complexity, complex_q.estimated_complexity)
-        self.assertGreater(complex_q.estimated_complexity, 50)  # Should be quite complex
+        self.assertGreater(
+            complex_q.estimated_complexity, 50
+        )  # Should be quite complex
 
     def test_convenience_function(self):
         """Test the convenience analyze_query function."""
@@ -395,7 +408,7 @@ class QueryGraderEdgeCasesTestCase(TestCase):
         query, analysis = self.grader.analyze_query(long_query)
 
         self.assertIsInstance(analysis.score, float)
-        self.assertIn(analysis.grade, ['A', 'B', 'C', 'D', 'F'])
+        self.assertIn(analysis.grade, ["A", "B", "C", "D", "F"])
 
     def test_query_with_comments(self):
         """Test handling of queries with SQL comments."""
@@ -434,7 +447,7 @@ class QueryGraderEdgeCasesTestCase(TestCase):
 
         query, analysis = self.grader.analyze_query(create_query)
 
-        self.assertEqual(query.query_type, 'CREATE')
+        self.assertEqual(query.query_type, "CREATE")
         self.assertIsInstance(analysis.score, float)
 
     def test_unicode_in_queries(self):

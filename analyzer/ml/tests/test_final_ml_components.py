@@ -8,16 +8,18 @@ Tests for:
 """
 
 import logging
+from unittest.mock import MagicMock, Mock, patch
+
 import numpy as np
-from unittest.mock import Mock, patch, MagicMock
 from django.test import TestCase
 from django.utils import timezone
 
 # Suppress verbose logging during tests
-logging.getLogger('analyzer').setLevel(logging.WARNING)
+logging.getLogger("analyzer").setLevel(logging.WARNING)
 
 
 # ===== ENSEMBLE SYSTEM TESTS =====
+
 
 class MultiModelEnsembleInitializationTestCase(TestCase):
     """Tests for MultiModelEnsemble initialization"""
@@ -34,7 +36,7 @@ class MultiModelEnsembleInitializationTestCase(TestCase):
 
     def test_default_configurations(self):
         """Test default model configurations"""
-        from analyzer.ml.ensemble.multi_model import MultiModelEnsemble, ModelType
+        from analyzer.ml.ensemble.multi_model import ModelType, MultiModelEnsemble
 
         ensemble = MultiModelEnsemble()
         configs = ensemble._get_default_configurations()
@@ -93,8 +95,8 @@ class ModelConfigurationTestCase(TestCase):
 
         config = ModelConfiguration(
             model_type=ModelType.RANDOM_FOREST,
-            hyperparameters={'n_estimators': 100},
-            preprocessing='standard'
+            hyperparameters={"n_estimators": 100},
+            preprocessing="standard",
         )
 
         self.assertEqual(config.model_type, ModelType.RANDOM_FOREST)
@@ -106,9 +108,9 @@ class ModelConfigurationTestCase(TestCase):
 
         config = ModelConfiguration(
             model_type=ModelType.XGBOOST,
-            hyperparameters={'learning_rate': 0.1},
-            preprocessing='robust',
-            cross_validation_folds=10
+            hyperparameters={"learning_rate": 0.1},
+            preprocessing="robust",
+            cross_validation_folds=10,
         )
 
         self.assertEqual(config.cross_validation_folds, 10)
@@ -124,7 +126,9 @@ class VotingSystemTestCase(TestCase):
         strategies = VotingStrategies()
 
         self.assertIsNotNone(strategies)
-        self.assertTrue(hasattr(strategies, 'simple_average') or len(dir(strategies)) > 0)
+        self.assertTrue(
+            hasattr(strategies, "simple_average") or len(dir(strategies)) > 0
+        )
 
     def test_voting_structure(self):
         """Test voting system has expected structure"""
@@ -137,6 +141,7 @@ class VotingSystemTestCase(TestCase):
 
 
 # ===== INTEGRATION COMPONENT TESTS =====
+
 
 class DatabaseStatsTestCase(TestCase):
     """Tests for DatabaseStatisticsManager"""
@@ -156,7 +161,7 @@ class DatabaseStatsTestCase(TestCase):
         stats = DatabaseStatisticsManager()
 
         # Should have some methods
-        methods = [m for m in dir(stats) if not m.startswith('_')]
+        methods = [m for m in dir(stats) if not m.startswith("_")]
         self.assertGreater(len(methods), 0)
 
 
@@ -178,11 +183,12 @@ class DocumentationLoaderTestCase(TestCase):
         loader = DocumentationLoader()
 
         # Should have load_documentation or similar
-        methods = [m for m in dir(loader) if not m.startswith('_')]
+        methods = [m for m in dir(loader) if not m.startswith("_")]
         self.assertGreater(len(methods), 0)
 
 
 # ===== CORE ML SYSTEM TESTS =====
+
 
 class HybridGraderInitializationTestCase(TestCase):
     """Tests for HybridGrader initialization"""
@@ -202,7 +208,11 @@ class HybridGraderInitializationTestCase(TestCase):
         grader = HybridQueryGrader()
 
         # Check for core methods
-        methods = [m for m in dir(grader) if not m.startswith('_') and callable(getattr(grader, m))]
+        methods = [
+            m
+            for m in dir(grader)
+            if not m.startswith("_") and callable(getattr(grader, m))
+        ]
         self.assertGreater(len(methods), 0)
 
 
@@ -224,8 +234,8 @@ class FeatureExtractorTestCase(TestCase):
         extractor = FeatureExtractor()
 
         # Should have extract_features method
-        self.assertTrue(hasattr(extractor, 'extract_features'))
-        self.assertTrue(callable(getattr(extractor, 'extract_features')))
+        self.assertTrue(hasattr(extractor, "extract_features"))
+        self.assertTrue(callable(getattr(extractor, "extract_features")))
 
 
 class FeedbackCollectorTestCase(TestCase):
@@ -248,8 +258,8 @@ class FeedbackCollectorTestCase(TestCase):
         collector = FeedbackCollector()
 
         # Should have feedback collection methods
-        self.assertTrue(hasattr(collector, 'collect_feedback_for_query'))
-        self.assertTrue(callable(getattr(collector, 'collect_feedback_for_query')))
+        self.assertTrue(hasattr(collector, "collect_feedback_for_query"))
+        self.assertTrue(callable(getattr(collector, "collect_feedback_for_query")))
 
     def test_feedback_batch_collection(self):
         """Test batch feedback collection method"""
@@ -258,8 +268,8 @@ class FeedbackCollectorTestCase(TestCase):
         collector = FeedbackCollector()
 
         # Should have batch collection method
-        self.assertTrue(hasattr(collector, 'batch_collect_feedback'))
-        self.assertTrue(callable(getattr(collector, 'batch_collect_feedback')))
+        self.assertTrue(hasattr(collector, "batch_collect_feedback"))
+        self.assertTrue(callable(getattr(collector, "batch_collect_feedback")))
 
 
 class TrainingSystemTestCase(TestCase):
@@ -289,7 +299,7 @@ class TrainingSystemTestCase(TestCase):
         pipeline = TrainingPipelineManager()
 
         # Should have various methods
-        methods = [m for m in dir(pipeline) if not m.startswith('_')]
+        methods = [m for m in dir(pipeline) if not m.startswith("_")]
         self.assertGreater(len(methods), 0)
 
 
@@ -314,20 +324,21 @@ class ModelManagerTestCase(TestCase):
         manager = ModelManager()
 
         # Should have model loading methods
-        self.assertTrue(hasattr(manager, 'load_active_model'))
-        self.assertTrue(hasattr(manager, 'load_model_by_id'))
-        self.assertTrue(hasattr(manager, 'save_model'))
+        self.assertTrue(hasattr(manager, "load_active_model"))
+        self.assertTrue(hasattr(manager, "load_model_by_id"))
+        self.assertTrue(hasattr(manager, "save_model"))
 
 
 # ===== INTEGRATION & WORKFLOW TESTS =====
+
 
 class MLComponentIntegrationTestCase(TestCase):
     """Tests for ML component initialization and basic functionality"""
 
     def test_ensemble_and_extractor_integration(self):
         """Test ensemble and feature extractor can work together"""
-        from analyzer.ml.ensemble.multi_model import MultiModelEnsemble
         from analyzer.ml.core.feature_extractor import FeatureExtractor
+        from analyzer.ml.ensemble.multi_model import MultiModelEnsemble
 
         ensemble = MultiModelEnsemble()
         extractor = FeatureExtractor()
@@ -337,8 +348,8 @@ class MLComponentIntegrationTestCase(TestCase):
 
     def test_grader_and_feedback_integration(self):
         """Test grader and feedback collector integration"""
-        from analyzer.ml.core.hybrid_grader import HybridQueryGrader
         from analyzer.ml.core.feedback_collector import FeedbackCollector
+        from analyzer.ml.core.hybrid_grader import HybridQueryGrader
 
         grader = HybridQueryGrader()
         collector = FeedbackCollector()
@@ -364,15 +375,17 @@ class ComponentInitializationTestCase(TestCase):
     def test_all_ensemble_components_initialize(self):
         """Test all ensemble components initialize"""
         from analyzer.ml.ensemble.multi_model import (
-            MultiModelEnsemble, RandomForestModel, XGBoostModel,
-            NeuralNetworkModel, ModelConfiguration, ModelType
+            ModelConfiguration,
+            ModelType,
+            MultiModelEnsemble,
+            NeuralNetworkModel,
+            RandomForestModel,
+            XGBoostModel,
         )
 
         ensemble = MultiModelEnsemble()
         config = ModelConfiguration(
-            model_type=ModelType.RANDOM_FOREST,
-            hyperparameters={},
-            preprocessing='none'
+            model_type=ModelType.RANDOM_FOREST, hyperparameters={}, preprocessing="none"
         )
 
         self.assertIsNotNone(ensemble)
@@ -391,9 +404,9 @@ class ComponentInitializationTestCase(TestCase):
 
     def test_all_core_components_initialize(self):
         """Test all core ML components initialize"""
-        from analyzer.ml.core.hybrid_grader import HybridQueryGrader
         from analyzer.ml.core.feature_extractor import FeatureExtractor
         from analyzer.ml.core.feedback_collector import FeedbackCollector
+        from analyzer.ml.core.hybrid_grader import HybridQueryGrader
         from analyzer.ml.core.model_manager import ModelManager
         from analyzer.ml.core.training_pipeline import TrainingPipelineManager
 

@@ -7,21 +7,22 @@ and adaptive ensemble strategies.
 """
 
 import logging
-import numpy as np
-from typing import Dict, List, Optional, Tuple, Any, Callable
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
-from enum import Enum
 import math
 import statistics
 from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import numpy as np
 from django.core.cache import caches
 from django.utils import timezone
 
 try:
     from scipy import stats
-    from sklearn.metrics import mean_squared_error, mean_absolute_error
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class VotingStrategy(Enum):
     """Different voting strategies for ensemble decisions."""
+
     SIMPLE_AVERAGE = "simple_average"
     WEIGHTED_AVERAGE = "weighted_average"
     CONFIDENCE_WEIGHTED = "confidence_weighted"
@@ -44,6 +46,7 @@ class VotingStrategy(Enum):
 
 class AggregationMethod(Enum):
     """Methods for aggregating model outputs."""
+
     MEAN = "mean"
     MEDIAN = "median"
     TRIMMED_MEAN = "trimmed_mean"
@@ -56,6 +59,7 @@ class AggregationMethod(Enum):
 @dataclass
 class ModelPrediction:
     """Represents a prediction from a single model."""
+
     model_id: str
     model_type: str
     prediction: float
@@ -69,6 +73,7 @@ class ModelPrediction:
 @dataclass
 class VotingResult:
     """Result from ensemble voting process."""
+
     final_prediction: float
     final_confidence: float
     voting_strategy: VotingStrategy
@@ -83,6 +88,7 @@ class VotingResult:
 @dataclass
 class EnsembleMetrics:
     """Metrics for ensemble performance evaluation."""
+
     prediction_variance: float
     model_agreement: float
     confidence_calibration: float
@@ -99,7 +105,9 @@ class ModelWeightCalculator:
         self.confidence_calibration = defaultdict(float)
         self.recent_predictions = defaultdict(deque)
 
-    def calculate_performance_weights(self, model_performances: Dict[str, float]) -> Dict[str, float]:
+    def calculate_performance_weights(
+        self, model_performances: Dict[str, float]
+    ) -> Dict[str, float]:
         """Calculate weights based on historical performance."""
         if not model_performances:
             return {}
@@ -112,19 +120,25 @@ class ModelWeightCalculator:
         if range_perf == 0:
             # All models have same performance, use equal weights
             n_models = len(model_performances)
-            return {model_id: 1.0/n_models for model_id in model_performances.keys()}
+            return {model_id: 1.0 / n_models for model_id in model_performances.keys()}
 
         normalized_perfs = {}
         for model_id, perf in model_performances.items():
             normalized_perfs[model_id] = (perf - min_perf) / range_perf
 
         # Softmax transformation for smooth weights
-        exp_perfs = {model_id: math.exp(perf * 5) for model_id, perf in normalized_perfs.items()}
+        exp_perfs = {
+            model_id: math.exp(perf * 5) for model_id, perf in normalized_perfs.items()
+        }
         sum_exp = sum(exp_perfs.values())
 
-        return {model_id: exp_perf / sum_exp for model_id, exp_perf in exp_perfs.items()}
+        return {
+            model_id: exp_perf / sum_exp for model_id, exp_perf in exp_perfs.items()
+        }
 
-    def calculate_confidence_weights(self, predictions: List[ModelPrediction]) -> Dict[str, float]:
+    def calculate_confidence_weights(
+        self, predictions: List[ModelPrediction]
+    ) -> Dict[str, float]:
         """Calculate weights based on model confidence."""
         if not predictions:
             return {}
@@ -135,11 +149,15 @@ class ModelWeightCalculator:
 
         if total_confidence == 0:
             n_models = len(predictions)
-            return {pred.model_id: 1.0/n_models for pred in predictions}
+            return {pred.model_id: 1.0 / n_models for pred in predictions}
 
-        return {model_id: conf / total_confidence for model_id, conf in confidences.items()}
+        return {
+            model_id: conf / total_confidence for model_id, conf in confidences.items()
+        }
 
-    def calculate_diversity_weights(self, predictions: List[ModelPrediction]) -> Dict[str, float]:
+    def calculate_diversity_weights(
+        self, predictions: List[ModelPrediction]
+    ) -> Dict[str, float]:
         """Calculate weights to promote diversity in ensemble."""
         if len(predictions) < 2:
             return {pred.model_id: 1.0 for pred in predictions}
@@ -155,21 +173,27 @@ class ModelWeightCalculator:
         diversity_scores = {}
         for model_id, distance in zip(model_ids, distances):
             # Base weight + diversity bonus
-            diversity_scores[model_id] = 1.0 + (distance / max(1.0, ensemble_mean)) * 0.1
+            diversity_scores[model_id] = (
+                1.0 + (distance / max(1.0, ensemble_mean)) * 0.1
+            )
 
         # Normalize
         total_score = sum(diversity_scores.values())
-        return {model_id: score / total_score for model_id, score in diversity_scores.items()}
+        return {
+            model_id: score / total_score
+            for model_id, score in diversity_scores.items()
+        }
 
-    def calculate_dynamic_weights(self, predictions: List[ModelPrediction],
-                                query_features: List[float]) -> Dict[str, float]:
+    def calculate_dynamic_weights(
+        self, predictions: List[ModelPrediction], query_features: List[float]
+    ) -> Dict[str, float]:
         """Calculate dynamic weights based on query characteristics."""
         if not predictions:
             return {}
 
         # Start with equal weights
         n_models = len(predictions)
-        weights = {pred.model_id: 1.0/n_models for pred in predictions}
+        weights = {pred.model_id: 1.0 / n_models for pred in predictions}
 
         # Adjust based on query complexity
         if query_features:
@@ -177,9 +201,15 @@ class ModelWeightCalculator:
 
             for pred in predictions:
                 # Some models might be better for complex vs simple queries
-                if "neural_network" in pred.model_type.lower() and complexity_score > 0.7:
+                if (
+                    "neural_network" in pred.model_type.lower()
+                    and complexity_score > 0.7
+                ):
                     weights[pred.model_id] *= 1.2  # NN better for complex queries
-                elif "random_forest" in pred.model_type.lower() and complexity_score < 0.3:
+                elif (
+                    "random_forest" in pred.model_type.lower()
+                    and complexity_score < 0.3
+                ):
                     weights[pred.model_id] *= 1.2  # RF better for simple queries
 
         # Normalize weights
@@ -205,15 +235,17 @@ class ConsensusAnalyzer:
     def __init__(self):
         pass
 
-    def calculate_consensus_metrics(self, predictions: List[ModelPrediction]) -> Dict[str, float]:
+    def calculate_consensus_metrics(
+        self, predictions: List[ModelPrediction]
+    ) -> Dict[str, float]:
         """Calculate various consensus metrics."""
         if len(predictions) < 2:
             return {
-                'agreement_score': 1.0,
-                'prediction_variance': 0.0,
-                'coefficient_of_variation': 0.0,
-                'range_normalized': 0.0,
-                'pairwise_agreement': 1.0
+                "agreement_score": 1.0,
+                "prediction_variance": 0.0,
+                "coefficient_of_variation": 0.0,
+                "range_normalized": 0.0,
+                "pairwise_agreement": 1.0,
             }
 
         pred_values = [pred.prediction for pred in predictions]
@@ -238,11 +270,11 @@ class ConsensusAnalyzer:
         pairwise_agreement = self._calculate_pairwise_agreement(pred_values)
 
         return {
-            'agreement_score': agreement_score,
-            'prediction_variance': variance,
-            'coefficient_of_variation': cv if 'cv' in locals() else 0.0,
-            'range_normalized': range_normalized,
-            'pairwise_agreement': pairwise_agreement
+            "agreement_score": agreement_score,
+            "prediction_variance": variance,
+            "coefficient_of_variation": cv if "cv" in locals() else 0.0,
+            "range_normalized": range_normalized,
+            "pairwise_agreement": pairwise_agreement,
         }
 
     def _calculate_pairwise_agreement(self, predictions: List[float]) -> float:
@@ -260,8 +292,9 @@ class ConsensusAnalyzer:
 
         return np.mean(agreements) if agreements else 1.0
 
-    def detect_outlier_predictions(self, predictions: List[ModelPrediction],
-                                 threshold: float = 2.0) -> List[str]:
+    def detect_outlier_predictions(
+        self, predictions: List[ModelPrediction], threshold: float = 2.0
+    ) -> List[str]:
         """Detect outlier predictions using statistical methods."""
         if len(predictions) < 3:
             return []
@@ -297,13 +330,15 @@ class VotingStrategies:
         final_prediction = np.mean(pred_values)
 
         # Equal weights
-        weights = {pred.model_id: 1.0/len(predictions) for pred in predictions}
+        weights = {pred.model_id: 1.0 / len(predictions) for pred in predictions}
 
         # Simple confidence (average of confidences)
         confidences = [pred.confidence for pred in predictions]
         final_confidence = np.mean(confidences)
 
-        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(predictions)
+        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(
+            predictions
+        )
 
         return VotingResult(
             final_prediction=final_prediction,
@@ -313,17 +348,20 @@ class VotingStrategies:
             model_predictions=predictions,
             model_weights=weights,
             consensus_metrics=consensus_metrics,
-            quality_score=consensus_metrics['agreement_score'],
-            explanation="Simple average of all model predictions"
+            quality_score=consensus_metrics["agreement_score"],
+            explanation="Simple average of all model predictions",
         )
 
-    def weighted_average(self, predictions: List[ModelPrediction],
-                        model_performances: Dict[str, float]) -> VotingResult:
+    def weighted_average(
+        self, predictions: List[ModelPrediction], model_performances: Dict[str, float]
+    ) -> VotingResult:
         """Weighted average based on model performance."""
         if not predictions:
             return self._empty_result(VotingStrategy.WEIGHTED_AVERAGE)
 
-        weights = self.weight_calculator.calculate_performance_weights(model_performances)
+        weights = self.weight_calculator.calculate_performance_weights(
+            model_performances
+        )
 
         # Calculate weighted prediction
         weighted_sum = 0.0
@@ -334,7 +372,11 @@ class VotingStrategies:
             weighted_sum += pred.prediction * weight
             total_weight += weight
 
-        final_prediction = weighted_sum / total_weight if total_weight > 0 else np.mean([p.prediction for p in predictions])
+        final_prediction = (
+            weighted_sum / total_weight
+            if total_weight > 0
+            else np.mean([p.prediction for p in predictions])
+        )
 
         # Weighted confidence
         confidence_sum = 0.0
@@ -342,9 +384,15 @@ class VotingStrategies:
             weight = weights.get(pred.model_id, 0.0)
             confidence_sum += pred.confidence * weight
 
-        final_confidence = confidence_sum / total_weight if total_weight > 0 else np.mean([p.confidence for p in predictions])
+        final_confidence = (
+            confidence_sum / total_weight
+            if total_weight > 0
+            else np.mean([p.confidence for p in predictions])
+        )
 
-        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(predictions)
+        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(
+            predictions
+        )
 
         return VotingResult(
             final_prediction=final_prediction,
@@ -354,8 +402,9 @@ class VotingStrategies:
             model_predictions=predictions,
             model_weights=weights,
             consensus_metrics=consensus_metrics,
-            quality_score=consensus_metrics['agreement_score'] * np.mean(list(weights.values())),
-            explanation="Performance-weighted average of model predictions"
+            quality_score=consensus_metrics["agreement_score"]
+            * np.mean(list(weights.values())),
+            explanation="Performance-weighted average of model predictions",
         )
 
     def confidence_weighted(self, predictions: List[ModelPrediction]) -> VotingResult:
@@ -374,12 +423,20 @@ class VotingStrategies:
             weighted_sum += pred.prediction * weight
             total_weight += weight
 
-        final_prediction = weighted_sum / total_weight if total_weight > 0 else np.mean([p.prediction for p in predictions])
+        final_prediction = (
+            weighted_sum / total_weight
+            if total_weight > 0
+            else np.mean([p.prediction for p in predictions])
+        )
 
         # Confidence calculation (higher weights contribute more to confidence)
-        final_confidence = sum(pred.confidence * weights.get(pred.model_id, 0.0) for pred in predictions)
+        final_confidence = sum(
+            pred.confidence * weights.get(pred.model_id, 0.0) for pred in predictions
+        )
 
-        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(predictions)
+        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(
+            predictions
+        )
 
         return VotingResult(
             final_prediction=final_prediction,
@@ -389,20 +446,25 @@ class VotingStrategies:
             model_predictions=predictions,
             model_weights=weights,
             consensus_metrics=consensus_metrics,
-            quality_score=final_confidence * consensus_metrics['agreement_score'],
-            explanation="Confidence-weighted ensemble voting"
+            quality_score=final_confidence * consensus_metrics["agreement_score"],
+            explanation="Confidence-weighted ensemble voting",
         )
 
-    def adaptive_voting(self, predictions: List[ModelPrediction],
-                       query_features: List[float],
-                       context: Dict[str, Any] = None) -> VotingResult:
+    def adaptive_voting(
+        self,
+        predictions: List[ModelPrediction],
+        query_features: List[float],
+        context: Dict[str, Any] = None,
+    ) -> VotingResult:
         """Adaptive voting that chooses strategy based on context."""
         if not predictions:
             return self._empty_result(VotingStrategy.ADAPTIVE_VOTING)
 
         # Analyze context to choose best strategy
-        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(predictions)
-        agreement_score = consensus_metrics['agreement_score']
+        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(
+            predictions
+        )
+        agreement_score = consensus_metrics["agreement_score"]
 
         # Choose strategy based on agreement and context
         if agreement_score > 0.9:
@@ -413,8 +475,8 @@ class VotingStrategies:
             return self.confidence_weighted(predictions)
         else:
             # Low agreement - use performance weighting if available
-            if context and 'model_performances' in context:
-                return self.weighted_average(predictions, context['model_performances'])
+            if context and "model_performances" in context:
+                return self.weighted_average(predictions, context["model_performances"])
             else:
                 return self.rank_based_voting(predictions)
 
@@ -436,15 +498,23 @@ class VotingStrategies:
         weights = {model_id: rank / max_rank for model_id, rank in ranks.items()}
 
         # Weighted average using rank weights
-        weighted_sum = sum(pred.prediction * weights[pred.model_id] for pred in predictions)
+        weighted_sum = sum(
+            pred.prediction * weights[pred.model_id] for pred in predictions
+        )
         total_weight = sum(weights.values())
 
-        final_prediction = weighted_sum / total_weight if total_weight > 0 else np.mean([p.prediction for p in predictions])
+        final_prediction = (
+            weighted_sum / total_weight
+            if total_weight > 0
+            else np.mean([p.prediction for p in predictions])
+        )
 
         # Confidence based on rank consistency
         final_confidence = self._calculate_rank_consistency(predictions)
 
-        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(predictions)
+        consensus_metrics = self.consensus_analyzer.calculate_consensus_metrics(
+            predictions
+        )
 
         return VotingResult(
             final_prediction=final_prediction,
@@ -455,7 +525,7 @@ class VotingStrategies:
             model_weights=weights,
             consensus_metrics=consensus_metrics,
             quality_score=final_confidence,
-            explanation="Rank-based voting using Borda count method"
+            explanation="Rank-based voting using Borda count method",
         )
 
     def _calculate_rank_consistency(self, predictions: List[ModelPrediction]) -> float:
@@ -465,7 +535,7 @@ class VotingStrategies:
 
         # Simple rank consistency based on variance
         pred_values = [pred.prediction for pred in predictions]
-        normalized_variance = np.var(pred_values) / max(1.0, np.mean(pred_values)**2)
+        normalized_variance = np.var(pred_values) / max(1.0, np.mean(pred_values) ** 2)
         consistency = max(0.0, 1.0 - normalized_variance)
         return consistency
 
@@ -480,7 +550,7 @@ class VotingStrategies:
             model_weights={},
             consensus_metrics={},
             quality_score=0.0,
-            explanation="No valid predictions available"
+            explanation="No valid predictions available",
         )
 
 
@@ -490,11 +560,14 @@ class EnsembleVotingSystem:
     def __init__(self):
         self.voting_strategies = VotingStrategies()
         self.strategy_performance = defaultdict(deque)  # Track strategy performance
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
-    def vote(self, predictions: List[ModelPrediction],
-             strategy: VotingStrategy = VotingStrategy.ADAPTIVE_VOTING,
-             context: Dict[str, Any] = None) -> VotingResult:
+    def vote(
+        self,
+        predictions: List[ModelPrediction],
+        strategy: VotingStrategy = VotingStrategy.ADAPTIVE_VOTING,
+        context: Dict[str, Any] = None,
+    ) -> VotingResult:
         """Perform ensemble voting using specified strategy."""
         try:
             if not predictions:
@@ -509,7 +582,11 @@ class EnsembleVotingSystem:
                 return self._get_default_result(strategy)
 
             # Detect and handle outliers
-            outliers = self.voting_strategies.consensus_analyzer.detect_outlier_predictions(valid_predictions)
+            outliers = (
+                self.voting_strategies.consensus_analyzer.detect_outlier_predictions(
+                    valid_predictions
+                )
+            )
             if outliers:
                 logger.info(f"Detected outlier predictions from models: {outliers}")
                 # Option: remove outliers or flag them
@@ -519,15 +596,19 @@ class EnsembleVotingSystem:
             if strategy == VotingStrategy.SIMPLE_AVERAGE:
                 result = self.voting_strategies.simple_average(valid_predictions)
             elif strategy == VotingStrategy.WEIGHTED_AVERAGE:
-                model_perfs = context.get('model_performances', {}) if context else {}
-                result = self.voting_strategies.weighted_average(valid_predictions, model_perfs)
+                model_perfs = context.get("model_performances", {}) if context else {}
+                result = self.voting_strategies.weighted_average(
+                    valid_predictions, model_perfs
+                )
             elif strategy == VotingStrategy.CONFIDENCE_WEIGHTED:
                 result = self.voting_strategies.confidence_weighted(valid_predictions)
             elif strategy == VotingStrategy.RANK_BASED:
                 result = self.voting_strategies.rank_based_voting(valid_predictions)
             elif strategy == VotingStrategy.ADAPTIVE_VOTING:
-                query_features = context.get('query_features', []) if context else []
-                result = self.voting_strategies.adaptive_voting(valid_predictions, query_features, context)
+                query_features = context.get("query_features", []) if context else []
+                result = self.voting_strategies.adaptive_voting(
+                    valid_predictions, query_features, context
+                )
             else:
                 # Default to simple average
                 result = self.voting_strategies.simple_average(valid_predictions)
@@ -547,11 +628,11 @@ class EnsembleVotingSystem:
     def _is_valid_prediction(self, prediction: ModelPrediction) -> bool:
         """Check if a prediction is valid."""
         return (
-            prediction.prediction is not None and
-            0 <= prediction.prediction <= 100 and
-            0 <= prediction.confidence <= 1 and
-            prediction.model_id and
-            prediction.model_type
+            prediction.prediction is not None
+            and 0 <= prediction.prediction <= 100
+            and 0 <= prediction.confidence <= 1
+            and prediction.model_id
+            and prediction.model_type
         )
 
     def _post_process_result(self, result: VotingResult) -> VotingResult:
@@ -571,12 +652,12 @@ class EnsembleVotingSystem:
         """Cache voting result for analysis."""
         cache_key = f"voting_result_{int(timezone.now().timestamp())}"
         cache_data = {
-            'strategy': result.voting_strategy.value,
-            'prediction': result.final_prediction,
-            'confidence': result.final_confidence,
-            'quality': result.quality_score,
-            'model_count': len(result.model_predictions),
-            'timestamp': timezone.now().isoformat()
+            "strategy": result.voting_strategy.value,
+            "prediction": result.final_prediction,
+            "confidence": result.final_confidence,
+            "quality": result.quality_score,
+            "model_count": len(result.model_predictions),
+            "timestamp": timezone.now().isoformat(),
         }
         self.cache.set(cache_key, cache_data, timeout=3600)
 
@@ -591,7 +672,7 @@ class EnsembleVotingSystem:
             model_weights={},
             consensus_metrics={},
             quality_score=0.0,
-            explanation="Default result due to error or no valid predictions"
+            explanation="Default result due to error or no valid predictions",
         )
 
     def analyze_voting_performance(self, days_back: int = 7) -> Dict[str, Any]:
@@ -606,14 +687,14 @@ class EnsembleVotingSystem:
         """
         try:
             analysis = {
-                'total_votes': 0,
-                'strategy_usage': defaultdict(int),
-                'average_confidence': 0.0,
-                'average_quality': 0.0,
-                'consensus_trends': {},
-                'recommendations': [],
-                'performance_metrics': {},
-                'time_period_days': days_back
+                "total_votes": 0,
+                "strategy_usage": defaultdict(int),
+                "average_confidence": 0.0,
+                "average_quality": 0.0,
+                "consensus_trends": {},
+                "recommendations": [],
+                "performance_metrics": {},
+                "time_period_days": days_back,
             }
 
             # Calculate cutoff timestamp for filtering results
@@ -625,18 +706,24 @@ class EnsembleVotingSystem:
             cached_results = []
             try:
                 # Get Django cache backend client (Redis)
-                cache_client = self.cache._cache.get_client() if hasattr(self.cache, '_cache') else None
+                cache_client = (
+                    self.cache._cache.get_client()
+                    if hasattr(self.cache, "_cache")
+                    else None
+                )
 
-                if cache_client and hasattr(cache_client, 'keys'):
+                if cache_client and hasattr(cache_client, "keys"):
                     # Redis backend - can query by pattern
-                    pattern = 'voting_result_*'
+                    pattern = "voting_result_*"
                     keys = cache_client.keys(pattern)
 
                     for key in keys:
                         # Extract timestamp from key
                         try:
-                            key_str = key.decode('utf-8') if isinstance(key, bytes) else key
-                            timestamp_str = key_str.split('_')[-1]
+                            key_str = (
+                                key.decode("utf-8") if isinstance(key, bytes) else key
+                            )
+                            timestamp_str = key_str.split("_")[-1]
                             timestamp = int(timestamp_str)
 
                             # Only include results within time window
@@ -648,85 +735,115 @@ class EnsembleVotingSystem:
                             continue
                 else:
                     # Non-Redis backend - fall back to tracking via performance history
-                    logger.info("Cache backend doesn't support key pattern matching. Using limited analysis.")
+                    logger.info(
+                        "Cache backend doesn't support key pattern matching. Using limited analysis."
+                    )
 
             except Exception as cache_error:
-                logger.warning(f"Could not query cache keys: {cache_error}. Using alternative analysis method.")
+                logger.warning(
+                    f"Could not query cache keys: {cache_error}. Using alternative analysis method."
+                )
 
             # Compute statistics from cached results
             if cached_results:
                 total_votes = len(cached_results)
-                confidences = [r.get('confidence', 0.0) for r in cached_results]
-                qualities = [r.get('quality', 0.0) for r in cached_results]
-                model_counts = [r.get('model_count', 0) for r in cached_results]
+                confidences = [r.get("confidence", 0.0) for r in cached_results]
+                qualities = [r.get("quality", 0.0) for r in cached_results]
+                model_counts = [r.get("model_count", 0) for r in cached_results]
 
-                analysis['total_votes'] = total_votes
-                analysis['average_confidence'] = statistics.mean(confidences) if confidences else 0.0
-                analysis['average_quality'] = statistics.mean(qualities) if qualities else 0.0
-                analysis['confidence_std'] = statistics.stdev(confidences) if len(confidences) > 1 else 0.0
-                analysis['quality_std'] = statistics.stdev(qualities) if len(qualities) > 1 else 0.0
+                analysis["total_votes"] = total_votes
+                analysis["average_confidence"] = (
+                    statistics.mean(confidences) if confidences else 0.0
+                )
+                analysis["average_quality"] = (
+                    statistics.mean(qualities) if qualities else 0.0
+                )
+                analysis["confidence_std"] = (
+                    statistics.stdev(confidences) if len(confidences) > 1 else 0.0
+                )
+                analysis["quality_std"] = (
+                    statistics.stdev(qualities) if len(qualities) > 1 else 0.0
+                )
 
-                analysis['performance_metrics'] = {
-                    'min_confidence': min(confidences) if confidences else 0.0,
-                    'max_confidence': max(confidences) if confidences else 0.0,
-                    'median_confidence': statistics.median(confidences) if confidences else 0.0,
-                    'min_quality': min(qualities) if qualities else 0.0,
-                    'max_quality': max(qualities) if qualities else 0.0,
-                    'median_quality': statistics.median(qualities) if qualities else 0.0,
-                    'avg_model_count': statistics.mean(model_counts) if model_counts else 0.0
+                analysis["performance_metrics"] = {
+                    "min_confidence": min(confidences) if confidences else 0.0,
+                    "max_confidence": max(confidences) if confidences else 0.0,
+                    "median_confidence": (
+                        statistics.median(confidences) if confidences else 0.0
+                    ),
+                    "min_quality": min(qualities) if qualities else 0.0,
+                    "max_quality": max(qualities) if qualities else 0.0,
+                    "median_quality": (
+                        statistics.median(qualities) if qualities else 0.0
+                    ),
+                    "avg_model_count": (
+                        statistics.mean(model_counts) if model_counts else 0.0
+                    ),
                 }
 
                 # Generate recommendations based on metrics
                 recommendations = []
 
                 # Low confidence warning
-                if analysis['average_confidence'] < 0.5:
-                    recommendations.append({
-                        'type': 'warning',
-                        'metric': 'confidence',
-                        'message': f"Average confidence is low ({analysis['average_confidence']:.2f}). Consider retraining models or adjusting voting strategy."
-                    })
+                if analysis["average_confidence"] < 0.5:
+                    recommendations.append(
+                        {
+                            "type": "warning",
+                            "metric": "confidence",
+                            "message": f"Average confidence is low ({analysis['average_confidence']:.2f}). Consider retraining models or adjusting voting strategy.",
+                        }
+                    )
 
                 # High variance warning
-                if analysis.get('confidence_std', 0) > 0.3:
-                    recommendations.append({
-                        'type': 'warning',
-                        'metric': 'variance',
-                        'message': f"High confidence variance ({analysis['confidence_std']:.2f}) indicates inconsistent predictions. Review model diversity."
-                    })
+                if analysis.get("confidence_std", 0) > 0.3:
+                    recommendations.append(
+                        {
+                            "type": "warning",
+                            "metric": "variance",
+                            "message": f"High confidence variance ({analysis['confidence_std']:.2f}) indicates inconsistent predictions. Review model diversity.",
+                        }
+                    )
 
                 # Quality recommendations
-                if analysis['average_quality'] < 0.6:
-                    recommendations.append({
-                        'type': 'improvement',
-                        'metric': 'quality',
-                        'message': f"Average quality score is {analysis['average_quality']:.2f}. Consider ensemble optimization or model updates."
-                    })
-                elif analysis['average_quality'] > 0.85:
-                    recommendations.append({
-                        'type': 'success',
-                        'metric': 'quality',
-                        'message': f"Excellent quality score ({analysis['average_quality']:.2f}). Current ensemble is performing well."
-                    })
+                if analysis["average_quality"] < 0.6:
+                    recommendations.append(
+                        {
+                            "type": "improvement",
+                            "metric": "quality",
+                            "message": f"Average quality score is {analysis['average_quality']:.2f}. Consider ensemble optimization or model updates.",
+                        }
+                    )
+                elif analysis["average_quality"] > 0.85:
+                    recommendations.append(
+                        {
+                            "type": "success",
+                            "metric": "quality",
+                            "message": f"Excellent quality score ({analysis['average_quality']:.2f}). Current ensemble is performing well.",
+                        }
+                    )
 
                 # Model count recommendations
-                avg_model_count = analysis['performance_metrics']['avg_model_count']
+                avg_model_count = analysis["performance_metrics"]["avg_model_count"]
                 if avg_model_count < 2:
-                    recommendations.append({
-                        'type': 'warning',
-                        'metric': 'ensemble_size',
-                        'message': f"Low average model count ({avg_model_count:.1f}). Add more models for better ensemble performance."
-                    })
+                    recommendations.append(
+                        {
+                            "type": "warning",
+                            "metric": "ensemble_size",
+                            "message": f"Low average model count ({avg_model_count:.1f}). Add more models for better ensemble performance.",
+                        }
+                    )
 
-                analysis['recommendations'] = recommendations
+                analysis["recommendations"] = recommendations
 
             else:
                 # No cached results found
-                analysis['recommendations'] = [{
-                    'type': 'info',
-                    'metric': 'data',
-                    'message': f"No voting results found in the last {days_back} days. System may be new or cache may have been cleared."
-                }]
+                analysis["recommendations"] = [
+                    {
+                        "type": "info",
+                        "metric": "data",
+                        "message": f"No voting results found in the last {days_back} days. System may be new or cache may have been cleared.",
+                    }
+                ]
 
             # Add consensus trends if we have enough data
             if len(cached_results) >= 10:
@@ -735,14 +852,24 @@ class EnsembleVotingSystem:
                 recent_half = cached_results[half_point:]
                 older_half = cached_results[:half_point]
 
-                recent_conf = statistics.mean([r.get('confidence', 0.0) for r in recent_half])
-                older_conf = statistics.mean([r.get('confidence', 0.0) for r in older_half])
+                recent_conf = statistics.mean(
+                    [r.get("confidence", 0.0) for r in recent_half]
+                )
+                older_conf = statistics.mean(
+                    [r.get("confidence", 0.0) for r in older_half]
+                )
 
-                analysis['consensus_trends'] = {
-                    'confidence_trend': 'improving' if recent_conf > older_conf else 'declining',
-                    'recent_confidence': recent_conf,
-                    'older_confidence': older_conf,
-                    'change_percentage': ((recent_conf - older_conf) / older_conf * 100) if older_conf > 0 else 0.0
+                analysis["consensus_trends"] = {
+                    "confidence_trend": (
+                        "improving" if recent_conf > older_conf else "declining"
+                    ),
+                    "recent_confidence": recent_conf,
+                    "older_confidence": older_conf,
+                    "change_percentage": (
+                        ((recent_conf - older_conf) / older_conf * 100)
+                        if older_conf > 0
+                        else 0.0
+                    ),
                 }
 
             return analysis
@@ -750,22 +877,26 @@ class EnsembleVotingSystem:
         except Exception as e:
             logger.error(f"Error analyzing voting performance: {e}", exc_info=True)
             return {
-                'error': str(e),
-                'total_votes': 0,
-                'recommendations': [{
-                    'type': 'error',
-                    'metric': 'system',
-                    'message': f"Analysis failed: {str(e)}"
-                }]
+                "error": str(e),
+                "total_votes": 0,
+                "recommendations": [
+                    {
+                        "type": "error",
+                        "metric": "system",
+                        "message": f"Analysis failed: {str(e)}",
+                    }
+                ],
             }
 
-    def get_optimal_strategy(self, query_characteristics: Dict[str, Any]) -> VotingStrategy:
+    def get_optimal_strategy(
+        self, query_characteristics: Dict[str, Any]
+    ) -> VotingStrategy:
         """Recommend optimal voting strategy based on query characteristics."""
         try:
             # Analyze query characteristics to recommend strategy
-            complexity = query_characteristics.get('complexity', 0.5)
-            uncertainty = query_characteristics.get('uncertainty', 0.5)
-            model_count = query_characteristics.get('model_count', 3)
+            complexity = query_characteristics.get("complexity", 0.5)
+            uncertainty = query_characteristics.get("uncertainty", 0.5)
+            model_count = query_characteristics.get("model_count", 3)
 
             if model_count < 2:
                 return VotingStrategy.SIMPLE_AVERAGE
@@ -789,20 +920,22 @@ voting_system = EnsembleVotingSystem()
 
 
 # Django integration functions
-def perform_ensemble_vote(predictions: List[Dict[str, Any]],
-                         strategy: str = "adaptive_voting",
-                         context: Dict[str, Any] = None) -> Dict[str, Any]:
+def perform_ensemble_vote(
+    predictions: List[Dict[str, Any]],
+    strategy: str = "adaptive_voting",
+    context: Dict[str, Any] = None,
+) -> Dict[str, Any]:
     """Perform ensemble voting with predictions from multiple models."""
     try:
         # Convert dict predictions to ModelPrediction objects
         model_predictions = []
         for pred_dict in predictions:
             model_pred = ModelPrediction(
-                model_id=pred_dict['model_id'],
-                model_type=pred_dict['model_type'],
-                prediction=pred_dict['prediction'],
-                confidence=pred_dict['confidence'],
-                processing_time_ms=pred_dict.get('processing_time_ms', 0.0)
+                model_id=pred_dict["model_id"],
+                model_type=pred_dict["model_type"],
+                prediction=pred_dict["prediction"],
+                confidence=pred_dict["confidence"],
+                processing_time_ms=pred_dict.get("processing_time_ms", 0.0),
             )
             model_predictions.append(model_pred)
 
@@ -816,11 +949,7 @@ def perform_ensemble_vote(predictions: List[Dict[str, Any]],
 
     except Exception as e:
         logger.error(f"Error in ensemble voting: {e}")
-        return {
-            'final_prediction': 50.0,
-            'final_confidence': 0.1,
-            'error': str(e)
-        }
+        return {"final_prediction": 50.0, "final_confidence": 0.1, "error": str(e)}
 
 
 def get_recommended_voting_strategy(query_characteristics: Dict[str, Any]) -> str:
@@ -849,7 +978,7 @@ if __name__ == "__main__":
     strategies = [
         VotingStrategy.SIMPLE_AVERAGE,
         VotingStrategy.CONFIDENCE_WEIGHTED,
-        VotingStrategy.ADAPTIVE_VOTING
+        VotingStrategy.ADAPTIVE_VOTING,
     ]
 
     for strategy in strategies:

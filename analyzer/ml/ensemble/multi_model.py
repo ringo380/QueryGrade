@@ -5,40 +5,44 @@ This module implements multiple ML algorithms (Random Forest, XGBoost, Neural Ne
 with automatic model selection and ensemble capabilities for optimal query grading performance.
 """
 
-import logging
-import numpy as np
-import pickle
-import json
 import hashlib
+import json
+import logging
+import os
+import pickle
+import threading
 import time
-from typing import Dict, List, Optional, Tuple, Any, Union
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-import threading
-import os
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from django.conf import settings
 from django.core.cache import caches
-from django.utils import timezone
 from django.db import transaction
+from django.utils import timezone
 
 try:
     # Core ML libraries
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    from sklearn.linear_model import Ridge, ElasticNet
-    from sklearn.preprocessing import StandardScaler, RobustScaler
-    from sklearn.model_selection import cross_val_score, GridSearchCV
-    from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
     import joblib
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+    from sklearn.linear_model import ElasticNet, Ridge
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from sklearn.model_selection import GridSearchCV, cross_val_score
+    from sklearn.preprocessing import RobustScaler, StandardScaler
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
-    logging.warning("scikit-learn not available. Ensemble functionality will be limited.")
+    logging.warning(
+        "scikit-learn not available. Ensemble functionality will be limited."
+    )
 
 try:
     # XGBoost
     import xgboost as xgb
+
     XGBOOST_AVAILABLE = True
 except ImportError:
     XGBOOST_AVAILABLE = False
@@ -49,12 +53,14 @@ try:
     import tensorflow as tf
     from tensorflow import keras
     from tensorflow.keras import layers
+
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
     logging.warning("TensorFlow not available. Neural network models will be skipped.")
 
-from analyzer.models import Query, QueryAnalysis, TrainingData, MLModel
+from analyzer.models import MLModel, Query, QueryAnalysis, TrainingData
+
 from ..core.feature_extractor import FeatureExtractor
 
 logger = logging.getLogger(__name__)
@@ -62,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 class ModelType(Enum):
     """Types of ML models available in the ensemble."""
+
     RANDOM_FOREST = "random_forest"
     XGBOOST = "xgboost"
     NEURAL_NETWORK = "neural_network"
@@ -73,6 +80,7 @@ class ModelType(Enum):
 @dataclass
 class ModelConfiguration:
     """Configuration for a specific model type."""
+
     model_type: ModelType
     hyperparameters: Dict[str, Any]
     preprocessing: str  # 'standard', 'robust', 'none'
@@ -84,6 +92,7 @@ class ModelConfiguration:
 @dataclass
 class ModelPerformance:
     """Performance metrics for a model."""
+
     model_id: str
     model_type: ModelType
     training_score: float
@@ -99,6 +108,7 @@ class ModelPerformance:
 @dataclass
 class EnsembleResult:
     """Result from ensemble prediction."""
+
     final_prediction: float
     confidence: float
     model_predictions: Dict[str, float]
@@ -122,14 +132,14 @@ class RandomForestModel:
         params = self.config.hyperparameters
 
         default_params = {
-            'n_estimators': 200,
-            'max_depth': 15,
-            'min_samples_split': 5,
-            'min_samples_leaf': 2,
-            'max_features': 'sqrt',
-            'bootstrap': True,
-            'n_jobs': -1,
-            'random_state': 42
+            "n_estimators": 200,
+            "max_depth": 15,
+            "min_samples_split": 5,
+            "min_samples_leaf": 2,
+            "max_features": "sqrt",
+            "bootstrap": True,
+            "n_jobs": -1,
+            "random_state": 42,
         }
 
         # Merge with provided hyperparameters
@@ -153,9 +163,11 @@ class RandomForestModel:
 
         # Cross-validation
         cv_scores = cross_val_score(
-            self.model, X_processed, y,
+            self.model,
+            X_processed,
+            y,
             cv=self.config.cross_validation_folds,
-            scoring='r2'
+            scoring="r2",
         )
 
         training_time = time.time() - start_time
@@ -171,7 +183,9 @@ class RandomForestModel:
             training_time=training_time,
             prediction_time=0.0,  # Will be measured during prediction
             memory_usage_mb=self._estimate_memory_usage(),
-            feature_importance=self.model.feature_importances_.tolist() if self.model else None
+            feature_importance=(
+                self.model.feature_importances_.tolist() if self.model else None
+            ),
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -184,13 +198,13 @@ class RandomForestModel:
 
     def _preprocess_features(self, X: np.ndarray) -> np.ndarray:
         """Preprocess features according to configuration."""
-        if self.config.preprocessing == 'standard':
+        if self.config.preprocessing == "standard":
             if self.scaler is None:
                 self.scaler = StandardScaler()
                 return self.scaler.fit_transform(X)
             else:
                 return self.scaler.transform(X)
-        elif self.config.preprocessing == 'robust':
+        elif self.config.preprocessing == "robust":
             if self.scaler is None:
                 self.scaler = RobustScaler()
                 return self.scaler.fit_transform(X)
@@ -207,7 +221,9 @@ class RandomForestModel:
         # Rough estimation based on number of trees and features
         n_estimators = self.model.n_estimators
         n_features = self.model.n_features_in_
-        estimated_mb = (n_estimators * n_features * 8) / (1024 * 1024)  # 8 bytes per float
+        estimated_mb = (n_estimators * n_features * 8) / (
+            1024 * 1024
+        )  # 8 bytes per float
         return estimated_mb
 
 
@@ -220,7 +236,7 @@ class XGBoostModel:
         self.scaler = None
         self.trained = False
 
-    def create_model(self, n_features: int) -> 'xgb.XGBRegressor':
+    def create_model(self, n_features: int) -> "xgb.XGBRegressor":
         """Create XGBoost model with optimized hyperparameters."""
         if not XGBOOST_AVAILABLE:
             raise ImportError("XGBoost is not available")
@@ -228,15 +244,15 @@ class XGBoostModel:
         params = self.config.hyperparameters
 
         default_params = {
-            'n_estimators': 300,
-            'max_depth': 8,
-            'learning_rate': 0.1,
-            'subsample': 0.8,
-            'colsample_bytree': 0.8,
-            'reg_alpha': 0.1,
-            'reg_lambda': 1.0,
-            'random_state': 42,
-            'n_jobs': -1
+            "n_estimators": 300,
+            "max_depth": 8,
+            "learning_rate": 0.1,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "reg_alpha": 0.1,
+            "reg_lambda": 1.0,
+            "random_state": 42,
+            "n_jobs": -1,
         }
 
         final_params = {**default_params, **params}
@@ -260,11 +276,7 @@ class XGBoostModel:
             X_train, X_val = X_processed[:split_idx], X_processed[split_idx:]
             y_train, y_val = y[:split_idx], y[split_idx:]
 
-            self.model.fit(
-                X_train, y_train,
-                eval_set=[(X_val, y_val)],
-                verbose=False
-            )
+            self.model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
         else:
             self.model.fit(X_processed, y)
 
@@ -273,9 +285,11 @@ class XGBoostModel:
 
         # Cross-validation
         cv_scores = cross_val_score(
-            self.model, X_processed, y,
+            self.model,
+            X_processed,
+            y,
             cv=self.config.cross_validation_folds,
-            scoring='r2'
+            scoring="r2",
         )
 
         training_time = time.time() - start_time
@@ -291,7 +305,9 @@ class XGBoostModel:
             training_time=training_time,
             prediction_time=0.0,
             memory_usage_mb=self._estimate_memory_usage(),
-            feature_importance=self.model.feature_importances_.tolist() if self.model else None
+            feature_importance=(
+                self.model.feature_importances_.tolist() if self.model else None
+            ),
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -304,13 +320,13 @@ class XGBoostModel:
 
     def _preprocess_features(self, X: np.ndarray) -> np.ndarray:
         """Preprocess features according to configuration."""
-        if self.config.preprocessing == 'standard':
+        if self.config.preprocessing == "standard":
             if self.scaler is None:
                 self.scaler = StandardScaler()
                 return self.scaler.fit_transform(X)
             else:
                 return self.scaler.transform(X)
-        elif self.config.preprocessing == 'robust':
+        elif self.config.preprocessing == "robust":
             if self.scaler is None:
                 self.scaler = RobustScaler()
                 return self.scaler.fit_transform(X)
@@ -337,7 +353,7 @@ class NeuralNetworkModel:
         self.trained = False
         self.history = None
 
-    def create_model(self, n_features: int) -> 'tf.keras.Model':
+    def create_model(self, n_features: int) -> "tf.keras.Model":
         """Create neural network model."""
         if not TENSORFLOW_AVAILABLE:
             raise ImportError("TensorFlow is not available")
@@ -345,20 +361,20 @@ class NeuralNetworkModel:
         params = self.config.hyperparameters
 
         # Default architecture
-        hidden_layers = params.get('hidden_layers', [128, 64, 32])
-        dropout_rate = params.get('dropout_rate', 0.3)
-        activation = params.get('activation', 'relu')
-        learning_rate = params.get('learning_rate', 0.001)
+        hidden_layers = params.get("hidden_layers", [128, 64, 32])
+        dropout_rate = params.get("dropout_rate", 0.3)
+        activation = params.get("activation", "relu")
+        learning_rate = params.get("learning_rate", 0.001)
 
         # Build model
         model = keras.Sequential()
 
         # Input layer
-        model.add(layers.Dense(
-            hidden_layers[0],
-            activation=activation,
-            input_shape=(n_features,)
-        ))
+        model.add(
+            layers.Dense(
+                hidden_layers[0], activation=activation, input_shape=(n_features,)
+            )
+        )
         model.add(layers.Dropout(dropout_rate))
 
         # Hidden layers
@@ -367,15 +383,11 @@ class NeuralNetworkModel:
             model.add(layers.Dropout(dropout_rate))
 
         # Output layer
-        model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation="linear"))
 
         # Compile model
         optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
-        model.compile(
-            optimizer=optimizer,
-            loss='mse',
-            metrics=['mae', 'mse']
-        )
+        model.compile(optimizer=optimizer, loss="mse", metrics=["mae", "mse"])
 
         return model
 
@@ -391,28 +403,27 @@ class NeuralNetworkModel:
 
         # Training configuration
         params = self.config.hyperparameters
-        epochs = params.get('epochs', 100)
-        batch_size = params.get('batch_size', 32)
-        validation_split = params.get('validation_split', 0.2)
+        epochs = params.get("epochs", 100)
+        batch_size = params.get("batch_size", 32)
+        validation_split = params.get("validation_split", 0.2)
 
         # Callbacks
         callbacks = []
         if self.config.early_stopping:
             early_stopping = keras.callbacks.EarlyStopping(
-                monitor='val_loss',
-                patience=10,
-                restore_best_weights=True
+                monitor="val_loss", patience=10, restore_best_weights=True
             )
             callbacks.append(early_stopping)
 
         # Train model
         self.history = self.model.fit(
-            X_processed, y,
+            X_processed,
+            y,
             epochs=epochs,
             batch_size=batch_size,
             validation_split=validation_split,
             callbacks=callbacks,
-            verbose=0
+            verbose=0,
         )
 
         # Calculate performance metrics
@@ -420,8 +431,10 @@ class NeuralNetworkModel:
         training_score = r2_score(y, training_predictions.flatten())
 
         # Validation score from training history
-        validation_score = max(self.history.history.get('val_loss', [0]))
-        validation_score = 1.0 - validation_score / 100.0  # Convert loss to R2-like score
+        validation_score = max(self.history.history.get("val_loss", [0]))
+        validation_score = (
+            1.0 - validation_score / 100.0
+        )  # Convert loss to R2-like score
 
         training_time = time.time() - start_time
         self.trained = True
@@ -435,7 +448,7 @@ class NeuralNetworkModel:
             cross_val_std=0.0,  # Not applicable for NN
             training_time=training_time,
             prediction_time=0.0,
-            memory_usage_mb=self._estimate_memory_usage()
+            memory_usage_mb=self._estimate_memory_usage(),
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -478,7 +491,7 @@ class MultiModelEnsemble:
         self.model_configs = self._get_default_configurations()
 
         # Cache
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
         # Threading
         self.training_lock = threading.Lock()
@@ -489,53 +502,52 @@ class MultiModelEnsemble:
             ModelType.RANDOM_FOREST: ModelConfiguration(
                 model_type=ModelType.RANDOM_FOREST,
                 hyperparameters={
-                    'n_estimators': 200,
-                    'max_depth': 15,
-                    'min_samples_split': 5
+                    "n_estimators": 200,
+                    "max_depth": 15,
+                    "min_samples_split": 5,
                 },
-                preprocessing='none',
-                cross_validation_folds=5
+                preprocessing="none",
+                cross_validation_folds=5,
             ),
-
             ModelType.XGBOOST: ModelConfiguration(
                 model_type=ModelType.XGBOOST,
                 hyperparameters={
-                    'n_estimators': 300,
-                    'max_depth': 8,
-                    'learning_rate': 0.1
+                    "n_estimators": 300,
+                    "max_depth": 8,
+                    "learning_rate": 0.1,
                 },
-                preprocessing='standard',
+                preprocessing="standard",
                 cross_validation_folds=5,
-                early_stopping=True
+                early_stopping=True,
             ),
-
             ModelType.NEURAL_NETWORK: ModelConfiguration(
                 model_type=ModelType.NEURAL_NETWORK,
                 hyperparameters={
-                    'hidden_layers': [128, 64, 32],
-                    'dropout_rate': 0.3,
-                    'learning_rate': 0.001,
-                    'epochs': 100,
-                    'batch_size': 32
+                    "hidden_layers": [128, 64, 32],
+                    "dropout_rate": 0.3,
+                    "learning_rate": 0.001,
+                    "epochs": 100,
+                    "batch_size": 32,
                 },
-                preprocessing='standard',
+                preprocessing="standard",
                 cross_validation_folds=3,
-                early_stopping=True
+                early_stopping=True,
             ),
-
             ModelType.GRADIENT_BOOSTING: ModelConfiguration(
                 model_type=ModelType.GRADIENT_BOOSTING,
                 hyperparameters={
-                    'n_estimators': 200,
-                    'learning_rate': 0.1,
-                    'max_depth': 6
+                    "n_estimators": 200,
+                    "learning_rate": 0.1,
+                    "max_depth": 6,
                 },
-                preprocessing='standard',
-                cross_validation_folds=5
-            )
+                preprocessing="standard",
+                cross_validation_folds=5,
+            ),
         }
 
-    def train_all_models(self, training_data: List['TrainingData']) -> Dict[ModelType, ModelPerformance]:
+    def train_all_models(
+        self, training_data: List["TrainingData"]
+    ) -> Dict[ModelType, ModelPerformance]:
         """Train all available models with the given training data."""
         with self.training_lock:
             try:
@@ -553,11 +565,15 @@ class MultiModelEnsemble:
                 # Train Random Forest
                 if SKLEARN_AVAILABLE:
                     try:
-                        rf_model = RandomForestModel(self.model_configs[ModelType.RANDOM_FOREST])
+                        rf_model = RandomForestModel(
+                            self.model_configs[ModelType.RANDOM_FOREST]
+                        )
                         rf_performance = rf_model.train(X, y)
                         self.models[ModelType.RANDOM_FOREST] = rf_model
                         performances[ModelType.RANDOM_FOREST] = rf_performance
-                        logger.info(f"Random Forest trained: R2={rf_performance.cross_val_mean:.3f}")
+                        logger.info(
+                            f"Random Forest trained: R2={rf_performance.cross_val_mean:.3f}"
+                        )
                     except Exception as e:
                         logger.error(f"Error training Random Forest: {e}")
 
@@ -568,28 +584,40 @@ class MultiModelEnsemble:
                         xgb_performance = xgb_model.train(X, y)
                         self.models[ModelType.XGBOOST] = xgb_model
                         performances[ModelType.XGBOOST] = xgb_performance
-                        logger.info(f"XGBoost trained: R2={xgb_performance.cross_val_mean:.3f}")
+                        logger.info(
+                            f"XGBoost trained: R2={xgb_performance.cross_val_mean:.3f}"
+                        )
                     except Exception as e:
                         logger.error(f"Error training XGBoost: {e}")
 
                 # Train Neural Network
                 if TENSORFLOW_AVAILABLE:
                     try:
-                        nn_model = NeuralNetworkModel(self.model_configs[ModelType.NEURAL_NETWORK])
+                        nn_model = NeuralNetworkModel(
+                            self.model_configs[ModelType.NEURAL_NETWORK]
+                        )
                         nn_performance = nn_model.train(X, y)
                         self.models[ModelType.NEURAL_NETWORK] = nn_model
                         performances[ModelType.NEURAL_NETWORK] = nn_performance
-                        logger.info(f"Neural Network trained: R2={nn_performance.validation_score:.3f}")
+                        logger.info(
+                            f"Neural Network trained: R2={nn_performance.validation_score:.3f}"
+                        )
                     except Exception as e:
                         logger.error(f"Error training Neural Network: {e}")
 
                 # Train Gradient Boosting
                 if SKLEARN_AVAILABLE:
                     try:
-                        gb_model = self._create_sklearn_model(ModelType.GRADIENT_BOOSTING)
-                        gb_performance = self._train_sklearn_model(gb_model, X, y, ModelType.GRADIENT_BOOSTING)
+                        gb_model = self._create_sklearn_model(
+                            ModelType.GRADIENT_BOOSTING
+                        )
+                        gb_performance = self._train_sklearn_model(
+                            gb_model, X, y, ModelType.GRADIENT_BOOSTING
+                        )
                         performances[ModelType.GRADIENT_BOOSTING] = gb_performance
-                        logger.info(f"Gradient Boosting trained: R2={gb_performance.cross_val_mean:.3f}")
+                        logger.info(
+                            f"Gradient Boosting trained: R2={gb_performance.cross_val_mean:.3f}"
+                        )
                     except Exception as e:
                         logger.error(f"Error training Gradient Boosting: {e}")
 
@@ -602,14 +630,18 @@ class MultiModelEnsemble:
                 # Cache results
                 self._cache_ensemble_results(performances)
 
-                logger.info(f"Ensemble training completed with {len(performances)} models")
+                logger.info(
+                    f"Ensemble training completed with {len(performances)} models"
+                )
                 return performances
 
             except Exception as e:
                 logger.error(f"Error in ensemble training: {e}")
                 return {}
 
-    def _prepare_training_data(self, training_data: List['TrainingData']) -> Tuple[np.ndarray, np.ndarray]:
+    def _prepare_training_data(
+        self, training_data: List["TrainingData"]
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare training data for model training."""
         X = []
         y = []
@@ -624,7 +656,9 @@ class MultiModelEnsemble:
                     target_score = (data.user_grade_avg - 1) * 25
                     y.append(target_score)
             except Exception as e:
-                logger.warning(f"Error extracting features for query {data.query.id}: {e}")
+                logger.warning(
+                    f"Error extracting features for query {data.query.id}: {e}"
+                )
 
         return np.array(X), np.array(y)
 
@@ -642,14 +676,15 @@ class MultiModelEnsemble:
         else:
             raise ValueError(f"Unknown sklearn model type: {model_type}")
 
-    def _train_sklearn_model(self, model, X: np.ndarray, y: np.ndarray,
-                           model_type: ModelType) -> ModelPerformance:
+    def _train_sklearn_model(
+        self, model, X: np.ndarray, y: np.ndarray, model_type: ModelType
+    ) -> ModelPerformance:
         """Train a generic sklearn model."""
         start_time = time.time()
 
         # Preprocessing
         config = self.model_configs[model_type]
-        if config.preprocessing == 'standard':
+        if config.preprocessing == "standard":
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
         else:
@@ -659,11 +694,16 @@ class MultiModelEnsemble:
         model.fit(X_scaled, y)
 
         # Store model and scaler
-        self.models[model_type] = {'model': model, 'scaler': scaler if config.preprocessing == 'standard' else None}
+        self.models[model_type] = {
+            "model": model,
+            "scaler": scaler if config.preprocessing == "standard" else None,
+        }
 
         # Performance metrics
         training_score = model.score(X_scaled, y)
-        cv_scores = cross_val_score(model, X_scaled, y, cv=config.cross_validation_folds, scoring='r2')
+        cv_scores = cross_val_score(
+            model, X_scaled, y, cv=config.cross_validation_folds, scoring="r2"
+        )
 
         training_time = time.time() - start_time
 
@@ -676,16 +716,20 @@ class MultiModelEnsemble:
             cross_val_std=cv_scores.std(),
             training_time=training_time,
             prediction_time=0.0,
-            memory_usage_mb=1.0  # Rough estimate
+            memory_usage_mb=1.0,  # Rough estimate
         )
 
-    def _calculate_ensemble_weights(self, performances: Dict[ModelType, ModelPerformance]):
+    def _calculate_ensemble_weights(
+        self, performances: Dict[ModelType, ModelPerformance]
+    ):
         """Calculate weights for ensemble based on model performances."""
         if not performances:
             return
 
         # Use cross-validation scores for weighting
-        scores = {model_type: perf.cross_val_mean for model_type, perf in performances.items()}
+        scores = {
+            model_type: perf.cross_val_mean for model_type, perf in performances.items()
+        }
         total_score = sum(max(0, score) for score in scores.values())
 
         if total_score > 0:
@@ -697,8 +741,7 @@ class MultiModelEnsemble:
             # Equal weights if all models perform poorly
             n_models = len(performances)
             self.ensemble_weights = {
-                model_type: 1.0 / n_models
-                for model_type in performances.keys()
+                model_type: 1.0 / n_models for model_type in performances.keys()
             }
 
         logger.info(f"Ensemble weights: {self.ensemble_weights}")
@@ -713,8 +756,8 @@ class MultiModelEnsemble:
             for model_type, model in self.models.items():
                 try:
                     if isinstance(model, dict):  # sklearn models
-                        sklearn_model = model['model']
-                        scaler = model.get('scaler')
+                        sklearn_model = model["model"]
+                        scaler = model.get("scaler")
                         X_input = scaler.transform(X) if scaler else X
                         prediction = sklearn_model.predict(X_input)[0]
                     else:  # Custom model classes
@@ -723,7 +766,9 @@ class MultiModelEnsemble:
                     model_predictions[model_type.value] = float(prediction)
 
                 except Exception as e:
-                    logger.warning(f"Error getting prediction from {model_type.value}: {e}")
+                    logger.warning(
+                        f"Error getting prediction from {model_type.value}: {e}"
+                    )
 
             if not model_predictions:
                 return EnsembleResult(
@@ -732,7 +777,7 @@ class MultiModelEnsemble:
                     model_predictions={},
                     model_weights={},
                     consensus_score=0.0,
-                    best_individual_model="none"
+                    best_individual_model="none",
                 )
 
             # Calculate weighted ensemble prediction
@@ -745,22 +790,35 @@ class MultiModelEnsemble:
                 weighted_sum += prediction * weight
                 total_weight += weight
 
-            final_prediction = weighted_sum / total_weight if total_weight > 0 else np.mean(list(model_predictions.values()))
+            final_prediction = (
+                weighted_sum / total_weight
+                if total_weight > 0
+                else np.mean(list(model_predictions.values()))
+            )
 
             # Calculate consensus score (how much models agree)
             predictions_array = np.array(list(model_predictions.values()))
-            consensus_score = 1.0 - (np.std(predictions_array) / max(1.0, np.mean(predictions_array)))
+            consensus_score = 1.0 - (
+                np.std(predictions_array) / max(1.0, np.mean(predictions_array))
+            )
             consensus_score = max(0.0, min(1.0, consensus_score))
 
             # Calculate confidence based on consensus and model performance
-            avg_performance = np.mean([perf.cross_val_mean for perf in self.model_performances.values()])
+            avg_performance = np.mean(
+                [perf.cross_val_mean for perf in self.model_performances.values()]
+            )
             confidence = (consensus_score * 0.6) + (avg_performance * 0.4)
 
             # Find best individual model
-            best_model = max(self.model_performances.items(), key=lambda x: x[1].cross_val_mean)[0]
+            best_model = max(
+                self.model_performances.items(), key=lambda x: x[1].cross_val_mean
+            )[0]
 
             # Convert weights to string keys for JSON serialization
-            model_weights = {model_type.value: weight for model_type, weight in self.ensemble_weights.items()}
+            model_weights = {
+                model_type.value: weight
+                for model_type, weight in self.ensemble_weights.items()
+            }
 
             return EnsembleResult(
                 final_prediction=final_prediction,
@@ -768,7 +826,7 @@ class MultiModelEnsemble:
                 model_predictions=model_predictions,
                 model_weights=model_weights,
                 consensus_score=consensus_score,
-                best_individual_model=best_model.value
+                best_individual_model=best_model.value,
             )
 
         except Exception as e:
@@ -779,7 +837,7 @@ class MultiModelEnsemble:
                 model_predictions={},
                 model_weights={},
                 consensus_score=0.0,
-                best_individual_model="error"
+                best_individual_model="error",
             )
 
     def get_best_model(self) -> Tuple[ModelType, ModelPerformance]:
@@ -788,8 +846,7 @@ class MultiModelEnsemble:
             raise ValueError("No models have been trained")
 
         best_model_type = max(
-            self.model_performances.items(),
-            key=lambda x: x[1].cross_val_mean
+            self.model_performances.items(), key=lambda x: x[1].cross_val_mean
         )
 
         return best_model_type
@@ -797,33 +854,39 @@ class MultiModelEnsemble:
     def _cache_ensemble_results(self, performances: Dict[ModelType, ModelPerformance]):
         """Cache ensemble training results."""
         cache_data = {
-            'performances': {model_type.value: asdict(perf) for model_type, perf in performances.items()},
-            'weights': {model_type.value: weight for model_type, weight in self.ensemble_weights.items()},
-            'trained_at': timezone.now().isoformat(),
-            'model_count': len(performances)
+            "performances": {
+                model_type.value: asdict(perf)
+                for model_type, perf in performances.items()
+            },
+            "weights": {
+                model_type.value: weight
+                for model_type, weight in self.ensemble_weights.items()
+            },
+            "trained_at": timezone.now().isoformat(),
+            "model_count": len(performances),
         }
 
-        self.cache.set('ensemble_training_results', cache_data, timeout=86400)
+        self.cache.set("ensemble_training_results", cache_data, timeout=86400)
 
     def save_ensemble(self, filepath: str) -> bool:
         """Save the entire ensemble to file."""
         try:
             ensemble_data = {
-                'models': {},
-                'performances': self.model_performances,
-                'weights': self.ensemble_weights,
-                'configs': self.model_configs,
-                'saved_at': timezone.now().isoformat()
+                "models": {},
+                "performances": self.model_performances,
+                "weights": self.ensemble_weights,
+                "configs": self.model_configs,
+                "saved_at": timezone.now().isoformat(),
             }
 
             # Save models
             for model_type, model in self.models.items():
                 model_path = f"{filepath}_{model_type.value}.pkl"
                 joblib.dump(model, model_path)
-                ensemble_data['models'][model_type.value] = model_path
+                ensemble_data["models"][model_type.value] = model_path
 
             # Save ensemble metadata
-            with open(f"{filepath}_ensemble.json", 'w') as f:
+            with open(f"{filepath}_ensemble.json", "w") as f:
                 json.dump(ensemble_data, f, indent=2, default=str)
 
             logger.info(f"Ensemble saved to {filepath}")
@@ -837,19 +900,19 @@ class MultiModelEnsemble:
         """Load ensemble from file."""
         try:
             # Load ensemble metadata
-            with open(f"{filepath}_ensemble.json", 'r') as f:
+            with open(f"{filepath}_ensemble.json", "r") as f:
                 ensemble_data = json.load(f)
 
             # Load models
-            for model_type_str, model_path in ensemble_data['models'].items():
+            for model_type_str, model_path in ensemble_data["models"].items():
                 model_type = ModelType(model_type_str)
                 model = joblib.load(model_path)
                 self.models[model_type] = model
 
             # Load other data
-            self.model_performances = ensemble_data['performances']
+            self.model_performances = ensemble_data["performances"]
             self.ensemble_weights = {
-                ModelType(k): v for k, v in ensemble_data['weights'].items()
+                ModelType(k): v for k, v in ensemble_data["weights"].items()
             }
 
             logger.info(f"Ensemble loaded from {filepath}")
@@ -865,14 +928,18 @@ model_ensemble = MultiModelEnsemble()
 
 
 # Django integration functions
-def train_model_ensemble(training_data: List['TrainingData']) -> Dict[str, Any]:
+def train_model_ensemble(training_data: List["TrainingData"]) -> Dict[str, Any]:
     """Train the complete model ensemble."""
     performances = model_ensemble.train_all_models(training_data)
     return {
-        'success': len(performances) > 0,
-        'models_trained': list(performances.keys()),
-        'best_model': model_ensemble.get_best_model()[0].value if performances else None,
-        'training_results': {model_type.value: asdict(perf) for model_type, perf in performances.items()}
+        "success": len(performances) > 0,
+        "models_trained": list(performances.keys()),
+        "best_model": (
+            model_ensemble.get_best_model()[0].value if performances else None
+        ),
+        "training_results": {
+            model_type.value: asdict(perf) for model_type, perf in performances.items()
+        },
     }
 
 
@@ -885,10 +952,22 @@ def get_ensemble_prediction(features: List[float]) -> Dict[str, Any]:
 def get_ensemble_status() -> Dict[str, Any]:
     """Get current ensemble status."""
     return {
-        'models_available': [model_type.value for model_type in model_ensemble.models.keys()],
-        'ensemble_weights': {model_type.value: weight for model_type, weight in model_ensemble.ensemble_weights.items()},
-        'performances': {model_type.value: asdict(perf) for model_type, perf in model_ensemble.model_performances.items()},
-        'best_model': model_ensemble.get_best_model()[0].value if model_ensemble.model_performances else None
+        "models_available": [
+            model_type.value for model_type in model_ensemble.models.keys()
+        ],
+        "ensemble_weights": {
+            model_type.value: weight
+            for model_type, weight in model_ensemble.ensemble_weights.items()
+        },
+        "performances": {
+            model_type.value: asdict(perf)
+            for model_type, perf in model_ensemble.model_performances.items()
+        },
+        "best_model": (
+            model_ensemble.get_best_model()[0].value
+            if model_ensemble.model_performances
+            else None
+        ),
     }
 
 
@@ -903,4 +982,6 @@ if __name__ == "__main__":
 
     print("Multi-model ensemble system initialized")
     print(f"Available model types: {[mt.value for mt in ModelType]}")
-    print(f"Libraries available - sklearn: {SKLEARN_AVAILABLE}, XGBoost: {XGBOOST_AVAILABLE}, TensorFlow: {TENSORFLOW_AVAILABLE}")
+    print(
+        f"Libraries available - sklearn: {SKLEARN_AVAILABLE}, XGBoost: {XGBOOST_AVAILABLE}, TensorFlow: {TENSORFLOW_AVAILABLE}"
+    )

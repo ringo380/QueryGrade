@@ -6,38 +6,40 @@ automatic model selection, A/B testing capabilities, and intelligent model
 lifecycle management.
 """
 
-import logging
-import numpy as np
 import json
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
-from collections import deque, defaultdict
-from enum import Enum
+import logging
+import statistics
 import threading
 import time
-import statistics
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 from django.core.cache import caches
-from django.utils import timezone
 from django.db import transaction
 from django.db.models import Avg, Count, Max, Min
+from django.utils import timezone
 
 try:
-    from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
     from scipy import stats
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
     logging.warning("sklearn/scipy not available. Some metrics will be limited.")
 
-from analyzer.models import Query, QueryAnalysis, MLModel, LearningMetrics
+from analyzer.models import LearningMetrics, MLModel, Query, QueryAnalysis
 
 logger = logging.getLogger(__name__)
 
 
 class ModelStatus(Enum):
     """Status of models in the system."""
+
     ACTIVE = "active"
     CANDIDATE = "candidate"
     DEPRECATED = "deprecated"
@@ -48,6 +50,7 @@ class ModelStatus(Enum):
 
 class SelectionCriteria(Enum):
     """Criteria for automatic model selection."""
+
     ACCURACY = "accuracy"
     SPEED = "speed"
     RELIABILITY = "reliability"
@@ -59,6 +62,7 @@ class SelectionCriteria(Enum):
 @dataclass
 class PerformanceMetrics:
     """Comprehensive performance metrics for a model."""
+
     model_id: str
     model_type: str
     accuracy_score: float
@@ -79,6 +83,7 @@ class PerformanceMetrics:
 @dataclass
 class ModelComparison:
     """Comparison between two models."""
+
     model_a_id: str
     model_b_id: str
     metric_comparisons: Dict[str, float]  # Difference (A - B)
@@ -91,6 +96,7 @@ class ModelComparison:
 @dataclass
 class ABTestResult:
     """Results from A/B testing between models."""
+
     test_id: str
     model_a_id: str
     model_b_id: str
@@ -121,17 +127,23 @@ class PerformanceTracker:
         self.evaluation_window = 1000
         self.min_samples_for_eval = 50
 
-    def record_prediction(self, model_id: str, query_id: int, prediction: float,
-                         confidence: float, processing_time_ms: float,
-                         actual_score: Optional[float] = None):
+    def record_prediction(
+        self,
+        model_id: str,
+        query_id: int,
+        prediction: float,
+        confidence: float,
+        processing_time_ms: float,
+        actual_score: Optional[float] = None,
+    ):
         """Record a model prediction for performance tracking."""
         prediction_record = {
-            'query_id': query_id,
-            'prediction': prediction,
-            'confidence': confidence,
-            'processing_time_ms': processing_time_ms,
-            'actual_score': actual_score,
-            'timestamp': timezone.now()
+            "query_id": query_id,
+            "prediction": prediction,
+            "confidence": confidence,
+            "processing_time_ms": processing_time_ms,
+            "actual_score": actual_score,
+            "timestamp": timezone.now(),
         }
 
         # Add to cache
@@ -141,14 +153,15 @@ class PerformanceTracker:
         if len(self.prediction_cache[model_id]) > self.history_size:
             self.prediction_cache[model_id].popleft()
 
-    def record_feedback(self, model_id: str, query_id: int, user_feedback: float,
-                       user_satisfaction: int):
+    def record_feedback(
+        self, model_id: str, query_id: int, user_feedback: float, user_satisfaction: int
+    ):
         """Record user feedback for a model prediction."""
         feedback_record = {
-            'query_id': query_id,
-            'user_feedback': user_feedback,
-            'user_satisfaction': user_satisfaction,
-            'timestamp': timezone.now()
+            "query_id": query_id,
+            "user_feedback": user_feedback,
+            "user_satisfaction": user_satisfaction,
+            "timestamp": timezone.now(),
         }
 
         self.feedback_cache[model_id].append(feedback_record)
@@ -157,25 +170,35 @@ class PerformanceTracker:
         if len(self.feedback_cache[model_id]) > self.history_size:
             self.feedback_cache[model_id].popleft()
 
-    def calculate_performance_metrics(self, model_id: str) -> Optional[PerformanceMetrics]:
+    def calculate_performance_metrics(
+        self, model_id: str
+    ) -> Optional[PerformanceMetrics]:
         """Calculate comprehensive performance metrics for a model."""
         try:
             predictions = list(self.prediction_cache[model_id])
             feedback = list(self.feedback_cache[model_id])
 
             if len(predictions) < self.min_samples_for_eval:
-                logger.warning(f"Insufficient predictions for model {model_id}: {len(predictions)}")
+                logger.warning(
+                    f"Insufficient predictions for model {model_id}: {len(predictions)}"
+                )
                 return None
 
             # Extract data
-            pred_values = [p['prediction'] for p in predictions if p['actual_score'] is not None]
-            actual_values = [p['actual_score'] for p in predictions if p['actual_score'] is not None]
-            confidences = [p['confidence'] for p in predictions]
-            processing_times = [p['processing_time_ms'] for p in predictions]
+            pred_values = [
+                p["prediction"] for p in predictions if p["actual_score"] is not None
+            ]
+            actual_values = [
+                p["actual_score"] for p in predictions if p["actual_score"] is not None
+            ]
+            confidences = [p["confidence"] for p in predictions]
+            processing_times = [p["processing_time_ms"] for p in predictions]
 
             # Calculate accuracy metrics
             accuracy_score = self._calculate_accuracy(pred_values, actual_values)
-            calibration_score = self._calculate_calibration(pred_values, actual_values, confidences)
+            calibration_score = self._calculate_calibration(
+                pred_values, actual_values, confidences
+            )
 
             # Calculate speed metrics
             avg_speed = np.mean(processing_times) if processing_times else 0.0
@@ -190,15 +213,17 @@ class PerformanceTracker:
             user_satisfaction = self._calculate_user_satisfaction(feedback)
 
             # Calculate confidence accuracy
-            confidence_accuracy = self._calculate_confidence_accuracy(pred_values, actual_values, confidences)
+            confidence_accuracy = self._calculate_confidence_accuracy(
+                pred_values, actual_values, confidences
+            )
 
             return PerformanceMetrics(
                 model_id=model_id,
                 model_type=self._get_model_type(model_id),
                 accuracy_score=accuracy_score,
                 precision_score=accuracy_score,  # Simplified for regression
-                recall_score=accuracy_score,     # Simplified for regression
-                f1_score=accuracy_score,         # Simplified for regression
+                recall_score=accuracy_score,  # Simplified for regression
+                f1_score=accuracy_score,  # Simplified for regression
                 calibration_score=calibration_score,
                 prediction_speed_ms=avg_speed,
                 memory_usage_mb=self._estimate_memory_usage(model_id),
@@ -207,14 +232,16 @@ class PerformanceTracker:
                 user_satisfaction=user_satisfaction,
                 confidence_accuracy=confidence_accuracy,
                 drift_resistance=self._calculate_drift_resistance(predictions),
-                timestamp=timezone.now()
+                timestamp=timezone.now(),
             )
 
         except Exception as e:
             logger.error(f"Error calculating performance metrics for {model_id}: {e}")
             return None
 
-    def _calculate_accuracy(self, predictions: List[float], actuals: List[float]) -> float:
+    def _calculate_accuracy(
+        self, predictions: List[float], actuals: List[float]
+    ) -> float:
         """Calculate accuracy score."""
         if not predictions or not actuals or len(predictions) != len(actuals):
             return 0.0
@@ -232,8 +259,9 @@ class PerformanceTracker:
         except:
             return 0.0
 
-    def _calculate_calibration(self, predictions: List[float], actuals: List[float],
-                             confidences: List[float]) -> float:
+    def _calculate_calibration(
+        self, predictions: List[float], actuals: List[float], confidences: List[float]
+    ) -> float:
         """Calculate calibration score (how well confidence matches accuracy)."""
         if len(predictions) != len(actuals) or len(predictions) != len(confidences):
             return 0.5
@@ -255,7 +283,9 @@ class PerformanceTracker:
                         bin_confidences.append(conf)
 
                 if bin_predictions:
-                    bin_accuracy = self._calculate_accuracy(bin_predictions, bin_actuals)
+                    bin_accuracy = self._calculate_accuracy(
+                        bin_predictions, bin_actuals
+                    )
                     avg_confidence = np.mean(bin_confidences)
                     error = abs(bin_accuracy - avg_confidence)
                     calibration_errors.append(error)
@@ -277,9 +307,13 @@ class PerformanceTracker:
             window_accuracies = []
 
             for i in range(0, len(predictions) - window_size, window_size):
-                window = predictions[i:i + window_size]
-                window_preds = [p['prediction'] for p in window if p['actual_score'] is not None]
-                window_actuals = [p['actual_score'] for p in window if p['actual_score'] is not None]
+                window = predictions[i : i + window_size]
+                window_preds = [
+                    p["prediction"] for p in window if p["actual_score"] is not None
+                ]
+                window_actuals = [
+                    p["actual_score"] for p in window if p["actual_score"] is not None
+                ]
 
                 if len(window_preds) > 5:
                     accuracy = self._calculate_accuracy(window_preds, window_actuals)
@@ -309,7 +343,7 @@ class PerformanceTracker:
 
             for pred in predictions:
                 # Simplified complexity detection based on prediction value
-                if pred['prediction'] < 50:
+                if pred["prediction"] < 50:
                     simple_preds.append(pred)
                 else:
                     complex_preds.append(pred)
@@ -318,16 +352,36 @@ class PerformanceTracker:
             complex_accuracy = 0.5
 
             if len(simple_preds) > 5:
-                simple_pred_vals = [p['prediction'] for p in simple_preds if p['actual_score'] is not None]
-                simple_actual_vals = [p['actual_score'] for p in simple_preds if p['actual_score'] is not None]
+                simple_pred_vals = [
+                    p["prediction"]
+                    for p in simple_preds
+                    if p["actual_score"] is not None
+                ]
+                simple_actual_vals = [
+                    p["actual_score"]
+                    for p in simple_preds
+                    if p["actual_score"] is not None
+                ]
                 if simple_pred_vals:
-                    simple_accuracy = self._calculate_accuracy(simple_pred_vals, simple_actual_vals)
+                    simple_accuracy = self._calculate_accuracy(
+                        simple_pred_vals, simple_actual_vals
+                    )
 
             if len(complex_preds) > 5:
-                complex_pred_vals = [p['prediction'] for p in complex_preds if p['actual_score'] is not None]
-                complex_actual_vals = [p['actual_score'] for p in complex_preds if p['actual_score'] is not None]
+                complex_pred_vals = [
+                    p["prediction"]
+                    for p in complex_preds
+                    if p["actual_score"] is not None
+                ]
+                complex_actual_vals = [
+                    p["actual_score"]
+                    for p in complex_preds
+                    if p["actual_score"] is not None
+                ]
                 if complex_pred_vals:
-                    complex_accuracy = self._calculate_accuracy(complex_pred_vals, complex_actual_vals)
+                    complex_accuracy = self._calculate_accuracy(
+                        complex_pred_vals, complex_actual_vals
+                    )
 
             # Robustness is how consistent performance is across different complexities
             robustness = 1.0 - abs(simple_accuracy - complex_accuracy)
@@ -343,7 +397,9 @@ class PerformanceTracker:
             return 0.5
 
         try:
-            satisfaction_scores = [f['user_satisfaction'] for f in feedback if 'user_satisfaction' in f]
+            satisfaction_scores = [
+                f["user_satisfaction"] for f in feedback if "user_satisfaction" in f
+            ]
             if satisfaction_scores:
                 # Convert 1-5 scale to 0-1 scale
                 avg_satisfaction = np.mean(satisfaction_scores)
@@ -353,8 +409,9 @@ class PerformanceTracker:
         except:
             return 0.5
 
-    def _calculate_confidence_accuracy(self, predictions: List[float], actuals: List[float],
-                                     confidences: List[float]) -> float:
+    def _calculate_confidence_accuracy(
+        self, predictions: List[float], actuals: List[float], confidences: List[float]
+    ) -> float:
         """Calculate how accurate the confidence estimates are."""
         if len(predictions) != len(actuals) or len(predictions) != len(confidences):
             return 0.5
@@ -393,15 +450,27 @@ class PerformanceTracker:
             recent_preds = predictions[-50:]
             older_preds = predictions[-100:-50]
 
-            recent_pred_vals = [p['prediction'] for p in recent_preds if p['actual_score'] is not None]
-            recent_actual_vals = [p['actual_score'] for p in recent_preds if p['actual_score'] is not None]
+            recent_pred_vals = [
+                p["prediction"] for p in recent_preds if p["actual_score"] is not None
+            ]
+            recent_actual_vals = [
+                p["actual_score"] for p in recent_preds if p["actual_score"] is not None
+            ]
 
-            older_pred_vals = [p['prediction'] for p in older_preds if p['actual_score'] is not None]
-            older_actual_vals = [p['actual_score'] for p in older_preds if p['actual_score'] is not None]
+            older_pred_vals = [
+                p["prediction"] for p in older_preds if p["actual_score"] is not None
+            ]
+            older_actual_vals = [
+                p["actual_score"] for p in older_preds if p["actual_score"] is not None
+            ]
 
             if len(recent_pred_vals) > 10 and len(older_pred_vals) > 10:
-                recent_accuracy = self._calculate_accuracy(recent_pred_vals, recent_actual_vals)
-                older_accuracy = self._calculate_accuracy(older_pred_vals, older_actual_vals)
+                recent_accuracy = self._calculate_accuracy(
+                    recent_pred_vals, recent_actual_vals
+                )
+                older_accuracy = self._calculate_accuracy(
+                    older_pred_vals, older_actual_vals
+                )
 
                 # Drift resistance is how well accuracy is maintained
                 drift_resistance = 1.0 - abs(recent_accuracy - older_accuracy)
@@ -415,24 +484,24 @@ class PerformanceTracker:
 
     def _get_model_type(self, model_id: str) -> str:
         """Get model type from model ID."""
-        if 'rf' in model_id.lower() or 'random_forest' in model_id.lower():
-            return 'random_forest'
-        elif 'xgb' in model_id.lower() or 'xgboost' in model_id.lower():
-            return 'xgboost'
-        elif 'nn' in model_id.lower() or 'neural' in model_id.lower():
-            return 'neural_network'
+        if "rf" in model_id.lower() or "random_forest" in model_id.lower():
+            return "random_forest"
+        elif "xgb" in model_id.lower() or "xgboost" in model_id.lower():
+            return "xgboost"
+        elif "nn" in model_id.lower() or "neural" in model_id.lower():
+            return "neural_network"
         else:
-            return 'unknown'
+            return "unknown"
 
     def _estimate_memory_usage(self, model_id: str) -> float:
         """Estimate memory usage for a model."""
         # Simplified estimation
         model_type = self._get_model_type(model_id)
-        if model_type == 'neural_network':
+        if model_type == "neural_network":
             return 50.0  # MB
-        elif model_type == 'xgboost':
+        elif model_type == "xgboost":
             return 20.0  # MB
-        elif model_type == 'random_forest':
+        elif model_type == "random_forest":
             return 30.0  # MB
         else:
             return 10.0  # MB
@@ -444,11 +513,14 @@ class ModelSelector:
     def __init__(self):
         self.performance_tracker = PerformanceTracker()
         self.selection_history = deque(maxlen=100)
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
-    def select_best_model(self, available_models: List[str],
-                         criteria: SelectionCriteria = SelectionCriteria.BALANCED,
-                         context: Dict[str, Any] = None) -> Optional[str]:
+    def select_best_model(
+        self,
+        available_models: List[str],
+        criteria: SelectionCriteria = SelectionCriteria.BALANCED,
+        context: Dict[str, Any] = None,
+    ) -> Optional[str]:
         """Select the best model based on specified criteria."""
         try:
             if not available_models:
@@ -457,7 +529,9 @@ class ModelSelector:
             # Calculate performance for all models
             model_performances = {}
             for model_id in available_models:
-                metrics = self.performance_tracker.calculate_performance_metrics(model_id)
+                metrics = self.performance_tracker.calculate_performance_metrics(
+                    model_id
+                )
                 if metrics:
                     model_performances[model_id] = metrics
 
@@ -467,45 +541,61 @@ class ModelSelector:
 
             # Select based on criteria
             if criteria == SelectionCriteria.ACCURACY:
-                best_model = max(model_performances.items(), key=lambda x: x[1].accuracy_score)[0]
+                best_model = max(
+                    model_performances.items(), key=lambda x: x[1].accuracy_score
+                )[0]
             elif criteria == SelectionCriteria.SPEED:
-                best_model = min(model_performances.items(), key=lambda x: x[1].prediction_speed_ms)[0]
+                best_model = min(
+                    model_performances.items(), key=lambda x: x[1].prediction_speed_ms
+                )[0]
             elif criteria == SelectionCriteria.RELIABILITY:
-                best_model = max(model_performances.items(), key=lambda x: x[1].stability_score)[0]
+                best_model = max(
+                    model_performances.items(), key=lambda x: x[1].stability_score
+                )[0]
             elif criteria == SelectionCriteria.CALIBRATION:
-                best_model = max(model_performances.items(), key=lambda x: x[1].calibration_score)[0]
+                best_model = max(
+                    model_performances.items(), key=lambda x: x[1].calibration_score
+                )[0]
             elif criteria == SelectionCriteria.ROBUSTNESS:
-                best_model = max(model_performances.items(), key=lambda x: x[1].robustness_score)[0]
+                best_model = max(
+                    model_performances.items(), key=lambda x: x[1].robustness_score
+                )[0]
             else:  # BALANCED
                 best_model = self._select_balanced_model(model_performances)
 
             # Record selection
-            self.selection_history.append({
-                'selected_model': best_model,
-                'criteria': criteria.value,
-                'alternatives': list(available_models),
-                'timestamp': timezone.now()
-            })
+            self.selection_history.append(
+                {
+                    "selected_model": best_model,
+                    "criteria": criteria.value,
+                    "alternatives": list(available_models),
+                    "timestamp": timezone.now(),
+                }
+            )
 
-            logger.info(f"Selected model {best_model} based on {criteria.value} criteria")
+            logger.info(
+                f"Selected model {best_model} based on {criteria.value} criteria"
+            )
             return best_model
 
         except Exception as e:
             logger.error(f"Error in model selection: {e}")
             return available_models[0] if available_models else None
 
-    def _select_balanced_model(self, model_performances: Dict[str, PerformanceMetrics]) -> str:
+    def _select_balanced_model(
+        self, model_performances: Dict[str, PerformanceMetrics]
+    ) -> str:
         """Select model based on balanced criteria."""
         scores = {}
 
         for model_id, metrics in model_performances.items():
             # Balanced score combining multiple factors
             score = (
-                metrics.accuracy_score * 0.3 +
-                metrics.calibration_score * 0.2 +
-                metrics.stability_score * 0.2 +
-                metrics.robustness_score * 0.15 +
-                metrics.user_satisfaction * 0.15
+                metrics.accuracy_score * 0.3
+                + metrics.calibration_score * 0.2
+                + metrics.stability_score * 0.2
+                + metrics.robustness_score * 0.15
+                + metrics.user_satisfaction * 0.15
             )
 
             # Penalty for slow models
@@ -530,17 +620,20 @@ class ModelSelector:
                     statistical_significance={},
                     winner=None,
                     confidence_level=0.0,
-                    recommendation="Insufficient data for comparison"
+                    recommendation="Insufficient data for comparison",
                 )
 
             # Calculate differences
             comparisons = {
-                'accuracy': metrics_a.accuracy_score - metrics_b.accuracy_score,
-                'speed': metrics_b.prediction_speed_ms - metrics_a.prediction_speed_ms,  # Lower is better
-                'calibration': metrics_a.calibration_score - metrics_b.calibration_score,
-                'stability': metrics_a.stability_score - metrics_b.stability_score,
-                'robustness': metrics_a.robustness_score - metrics_b.robustness_score,
-                'user_satisfaction': metrics_a.user_satisfaction - metrics_b.user_satisfaction
+                "accuracy": metrics_a.accuracy_score - metrics_b.accuracy_score,
+                "speed": metrics_b.prediction_speed_ms
+                - metrics_a.prediction_speed_ms,  # Lower is better
+                "calibration": metrics_a.calibration_score
+                - metrics_b.calibration_score,
+                "stability": metrics_a.stability_score - metrics_b.stability_score,
+                "robustness": metrics_a.robustness_score - metrics_b.robustness_score,
+                "user_satisfaction": metrics_a.user_satisfaction
+                - metrics_b.user_satisfaction,
             }
 
             # Determine winner
@@ -564,7 +657,11 @@ class ModelSelector:
                 statistical_significance={},  # Simplified
                 winner=winner,
                 confidence_level=confidence,
-                recommendation=f"Model {winner} performs better" if winner else "Models perform similarly"
+                recommendation=(
+                    f"Model {winner} performs better"
+                    if winner
+                    else "Models perform similarly"
+                ),
             )
 
         except Exception as e:
@@ -576,7 +673,7 @@ class ModelSelector:
                 statistical_significance={},
                 winner=None,
                 confidence_level=0.0,
-                recommendation="Error in comparison"
+                recommendation="Error in comparison",
             )
 
 
@@ -586,25 +683,30 @@ class ABTestingFramework:
     def __init__(self):
         self.active_tests = {}
         self.test_history = deque(maxlen=100)
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
-    def start_ab_test(self, model_a: str, model_b: str, traffic_split: float = 0.5,
-                     duration_hours: int = 24) -> str:
+    def start_ab_test(
+        self,
+        model_a: str,
+        model_b: str,
+        traffic_split: float = 0.5,
+        duration_hours: int = 24,
+    ) -> str:
         """Start an A/B test between two models."""
         test_id = f"ab_test_{int(timezone.now().timestamp())}_{model_a}_{model_b}"
 
         test_config = {
-            'test_id': test_id,
-            'model_a': model_a,
-            'model_b': model_b,
-            'traffic_split': traffic_split,
-            'start_time': timezone.now(),
-            'end_time': timezone.now() + timedelta(hours=duration_hours),
-            'samples_a': 0,
-            'samples_b': 0,
-            'results_a': [],
-            'results_b': [],
-            'status': 'active'
+            "test_id": test_id,
+            "model_a": model_a,
+            "model_b": model_b,
+            "traffic_split": traffic_split,
+            "start_time": timezone.now(),
+            "end_time": timezone.now() + timedelta(hours=duration_hours),
+            "samples_a": 0,
+            "samples_b": 0,
+            "results_a": [],
+            "results_b": [],
+            "status": "active",
         }
 
         self.active_tests[test_id] = test_config
@@ -612,26 +714,32 @@ class ABTestingFramework:
 
         return test_id
 
-    def record_ab_result(self, test_id: str, model_used: str, prediction: float,
-                        actual_score: float, user_feedback: float = None):
+    def record_ab_result(
+        self,
+        test_id: str,
+        model_used: str,
+        prediction: float,
+        actual_score: float,
+        user_feedback: float = None,
+    ):
         """Record a result for an A/B test."""
         if test_id not in self.active_tests:
             return
 
         test = self.active_tests[test_id]
         result = {
-            'prediction': prediction,
-            'actual_score': actual_score,
-            'user_feedback': user_feedback,
-            'timestamp': timezone.now()
+            "prediction": prediction,
+            "actual_score": actual_score,
+            "user_feedback": user_feedback,
+            "timestamp": timezone.now(),
         }
 
-        if model_used == test['model_a']:
-            test['results_a'].append(result)
-            test['samples_a'] += 1
-        elif model_used == test['model_b']:
-            test['results_b'].append(result)
-            test['samples_b'] += 1
+        if model_used == test["model_a"]:
+            test["results_a"].append(result)
+            test["samples_a"] += 1
+        elif model_used == test["model_b"]:
+            test["results_b"].append(result)
+            test["samples_b"] += 1
 
     def analyze_ab_test(self, test_id: str) -> Optional[ABTestResult]:
         """Analyze results of an A/B test."""
@@ -642,45 +750,49 @@ class ABTestingFramework:
 
         try:
             # Calculate performance for both models
-            performance_a = self._calculate_ab_performance(test['results_a'])
-            performance_b = self._calculate_ab_performance(test['results_b'])
+            performance_a = self._calculate_ab_performance(test["results_a"])
+            performance_b = self._calculate_ab_performance(test["results_b"])
 
             # Determine statistical significance (simplified)
             significance = self._test_statistical_significance(
-                test['results_a'], test['results_b']
+                test["results_a"], test["results_b"]
             )
 
             # Determine winner
             winner = None
-            if performance_a['accuracy'] > performance_b['accuracy'] + 0.05:
-                winner = test['model_a']
-            elif performance_b['accuracy'] > performance_a['accuracy'] + 0.05:
-                winner = test['model_b']
+            if performance_a["accuracy"] > performance_b["accuracy"] + 0.05:
+                winner = test["model_a"]
+            elif performance_b["accuracy"] > performance_a["accuracy"] + 0.05:
+                winner = test["model_b"]
 
             # Calculate lift
-            lift = (performance_a['accuracy'] - performance_b['accuracy']) / performance_b['accuracy'] \
-                if performance_b['accuracy'] > 0 else 0
+            lift = (
+                (performance_a["accuracy"] - performance_b["accuracy"])
+                / performance_b["accuracy"]
+                if performance_b["accuracy"] > 0
+                else 0
+            )
 
             result = ABTestResult(
                 test_id=test_id,
-                model_a_id=test['model_a'],
-                model_b_id=test['model_b'],
-                traffic_split=test['traffic_split'],
-                samples_a=test['samples_a'],
-                samples_b=test['samples_b'],
+                model_a_id=test["model_a"],
+                model_b_id=test["model_b"],
+                traffic_split=test["traffic_split"],
+                samples_a=test["samples_a"],
+                samples_b=test["samples_b"],
                 performance_a=performance_a,
                 performance_b=performance_b,
                 statistical_significance=significance,
                 winner=winner,
                 lift=lift,
                 confidence_interval=(lift - 0.1, lift + 0.1),  # Simplified
-                test_duration=timezone.now() - test['start_time'],
-                status='completed'
+                test_duration=timezone.now() - test["start_time"],
+                status="completed",
             )
 
             # Move to history
             self.test_history.append(result)
-            test['status'] = 'completed'
+            test["status"] = "completed"
 
             return result
 
@@ -691,11 +803,13 @@ class ABTestingFramework:
     def _calculate_ab_performance(self, results: List[Dict]) -> Dict[str, float]:
         """Calculate performance metrics for A/B test results."""
         if not results:
-            return {'accuracy': 0.0, 'user_satisfaction': 0.0}
+            return {"accuracy": 0.0, "user_satisfaction": 0.0}
 
         # Calculate accuracy
-        predictions = [r['prediction'] for r in results if r['actual_score'] is not None]
-        actuals = [r['actual_score'] for r in results if r['actual_score'] is not None]
+        predictions = [
+            r["prediction"] for r in results if r["actual_score"] is not None
+        ]
+        actuals = [r["actual_score"] for r in results if r["actual_score"] is not None]
 
         accuracy = 0.0
         if predictions and actuals:
@@ -703,16 +817,16 @@ class ABTestingFramework:
             accuracy = 1.0 - (np.mean(errors) / 100.0)
 
         # Calculate user satisfaction
-        feedbacks = [r['user_feedback'] for r in results if r['user_feedback'] is not None]
+        feedbacks = [
+            r["user_feedback"] for r in results if r["user_feedback"] is not None
+        ]
         user_satisfaction = np.mean(feedbacks) / 5.0 if feedbacks else 0.5
 
-        return {
-            'accuracy': max(0.0, accuracy),
-            'user_satisfaction': user_satisfaction
-        }
+        return {"accuracy": max(0.0, accuracy), "user_satisfaction": user_satisfaction}
 
-    def _test_statistical_significance(self, results_a: List[Dict],
-                                     results_b: List[Dict]) -> bool:
+    def _test_statistical_significance(
+        self, results_a: List[Dict], results_b: List[Dict]
+    ) -> bool:
         """Test for statistical significance between A/B test results."""
         # Simplified significance test
         if len(results_a) < 20 or len(results_b) < 20:
@@ -720,10 +834,16 @@ class ABTestingFramework:
 
         try:
             # Compare accuracy distributions
-            acc_a = [abs(r['prediction'] - r['actual_score']) for r in results_a
-                    if r['actual_score'] is not None]
-            acc_b = [abs(r['prediction'] - r['actual_score']) for r in results_b
-                    if r['actual_score'] is not None]
+            acc_a = [
+                abs(r["prediction"] - r["actual_score"])
+                for r in results_a
+                if r["actual_score"] is not None
+            ]
+            acc_b = [
+                abs(r["prediction"] - r["actual_score"])
+                for r in results_b
+                if r["actual_score"] is not None
+            ]
 
             if len(acc_a) < 10 or len(acc_b) < 10:
                 return False
@@ -735,7 +855,7 @@ class ABTestingFramework:
             std_b = np.std(acc_b)
 
             # Calculate effect size
-            pooled_std = math.sqrt((std_a ** 2 + std_b ** 2) / 2)
+            pooled_std = math.sqrt((std_a**2 + std_b**2) / 2)
             effect_size = abs(mean_a - mean_b) / pooled_std if pooled_std > 0 else 0
 
             # Significance if effect size > 0.5 (medium effect)
@@ -753,7 +873,7 @@ class ModelPerformanceManager:
         self.performance_tracker = PerformanceTracker()
         self.model_selector = ModelSelector()
         self.ab_testing = ABTestingFramework()
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
         # Configuration
         self.auto_selection_enabled = True
@@ -774,15 +894,21 @@ class ModelPerformanceManager:
             criteria_enum = SelectionCriteria(criteria)
 
             # Select best model
-            best_model = self.model_selector.select_best_model(available_models, criteria_enum)
+            best_model = self.model_selector.select_best_model(
+                available_models, criteria_enum
+            )
 
             # Cache result
-            self.cache.set('best_model_selection', {
-                'model_id': best_model,
-                'criteria': criteria,
-                'timestamp': timezone.now().isoformat(),
-                'alternatives': available_models
-            }, timeout=3600)
+            self.cache.set(
+                "best_model_selection",
+                {
+                    "model_id": best_model,
+                    "criteria": criteria,
+                    "timestamp": timezone.now().isoformat(),
+                    "alternatives": available_models,
+                },
+                timeout=3600,
+            )
 
             return best_model
 
@@ -794,7 +920,7 @@ class ModelPerformanceManager:
         """Get list of available models."""
         try:
             # Get from database
-            active_models = MLModel.objects.filter(status='ACTIVE')
+            active_models = MLModel.objects.filter(status="ACTIVE")
             return [model.name for model in active_models]
         except Exception as e:
             logger.error(f"Error getting available models: {e}")
@@ -805,29 +931,32 @@ class ModelPerformanceManager:
         try:
             available_models = self._get_available_models()
             summary = {
-                'model_count': len(available_models),
-                'models': {},
-                'best_model': None,
-                'performance_trends': {},
-                'last_updated': timezone.now().isoformat()
+                "model_count": len(available_models),
+                "models": {},
+                "best_model": None,
+                "performance_trends": {},
+                "last_updated": timezone.now().isoformat(),
             }
 
             for model_id in available_models:
-                metrics = self.performance_tracker.calculate_performance_metrics(model_id)
+                metrics = self.performance_tracker.calculate_performance_metrics(
+                    model_id
+                )
                 if metrics:
-                    summary['models'][model_id] = asdict(metrics)
+                    summary["models"][model_id] = asdict(metrics)
 
             # Determine best model
-            if summary['models']:
-                best_model = max(summary['models'].items(),
-                               key=lambda x: x[1]['accuracy_score'])
-                summary['best_model'] = best_model[0]
+            if summary["models"]:
+                best_model = max(
+                    summary["models"].items(), key=lambda x: x[1]["accuracy_score"]
+                )
+                summary["best_model"] = best_model[0]
 
             return summary
 
         except Exception as e:
             logger.error(f"Error getting performance summary: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}
 
 
 # Global performance manager instance
@@ -835,17 +964,23 @@ performance_manager = ModelPerformanceManager()
 
 
 # Django integration functions
-def record_model_prediction(model_id: str, query_id: int, prediction: float,
-                           confidence: float, processing_time_ms: float,
-                           actual_score: float = None):
+def record_model_prediction(
+    model_id: str,
+    query_id: int,
+    prediction: float,
+    confidence: float,
+    processing_time_ms: float,
+    actual_score: float = None,
+):
     """Record a model prediction for performance tracking."""
     performance_manager.performance_tracker.record_prediction(
         model_id, query_id, prediction, confidence, processing_time_ms, actual_score
     )
 
 
-def record_model_feedback(model_id: str, query_id: int, user_feedback: float,
-                         user_satisfaction: int):
+def record_model_feedback(
+    model_id: str, query_id: int, user_feedback: float, user_satisfaction: int
+):
     """Record user feedback for a model."""
     performance_manager.performance_tracker.record_feedback(
         model_id, query_id, user_feedback, user_satisfaction

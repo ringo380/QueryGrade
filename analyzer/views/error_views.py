@@ -2,6 +2,7 @@
 Custom error view handlers for QueryGrade application.
 Provides user-friendly 404 and 500 error pages with helpful navigation.
 """
+
 from django.shortcuts import render
 
 
@@ -16,7 +17,7 @@ def custom_404(request, exception=None):
     Returns:
         Rendered 404 error page with 404 status code
     """
-    return render(request, '404.html', status=404)
+    return render(request, "404.html", status=404)
 
 
 def custom_500(request):
@@ -29,4 +30,4 @@ def custom_500(request):
     Returns:
         Rendered 500 error page with 500 status code
     """
-    return render(request, '500.html', status=500)
+    return render(request, "500.html", status=500)

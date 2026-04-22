@@ -9,21 +9,21 @@ All learning modules are production-ready.
 """
 
 from .incremental_engine import (
+    AdaptiveLearningRateScheduler,
+    ConceptDriftAlert,
+    ConceptDriftDetector,
     IncrementalLearningEngine,
     IncrementalRandomForest,
-    ConceptDriftDetector,
-    AdaptiveLearningRateScheduler,
     LearningInstance,
-    ConceptDriftAlert,
-    LearningMetrics
+    LearningMetrics,
 )
 
 __all__ = [
-    'IncrementalLearningEngine',
-    'IncrementalRandomForest',
-    'ConceptDriftDetector',
-    'AdaptiveLearningRateScheduler',
-    'LearningInstance',
-    'ConceptDriftAlert',
-    'LearningMetrics',
+    "IncrementalLearningEngine",
+    "IncrementalRandomForest",
+    "ConceptDriftDetector",
+    "AdaptiveLearningRateScheduler",
+    "LearningInstance",
+    "ConceptDriftAlert",
+    "LearningMetrics",
 ]

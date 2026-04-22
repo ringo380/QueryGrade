@@ -7,36 +7,43 @@ the QueryGrade application.
 
 import numpy as np
 from django.contrib.auth.models import User
-from analyzer.models import Query, QueryFeedback, UserQueryHistory
-from analyzer.models import MLModel, TrainingData, LearningMetrics, FeedbackLearning
+
+from analyzer.models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 
 class MLTestDataFactory:
     """Factory for creating ML test data."""
 
     @staticmethod
-    def create_test_user(username='testuser', email='test@example.com'):
+    def create_test_user(username="testuser", email="test@example.com"):
         """Create a test user."""
         return User.objects.create_user(
-            username=username,
-            email=email,
-            password='testpass123'
+            username=username, email=email, password="testpass123"
         )
 
     @staticmethod
     def create_test_query(
         sql_text="SELECT id, name FROM users WHERE active = 1",
-        query_type='SELECT',
+        query_type="SELECT",
         complexity=25,
         table_count=1,
         join_count=0,
         where_conditions=1,
         subquery_count=0,
-        query_hash=None
+        query_hash=None,
     ):
         """Create a test query."""
         if query_hash is None:
             import hashlib
+
             query_hash = hashlib.md5(sql_text.encode()).hexdigest()[:10]
 
         return Query.objects.create(
@@ -47,16 +54,12 @@ class MLTestDataFactory:
             table_count=table_count,
             join_count=join_count,
             where_conditions=where_conditions,
-            subquery_count=subquery_count
+            subquery_count=subquery_count,
         )
 
     @staticmethod
     def create_query_feedback(
-        query,
-        user,
-        is_helpful=True,
-        score_agreement=4,
-        comments="Test feedback"
+        query, user, is_helpful=True, score_agreement=4, comments="Test feedback"
     ):
         """Create test query feedback."""
         return QueryFeedback.objects.create(
@@ -64,54 +67,45 @@ class MLTestDataFactory:
             user=user,
             is_helpful=is_helpful,
             score_agreement=score_agreement,
-            comments=comments
+            comments=comments,
         )
 
     @staticmethod
-    def create_user_history(
-        user,
-        query,
-        analysis_result=None,
-        execution_time=0.3
-    ):
+    def create_user_history(user, query, analysis_result=None, execution_time=0.3):
         """Create test user query history."""
         if analysis_result is None:
             analysis_result = {
-                'score': 75,
-                'grade': 'B',
-                'feedback': ['Good query structure']
+                "score": 75,
+                "grade": "B",
+                "feedback": ["Good query structure"],
             }
 
         return UserQueryHistory.objects.create(
             user=user,
             query=query,
             analysis_result=analysis_result,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     @staticmethod
     def create_ml_model(
-        name='test_model',
-        model_type='QUERY_GRADER',
-        version='1.0.0',
+        name="test_model",
+        model_type="QUERY_GRADER",
+        version="1.0.0",
         is_active=True,
-        performance_metrics=None
+        performance_metrics=None,
     ):
         """Create test ML model."""
         if performance_metrics is None:
-            performance_metrics = {
-                'accuracy': 0.85,
-                'precision': 0.82,
-                'recall': 0.88
-            }
+            performance_metrics = {"accuracy": 0.85, "precision": 0.82, "recall": 0.88}
 
         return MLModel.objects.create(
             name=name,
             model_type=model_type,
             version=version,
-            file_path=f'/tmp/{name}.pkl',
+            file_path=f"/tmp/{name}.pkl",
             is_active=is_active,
-            performance_metrics=performance_metrics
+            performance_metrics=performance_metrics,
         )
 
     @staticmethod
@@ -120,7 +114,7 @@ class MLTestDataFactory:
         features=None,
         target_score=75,
         feedback_weight=1.0,
-        user_reliability_score=0.8
+        user_reliability_score=0.8,
     ):
         """Create test training data."""
         if features is None:
@@ -131,17 +125,17 @@ class MLTestDataFactory:
             features_json=features,
             target_score=target_score,
             feedback_weight=feedback_weight,
-            user_reliability_score=user_reliability_score
+            user_reliability_score=user_reliability_score,
         )
 
     @staticmethod
     def create_learning_metrics(
-        model_version='1.0.0',
+        model_version="1.0.0",
         training_accuracy=0.85,
         validation_accuracy=0.82,
         feedback_correlation=0.75,
         user_satisfaction_avg=3.5,
-        total_feedback_count=100
+        total_feedback_count=100,
     ):
         """Create test learning metrics."""
         return LearningMetrics.objects.create(
@@ -150,7 +144,7 @@ class MLTestDataFactory:
             validation_accuracy=validation_accuracy,
             feedback_correlation=feedback_correlation,
             user_satisfaction_avg=user_satisfaction_avg,
-            total_feedback_count=total_feedback_count
+            total_feedback_count=total_feedback_count,
         )
 
     @staticmethod
@@ -159,9 +153,9 @@ class MLTestDataFactory:
         user,
         original_score=75,
         user_feedback_score=4,
-        agreement_level='HIGH',
+        agreement_level="HIGH",
         learning_weight=0.8,
-        model_version='1.0.0'
+        model_version="1.0.0",
     ):
         """Create test feedback learning record."""
         return FeedbackLearning.objects.create(
@@ -171,7 +165,7 @@ class MLTestDataFactory:
             user_feedback_score=user_feedback_score,
             agreement_level=agreement_level,
             learning_weight=learning_weight,
-            model_version=model_version
+            model_version=model_version,
         )
 
 
@@ -189,7 +183,9 @@ class MLTestAssertions:
 
         # Check for NaN values
         if isinstance(features, np.ndarray):
-            test_case.assertFalse(np.isnan(features).any(), "Features contain NaN values")
+            test_case.assertFalse(
+                np.isnan(features).any(), "Features contain NaN values"
+            )
         else:
             for feature in features:
                 test_case.assertFalse(np.isnan(feature), "Features contain NaN values")
@@ -198,28 +194,30 @@ class MLTestAssertions:
     def assert_valid_grade_result(test_case, result):
         """Assert that a grading result is valid."""
         test_case.assertIsInstance(result, dict)
-        test_case.assertIn('grade', result)
-        test_case.assertIn('score', result)
-        test_case.assertIn('feedback', result)
+        test_case.assertIn("grade", result)
+        test_case.assertIn("score", result)
+        test_case.assertIn("feedback", result)
 
         # Check grade is valid letter
-        valid_grades = ['A', 'B', 'C', 'D', 'F']
-        test_case.assertIn(result['grade'], valid_grades)
+        valid_grades = ["A", "B", "C", "D", "F"]
+        test_case.assertIn(result["grade"], valid_grades)
 
         # Check score is in valid range
-        test_case.assertGreaterEqual(result['score'], 0)
-        test_case.assertLessEqual(result['score'], 100)
+        test_case.assertGreaterEqual(result["score"], 0)
+        test_case.assertLessEqual(result["score"], 100)
 
         # Check feedback is a list
-        test_case.assertIsInstance(result['feedback'], list)
+        test_case.assertIsInstance(result["feedback"], list)
 
     @staticmethod
     def assert_score_in_range(test_case, score, min_score=0, max_score=100):
         """Assert that a score is in the expected range."""
-        test_case.assertGreaterEqual(score, min_score,
-                                   f"Score {score} below minimum {min_score}")
-        test_case.assertLessEqual(score, max_score,
-                                 f"Score {score} above maximum {max_score}")
+        test_case.assertGreaterEqual(
+            score, min_score, f"Score {score} below minimum {min_score}"
+        )
+        test_case.assertLessEqual(
+            score, max_score, f"Score {score} above maximum {max_score}"
+        )
 
     @staticmethod
     def assert_model_performance_metrics(test_case, metrics):
@@ -227,7 +225,7 @@ class MLTestAssertions:
         test_case.assertIsInstance(metrics, dict)
 
         # Check common metrics
-        for metric in ['accuracy', 'precision', 'recall']:
+        for metric in ["accuracy", "precision", "recall"]:
             if metric in metrics:
                 test_case.assertGreaterEqual(metrics[metric], 0.0)
                 test_case.assertLessEqual(metrics[metric], 1.0)
@@ -247,6 +245,7 @@ class MockMLComponents:
     def create_mock_model():
         """Create a mock ML model."""
         from unittest.mock import MagicMock
+
         mock_model = MagicMock()
 
         # Mock predict method
@@ -282,7 +281,7 @@ class TestQuerySamples:
         "SELECT id, name FROM users WHERE active = 1",
         "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')",
         "UPDATE users SET last_login = NOW() WHERE id = 1",
-        "DELETE FROM logs WHERE created_at < '2023-01-01'"
+        "DELETE FROM logs WHERE created_at < '2023-01-01'",
     ]
 
     COMPLEX_QUERIES = [
@@ -321,7 +320,7 @@ class TestQuerySamples:
         FROM users u
         WHERE EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.total > 100)
         ORDER BY order_count DESC, avg_order_value DESC
-        """
+        """,
     ]
 
     PROBLEMATIC_QUERIES = [
@@ -334,21 +333,21 @@ class TestQuerySamples:
     ]
 
     DATABASE_SPECIFIC_QUERIES = {
-        'mysql': [
+        "mysql": [
             "SELECT * FROM users LIMIT 10",
             "SELECT * FROM users WHERE name REGEXP '^[A-Z]'",
-            "INSERT INTO users (name) VALUES ('John') ON DUPLICATE KEY UPDATE name = VALUES(name)"
+            "INSERT INTO users (name) VALUES ('John') ON DUPLICATE KEY UPDATE name = VALUES(name)",
         ],
-        'postgresql': [
+        "postgresql": [
             "SELECT * FROM users LIMIT 10 OFFSET 5",
             "SELECT name FROM users WHERE name ~ '^[A-Z]'",
-            "INSERT INTO users (name) VALUES ('John') ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name"
+            "INSERT INTO users (name) VALUES ('John') ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name",
         ],
-        'sqlite': [
+        "sqlite": [
             "SELECT * FROM users LIMIT 10 OFFSET 5",
             "SELECT name FROM users WHERE name GLOB '[A-Z]*'",
-            "INSERT OR REPLACE INTO users (name) VALUES ('John')"
-        ]
+            "INSERT OR REPLACE INTO users (name) VALUES ('John')",
+        ],
     }
 
 
@@ -359,6 +358,7 @@ class PerformanceTestUtils:
     def measure_execution_time(func, *args, **kwargs):
         """Measure function execution time."""
         import time
+
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
@@ -367,35 +367,40 @@ class PerformanceTestUtils:
     @staticmethod
     def measure_memory_usage():
         """Measure current memory usage."""
-        import psutil
         import os
+
+        import psutil
+
         process = psutil.Process(os.getpid())
         return process.memory_info().rss
 
     @staticmethod
-    def assert_performance_benchmark(test_case, execution_time, max_time, operation_name):
+    def assert_performance_benchmark(
+        test_case, execution_time, max_time, operation_name
+    ):
         """Assert that execution time meets performance benchmark."""
         test_case.assertLess(
             execution_time,
             max_time,
-            f"{operation_name} took {execution_time:.3f}s, exceeds {max_time}s benchmark"
+            f"{operation_name} took {execution_time:.3f}s, exceeds {max_time}s benchmark",
         )
 
     @staticmethod
     def generate_load_test_data(num_queries=100):
         """Generate data for load testing."""
         import random
+
         queries = []
 
         for i in range(num_queries):
-            query_type = random.choice(['SELECT', 'INSERT', 'UPDATE', 'DELETE'])
+            query_type = random.choice(["SELECT", "INSERT", "UPDATE", "DELETE"])
             complexity = random.randint(10, 90)
 
             query = MLTestDataFactory.create_test_query(
                 sql_text=f"SELECT * FROM table_{i} WHERE id = {i}",
                 query_type=query_type,
                 complexity=complexity,
-                query_hash=f'load_test_{i}'
+                query_hash=f"load_test_{i}",
             )
             queries.append(query)
 
@@ -412,7 +417,16 @@ class ValidationUtils:
             return False, "Query is empty"
 
         sql_text = sql_text.strip().upper()
-        valid_starters = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'CREATE', 'ALTER', 'DROP']
+        valid_starters = [
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "WITH",
+            "CREATE",
+            "ALTER",
+            "DROP",
+        ]
 
         if not any(sql_text.startswith(starter) for starter in valid_starters):
             return False, "Query doesn't start with valid SQL keyword"
@@ -448,7 +462,10 @@ class ValidationUtils:
             return False, "Training data is None"
 
         if len(X) != len(y):
-            return False, f"Feature and target lengths don't match: {len(X)} != {len(y)}"
+            return (
+                False,
+                f"Feature and target lengths don't match: {len(X)} != {len(y)}",
+            )
 
         if len(X) == 0:
             return False, "Training data is empty"

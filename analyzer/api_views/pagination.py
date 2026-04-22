@@ -3,6 +3,7 @@ from rest_framework.pagination import PageNumberPagination
 
 class QueryGradingPagination(PageNumberPagination):
     """Custom pagination for query grading API."""
+
     page_size = 20
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 100

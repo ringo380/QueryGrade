@@ -6,6 +6,7 @@ from parsed SQL queries.
 """
 
 import re
+
 from sqlparse import tokens
 from sqlparse.sql import Statement
 
@@ -25,7 +26,7 @@ def get_query_type(parsed: Statement) -> str:
             return token.value.upper()
         elif token.ttype is tokens.Keyword.DDL:
             return token.value.upper()
-    return 'UNKNOWN'
+    return "UNKNOWN"
 
 
 def count_tables(parsed: Statement) -> int:
@@ -45,17 +46,25 @@ def count_tables(parsed: Statement) -> int:
     tables = set()
 
     # Look for FROM and JOIN patterns to identify tables
-    from_pattern = r'\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[a-zA-Z_][a-zA-Z0-9_]*)?'
+    from_pattern = (
+        r"\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[a-zA-Z_][a-zA-Z0-9_]*)?"
+    )
     matches = re.findall(from_pattern, sql_text, re.IGNORECASE)
 
     for match in matches:
-        if match and match.upper() not in ['SELECT', 'WHERE', 'GROUP', 'ORDER', 'HAVING']:
+        if match and match.upper() not in [
+            "SELECT",
+            "WHERE",
+            "GROUP",
+            "ORDER",
+            "HAVING",
+        ]:
             tables.add(match.lower())
 
     # Also check for table references in INSERT, UPDATE, DELETE
-    insert_pattern = r'\bINSERT\s+INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)'
-    update_pattern = r'\bUPDATE\s+([a-zA-Z_][a-zA-Z0-9_]*)'
-    delete_pattern = r'\bDELETE\s+FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)'
+    insert_pattern = r"\bINSERT\s+INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)"
+    update_pattern = r"\bUPDATE\s+([a-zA-Z_][a-zA-Z0-9_]*)"
+    delete_pattern = r"\bDELETE\s+FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)"
 
     for pattern in [insert_pattern, update_pattern, delete_pattern]:
         matches = re.findall(pattern, sql_text, re.IGNORECASE)
@@ -84,15 +93,15 @@ def count_joins(parsed: Statement) -> int:
 
     # More precise pattern to avoid double-counting
     join_patterns = [
-        r'\bINNER\s+JOIN\b',
-        r'\bLEFT\s+OUTER\s+JOIN\b',
-        r'\bRIGHT\s+OUTER\s+JOIN\b',
-        r'\bFULL\s+OUTER\s+JOIN\b',
-        r'\bLEFT\s+JOIN\b',
-        r'\bRIGHT\s+JOIN\b',
-        r'\bFULL\s+JOIN\b',
-        r'\bCROSS\s+JOIN\b',
-        r'\bJOIN\b'  # This should be last to avoid double counting
+        r"\bINNER\s+JOIN\b",
+        r"\bLEFT\s+OUTER\s+JOIN\b",
+        r"\bRIGHT\s+OUTER\s+JOIN\b",
+        r"\bFULL\s+OUTER\s+JOIN\b",
+        r"\bLEFT\s+JOIN\b",
+        r"\bRIGHT\s+JOIN\b",
+        r"\bFULL\s+JOIN\b",
+        r"\bCROSS\s+JOIN\b",
+        r"\bJOIN\b",  # This should be last to avoid double counting
     ]
 
     join_count = 0
@@ -103,7 +112,7 @@ def count_joins(parsed: Statement) -> int:
         matches = re.findall(pattern, remaining_text)
         join_count += len(matches)
         # Remove found matches to prevent double counting
-        remaining_text = re.sub(pattern, '', remaining_text)
+        remaining_text = re.sub(pattern, "", remaining_text)
 
     return join_count
 
@@ -125,11 +134,11 @@ def count_where_conditions(parsed: Statement) -> int:
     sql_text = str(parsed).upper()
 
     # Count AND/OR operators as indicators of multiple conditions
-    condition_count += sql_text.count(' AND ')
-    condition_count += sql_text.count(' OR ')
+    condition_count += sql_text.count(" AND ")
+    condition_count += sql_text.count(" OR ")
 
     # If there's a WHERE clause but no AND/OR, there's at least one condition
-    if 'WHERE' in sql_text and condition_count == 0:
+    if "WHERE" in sql_text and condition_count == 0:
         condition_count = 1
 
     return condition_count
@@ -150,19 +159,19 @@ def count_subqueries(parsed: Statement) -> int:
     """
     sql_text = str(parsed)
     # Simple approach: count opening parentheses that likely indicate subqueries
-    subquery_indicators = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+    subquery_indicators = ["SELECT", "INSERT", "UPDATE", "DELETE"]
     subquery_count = 0
 
     in_parentheses = 0
     i = 0
     while i < len(sql_text):
-        if sql_text[i] == '(':
+        if sql_text[i] == "(":
             in_parentheses += 1
             # Look ahead to see if this contains a query keyword
-            remaining = sql_text[i:i+50].upper()
+            remaining = sql_text[i : i + 50].upper()
             if any(keyword in remaining for keyword in subquery_indicators):
                 subquery_count += 1
-        elif sql_text[i] == ')':
+        elif sql_text[i] == ")":
             in_parentheses -= 1
         i += 1
 

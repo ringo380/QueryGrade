@@ -7,15 +7,17 @@ Handles all business logic related to SQL query analysis including:
 - User history tracking
 - Error handling and validation
 """
+
 import asyncio
 import logging
-from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import Any, Dict, Optional, Tuple
 
 from django.contrib.auth.models import User
+
+from ..ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..query_analyzer import analyze_query
-from ..ml.analysis.unified_analyzer import UnifiedQueryAnalyzer, AnalysisRequest
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +25,21 @@ logger = logging.getLogger(__name__)
 @dataclass
 class QueryAnalysisRequest:
     """DTO for query analysis requests"""
+
     sql_query: str
     user: User
-    database_type: str = ''
-    database_version: str = ''
-    use_case_notes: str = ''
-    ip_address: str = ''
-    user_agent: str = ''
+    database_type: str = ""
+    database_version: str = ""
+    use_case_notes: str = ""
+    ip_address: str = ""
+    user_agent: str = ""
     enable_ml: bool = True
 
 
 @dataclass
 class QueryAnalysisResult:
     """DTO for query analysis results"""
+
     query: Query
     analysis: QueryAnalysis
     user_history: UserQueryHistory
@@ -58,7 +62,9 @@ class QueryAnalysisService:
         """Initialize the query analysis service."""
         self.unified_analyzer = None
 
-    def analyze_query_for_user(self, request: QueryAnalysisRequest) -> QueryAnalysisResult:
+    def analyze_query_for_user(
+        self, request: QueryAnalysisRequest
+    ) -> QueryAnalysisResult:
         """
         Analyze a SQL query for a specific user.
 
@@ -74,10 +80,7 @@ class QueryAnalysisService:
         """
         try:
             # Perform traditional rule-based analysis
-            query, analysis = analyze_query(
-                request.sql_query,
-                request.database_type
-            )
+            query, analysis = analyze_query(request.sql_query, request.database_type)
 
             # Perform ML-enhanced analysis if enabled
             ml_analysis = None
@@ -89,7 +92,7 @@ class QueryAnalysisService:
                     request.database_version,
                     request.use_case_notes,
                     request.user_agent,
-                    request.ip_address
+                    request.ip_address,
                 )
 
             # Create user history record
@@ -100,14 +103,14 @@ class QueryAnalysisService:
                 request.user_agent,
                 request.database_type,
                 request.database_version,
-                request.use_case_notes
+                request.use_case_notes,
             )
 
             return QueryAnalysisResult(
                 query=query,
                 analysis=analysis,
                 user_history=user_history,
-                ml_analysis=ml_analysis
+                ml_analysis=ml_analysis,
             )
 
         except ValueError as e:
@@ -116,7 +119,9 @@ class QueryAnalysisService:
             raise ValueError(error_msg) from e
 
         except Exception as e:
-            logger.error(f"Unexpected error analyzing query for user {request.user.username}: {e}")
+            logger.error(
+                f"Unexpected error analyzing query for user {request.user.username}: {e}"
+            )
             raise
 
     def _perform_ml_analysis(
@@ -127,7 +132,7 @@ class QueryAnalysisService:
         database_version: str,
         use_case_notes: str,
         user_agent: str,
-        ip_address: str
+        ip_address: str,
     ) -> Optional[Dict[str, Any]]:
         """
         Perform ML-enhanced query analysis.
@@ -154,10 +159,10 @@ class QueryAnalysisService:
                 database_type=database_type,
                 database_version=database_version,
                 context={
-                    'use_case': use_case_notes,
-                    'user_agent': user_agent,
-                    'ip_address': ip_address
-                }
+                    "use_case": use_case_notes,
+                    "user_agent": user_agent,
+                    "ip_address": ip_address,
+                },
             )
 
             # Run async analysis in sync context
@@ -170,12 +175,12 @@ class QueryAnalysisService:
 
                 # Convert to dictionary for session storage
                 return {
-                    'semantic_metrics': ml_result.semantic_metrics,
-                    'performance_prediction': ml_result.performance_prediction,
-                    'feedback': ml_result.feedback,
-                    'recommendations': ml_result.recommendations,
-                    'personalized_feedback': ml_result.personalized_feedback,
-                    'rewrite_suggestions': ml_result.rewrite_suggestions
+                    "semantic_metrics": ml_result.semantic_metrics,
+                    "performance_prediction": ml_result.performance_prediction,
+                    "feedback": ml_result.feedback,
+                    "recommendations": ml_result.recommendations,
+                    "personalized_feedback": ml_result.personalized_feedback,
+                    "rewrite_suggestions": ml_result.rewrite_suggestions,
                 }
 
             finally:
@@ -193,7 +198,7 @@ class QueryAnalysisService:
         user_agent: str,
         database_type: str,
         database_version: str,
-        use_case_notes: str
+        use_case_notes: str,
     ) -> UserQueryHistory:
         """
         Create a user history record for the query analysis.
@@ -217,7 +222,7 @@ class QueryAnalysisService:
             user_agent=user_agent[:255],  # Truncate to field length
             database_type=database_type,
             database_version=database_version,
-            use_case_notes=use_case_notes
+            use_case_notes=use_case_notes,
         )
 
     def _format_syntax_error(self, error_msg: str) -> str:

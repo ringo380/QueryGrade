@@ -9,8 +9,9 @@ Tests each analyzer in isolation to verify:
 """
 
 from django.test import TestCase
-from analyzer.models import Query, QueryAnalysis
+
 from analyzer.analyzers import QueryGrader
+from analyzer.models import Query, QueryAnalysis
 
 
 class IndexingAnalyzerTests(TestCase):
@@ -25,9 +26,11 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM users WHERE user_id = 123"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'INDEX_WHERE']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "INDEX_WHERE"
+        ]
         self.assertTrue(len(recommendations) > 0)
-        self.assertIn('index', recommendations[0]['description'].lower())
+        self.assertIn("index", recommendations[0]["description"].lower())
 
     def test_where_range_index_recommendation(self):
         """Test index recommendation for range queries."""
@@ -35,9 +38,11 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM orders WHERE order_date > '2024-01-01'"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'INDEX_RANGE']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "INDEX_RANGE"
+        ]
         self.assertTrue(len(recommendations) > 0)
-        self.assertIn('range', recommendations[0]['description'].lower())
+        self.assertIn("range", recommendations[0]["description"].lower())
 
     def test_like_leading_wildcard_issue(self):
         """Test detection of LIKE with leading wildcard."""
@@ -45,9 +50,11 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM products WHERE name LIKE '%apple%'"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'LIKE_LEADING_WILDCARD']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "LIKE_LEADING_WILDCARD"
+        ]
         self.assertTrue(len(issues) > 0)
-        self.assertEqual(issues[0]['severity'], 'high')
+        self.assertEqual(issues[0]["severity"], "high")
 
     def test_join_index_recommendation(self):
         """Test index recommendation for JOIN conditions."""
@@ -55,7 +62,9 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM orders o JOIN customers c ON o.customer_id = c.id"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'INDEX_JOIN']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "INDEX_JOIN"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_function_on_indexed_column(self):
@@ -64,9 +73,13 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM users WHERE UPPER(email) = 'TEST@EXAMPLE.COM'"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'FUNCTION_ON_INDEXED_COLUMN']
+        issues = [
+            i
+            for i in analysis.issues_found
+            if i["type"] == "FUNCTION_ON_INDEXED_COLUMN"
+        ]
         self.assertTrue(len(issues) > 0)
-        self.assertEqual(issues[0]['severity'], 'high')
+        self.assertEqual(issues[0]["severity"], "high")
 
     def test_composite_index_opportunity(self):
         """Test composite index recommendation for multiple AND conditions."""
@@ -74,7 +87,9 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM orders WHERE status = 'active' AND customer_id = 123 AND total > 100"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'COMPOSITE_INDEX']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "COMPOSITE_INDEX"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_order_by_index_recommendation(self):
@@ -83,7 +98,9 @@ class IndexingAnalyzerTests(TestCase):
             "SELECT * FROM products ORDER BY created_at DESC"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'INDEX_ORDER_BY']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "INDEX_ORDER_BY"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_no_indexing_issues_for_simple_query(self):
@@ -93,7 +110,9 @@ class IndexingAnalyzerTests(TestCase):
         )
 
         # Should have minimal or no critical indexing issues
-        critical_issues = [i for i in analysis.issues_found if i.get('severity') == 'critical']
+        critical_issues = [
+            i for i in analysis.issues_found if i.get("severity") == "critical"
+        ]
         self.assertEqual(len(critical_issues), 0)
 
 
@@ -110,7 +129,11 @@ class SubqueryAnalyzerTests(TestCase):
         )
 
         # Should have recommendations about IN subquery
-        recommendations = [r for r in analysis.recommendations if 'subquery' in r.get('description', '').lower()]
+        recommendations = [
+            r
+            for r in analysis.recommendations
+            if "subquery" in r.get("description", "").lower()
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_scalar_subquery_in_select(self):
@@ -119,9 +142,11 @@ class SubqueryAnalyzerTests(TestCase):
             "SELECT id, (SELECT COUNT(*) FROM orders WHERE customer_id = c.id) as order_count FROM customers c"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'SCALAR_SUBQUERY_IN_SELECT']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "SCALAR_SUBQUERY_IN_SELECT"
+        ]
         self.assertTrue(len(issues) > 0)
-        self.assertEqual(issues[0]['severity'], 'high')
+        self.assertEqual(issues[0]["severity"], "high")
 
     def test_not_in_subquery_issue(self):
         """Test detection of NOT IN subquery."""
@@ -129,7 +154,7 @@ class SubqueryAnalyzerTests(TestCase):
             "SELECT * FROM users WHERE id NOT IN (SELECT user_id FROM blocked_users)"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'NOT_IN_SUBQUERY']
+        issues = [i for i in analysis.issues_found if i["type"] == "NOT_IN_SUBQUERY"]
         self.assertTrue(len(issues) > 0)
 
     def test_deep_subquery_nesting(self):
@@ -141,7 +166,9 @@ class SubqueryAnalyzerTests(TestCase):
                  (SELECT id FROM countries WHERE active = 1)))"""
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'DEEP_SUBQUERY_NESTING']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "DEEP_SUBQUERY_NESTING"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_cte_opportunity_recommendation(self):
@@ -151,7 +178,9 @@ class SubqueryAnalyzerTests(TestCase):
                AND product_id IN (SELECT id FROM products)"""
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'USE_CTE']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "USE_CTE"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_exists_recommendation(self):
@@ -160,7 +189,9 @@ class SubqueryAnalyzerTests(TestCase):
             "SELECT * FROM orders WHERE EXISTS (SELECT 1 FROM customers WHERE id = orders.customer_id)"
         )
 
-        recommendations = [r for r in analysis.recommendations if 'EXISTS' in r.get('type', '')]
+        recommendations = [
+            r for r in analysis.recommendations if "EXISTS" in r.get("type", "")
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_no_subquery_issues_for_simple_query(self):
@@ -169,7 +200,9 @@ class SubqueryAnalyzerTests(TestCase):
             "SELECT * FROM users WHERE active = 1"
         )
 
-        subquery_issues = [i for i in analysis.issues_found if 'subquery' in i.get('type', '').lower()]
+        subquery_issues = [
+            i for i in analysis.issues_found if "subquery" in i.get("type", "").lower()
+        ]
         self.assertEqual(len(subquery_issues), 0)
 
 
@@ -185,9 +218,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM users ORDER BY created_at DESC"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'ORDER_BY_NO_LIMIT']
+        issues = [i for i in analysis.issues_found if i["type"] == "ORDER_BY_NO_LIMIT"]
         self.assertTrue(len(issues) > 0)
-        self.assertEqual(issues[0]['severity'], 'medium')
+        self.assertEqual(issues[0]["severity"], "medium")
 
     def test_function_in_order_by(self):
         """Test detection of function in ORDER BY."""
@@ -195,7 +228,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM users ORDER BY UPPER(username)"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'FUNCTION_IN_ORDER_BY']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "FUNCTION_IN_ORDER_BY"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_expression_in_order_by(self):
@@ -204,7 +239,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM products ORDER BY price * quantity DESC"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'EXPRESSION_IN_ORDER_BY']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "EXPRESSION_IN_ORDER_BY"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_multi_column_order_by(self):
@@ -213,7 +250,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM orders ORDER BY customer_id, order_date, status"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'MULTI_COLUMN_INDEX']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "MULTI_COLUMN_INDEX"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_mixed_sort_order(self):
@@ -222,7 +261,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM users ORDER BY last_name ASC, created_at DESC"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'MIXED_SORT_ORDER']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "MIXED_SORT_ORDER"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_order_by_random(self):
@@ -231,9 +272,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM products ORDER BY RAND() LIMIT 10"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'ORDER_BY_RANDOM']
+        issues = [i for i in analysis.issues_found if i["type"] == "ORDER_BY_RANDOM"]
         self.assertTrue(len(issues) > 0)
-        self.assertEqual(issues[0]['severity'], 'high')
+        self.assertEqual(issues[0]["severity"], "high")
 
     def test_order_by_with_limit_no_issue(self):
         """Test that ORDER BY with LIMIT doesn't trigger no-limit issue."""
@@ -241,7 +282,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM users ORDER BY created_at DESC LIMIT 10"
         )
 
-        no_limit_issues = [i for i in analysis.issues_found if i['type'] == 'ORDER_BY_NO_LIMIT']
+        no_limit_issues = [
+            i for i in analysis.issues_found if i["type"] == "ORDER_BY_NO_LIMIT"
+        ]
         self.assertEqual(len(no_limit_issues), 0)
 
     def test_no_order_by_issues_for_simple_query(self):
@@ -250,7 +293,9 @@ class OrderByAnalyzerTests(TestCase):
             "SELECT * FROM users WHERE active = 1"
         )
 
-        order_issues = [i for i in analysis.issues_found if 'order' in i.get('type', '').lower()]
+        order_issues = [
+            i for i in analysis.issues_found if "order" in i.get("type", "").lower()
+        ]
         self.assertEqual(len(order_issues), 0)
 
 
@@ -266,7 +311,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'INDEX_GROUP_BY']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "INDEX_GROUP_BY"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_function_in_group_by(self):
@@ -275,7 +322,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT YEAR(order_date), COUNT(*) FROM orders GROUP BY YEAR(order_date)"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'FUNCTION_IN_GROUP_BY']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "FUNCTION_IN_GROUP_BY"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_expression_in_group_by(self):
@@ -284,7 +333,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT price * quantity, COUNT(*) FROM orders GROUP BY price * quantity"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'EXPRESSION_IN_GROUP_BY']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "EXPRESSION_IN_GROUP_BY"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_many_group_columns(self):
@@ -293,7 +344,7 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT col1, col2, col3, col4, col5, COUNT(*) FROM table1 GROUP BY col1, col2, col3, col4, col5"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'MANY_GROUP_COLUMNS']
+        issues = [i for i in analysis.issues_found if i["type"] == "MANY_GROUP_COLUMNS"]
         self.assertTrue(len(issues) > 0)
 
     def test_having_without_aggregate(self):
@@ -302,7 +353,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING customer_id > 100"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'HAVING_WITHOUT_AGGREGATE']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "HAVING_WITHOUT_AGGREGATE"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_distinct_in_aggregate(self):
@@ -311,7 +364,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT COUNT(DISTINCT customer_id) FROM orders"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'DISTINCT_IN_AGGREGATE']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "DISTINCT_IN_AGGREGATE"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_distinct_with_group_by(self):
@@ -320,7 +375,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT DISTINCT customer_id FROM orders GROUP BY customer_id"
         )
 
-        issues = [i for i in analysis.issues_found if i['type'] == 'DISTINCT_WITH_GROUP_BY']
+        issues = [
+            i for i in analysis.issues_found if i["type"] == "DISTINCT_WITH_GROUP_BY"
+        ]
         self.assertTrue(len(issues) > 0)
 
     def test_composite_group_index_recommendation(self):
@@ -329,7 +386,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT customer_id, product_id, status, COUNT(*) FROM orders GROUP BY customer_id, product_id, status"
         )
 
-        recommendations = [r for r in analysis.recommendations if r['type'] == 'COMPOSITE_GROUP_INDEX']
+        recommendations = [
+            r for r in analysis.recommendations if r["type"] == "COMPOSITE_GROUP_INDEX"
+        ]
         self.assertTrue(len(recommendations) > 0)
 
     def test_no_group_by_issues_for_simple_query(self):
@@ -338,7 +397,9 @@ class GroupByAnalyzerTests(TestCase):
             "SELECT * FROM users WHERE active = 1"
         )
 
-        group_issues = [i for i in analysis.issues_found if 'group' in i.get('type', '').lower()]
+        group_issues = [
+            i for i in analysis.issues_found if "group" in i.get("type", "").lower()
+        ]
         self.assertEqual(len(group_issues), 0)
 
 
@@ -360,18 +421,18 @@ class IntegrationTests(TestCase):
         )
 
         # Should have findings from multiple analyzers
-        self.assertTrue(len(analysis.issues_found) > 0 or len(analysis.recommendations) > 0)
+        self.assertTrue(
+            len(analysis.issues_found) > 0 or len(analysis.recommendations) > 0
+        )
         self.assertTrue(analysis.score >= 0 and analysis.score <= 100)
-        self.assertIn(analysis.grade, ['A', 'B', 'C', 'D', 'F'])
+        self.assertIn(analysis.grade, ["A", "B", "C", "D", "F"])
 
     def test_grade_calculation_with_multiple_issues(self):
         """Test that grade is calculated correctly with multiple issues."""
-        query, analysis = self.grader.analyze_query(
-            """SELECT * FROM orders
+        query, analysis = self.grader.analyze_query("""SELECT * FROM orders
                WHERE UPPER(status) = 'ACTIVE'
                AND customer_id IN (SELECT id FROM customers WHERE region LIKE '%US%')
-               ORDER BY RAND()"""
-        )
+               ORDER BY RAND()""")
 
         # Should have multiple issues of varying severity
         self.assertTrue(len(analysis.issues_found) > 0)
@@ -385,7 +446,9 @@ class IntegrationTests(TestCase):
         )
 
         # Should have few or no critical issues
-        critical_issues = [i for i in analysis.issues_found if i.get('severity') == 'critical']
+        critical_issues = [
+            i for i in analysis.issues_found if i.get("severity") == "critical"
+        ]
         self.assertEqual(len(critical_issues), 0)
         # Grade should be good
         self.assertGreaterEqual(analysis.score, 70)

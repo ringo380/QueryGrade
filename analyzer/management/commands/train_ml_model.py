@@ -10,79 +10,76 @@ Usage:
 
 import json
 import os
-from django.core.management.base import BaseCommand, CommandError
-from django.conf import settings
 
-from analyzer.ml.core.training_pipeline import TrainingPipelineManager, TrainingConfig
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+
+from analyzer.ml.core.training_pipeline import TrainingConfig, TrainingPipelineManager
 
 
 class Command(BaseCommand):
-    help = 'Train ML models for query analysis'
+    help = "Train ML models for query analysis"
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--force',
-            action='store_true',
-            help='Force retraining even if recent model exists'
+            "--force",
+            action="store_true",
+            help="Force retraining even if recent model exists",
         )
 
         parser.add_argument(
-            '--algorithm',
+            "--algorithm",
             type=str,
-            choices=['random_forest', 'gradient_boosting'],
-            default='random_forest',
-            help='ML algorithm to use for training'
+            choices=["random_forest", "gradient_boosting"],
+            default="random_forest",
+            help="ML algorithm to use for training",
         )
 
         parser.add_argument(
-            '--model-type',
+            "--model-type",
             type=str,
-            default='QUERY_GRADER',
-            help='Type of model to train'
+            default="QUERY_GRADER",
+            help="Type of model to train",
         )
 
         parser.add_argument(
-            '--min-samples',
+            "--min-samples",
             type=int,
             default=50,
-            help='Minimum number of training samples required'
+            help="Minimum number of training samples required",
         )
 
         parser.add_argument(
-            '--test-size',
+            "--test-size",
             type=float,
             default=0.2,
-            help='Proportion of data to use for testing (0.0-1.0)'
+            help="Proportion of data to use for testing (0.0-1.0)",
         )
 
         parser.add_argument(
-            '--config',
-            type=str,
-            help='Path to JSON configuration file'
+            "--config", type=str, help="Path to JSON configuration file"
         )
 
         parser.add_argument(
-            '--deploy',
-            action='store_true',
-            help='Automatically deploy model if it meets performance threshold'
+            "--deploy",
+            action="store_true",
+            help="Automatically deploy model if it meets performance threshold",
         )
 
         parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Show what would be done without actually training'
+            "--dry-run",
+            action="store_true",
+            help="Show what would be done without actually training",
         )
 
         parser.add_argument(
-            '--verbose',
-            action='store_true',
-            help='Enable verbose output'
+            "--verbose", action="store_true", help="Enable verbose output"
         )
 
     def handle(self, *args, **options):
         """Handle the training command."""
-        if options['verbose']:
-            self.stdout.write(self.style.SUCCESS('Starting ML model training...'))
+        if options["verbose"]:
+            self.stdout.write(self.style.SUCCESS("Starting ML model training..."))
 
         try:
             # Load configuration
@@ -91,7 +88,7 @@ class Command(BaseCommand):
             # Create pipeline manager
             pipeline_manager = TrainingPipelineManager(config)
 
-            if options['dry_run']:
+            if options["dry_run"]:
                 self._show_dry_run_info(pipeline_manager, options)
                 return
 
@@ -99,15 +96,17 @@ class Command(BaseCommand):
             status = pipeline_manager.get_training_status()
             self._display_training_status(status)
 
-            if not status['training_data']['ready_for_training']:
+            if not status["training_data"]["ready_for_training"]:
                 raise CommandError(
                     f"Insufficient training data: {status['training_data']['total_samples']} samples "
                     f"(minimum required: {config.min_training_samples})"
                 )
 
             # Run training pipeline
-            self.stdout.write('Running training pipeline...')
-            result = pipeline_manager.run_training_pipeline(force_retrain=options['force'])
+            self.stdout.write("Running training pipeline...")
+            result = pipeline_manager.run_training_pipeline(
+                force_retrain=options["force"]
+            )
 
             # Display results
             self._display_training_results(result, options)
@@ -115,24 +114,30 @@ class Command(BaseCommand):
             if result.success:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'Model training completed successfully! Version: {result.model_version}'
+                        f"Model training completed successfully! Version: {result.model_version}"
                     )
                 )
 
-                if options['deploy'] and result.validation_accuracy >= config.performance_threshold:
-                    self.stdout.write('Deploying model...')
+                if (
+                    options["deploy"]
+                    and result.validation_accuracy >= config.performance_threshold
+                ):
+                    self.stdout.write("Deploying model...")
                     pipeline_manager._deploy_model(result.model_version)
-                    self.stdout.write(self.style.SUCCESS('Model deployed successfully!'))
+                    self.stdout.write(
+                        self.style.SUCCESS("Model deployed successfully!")
+                    )
 
             else:
-                raise CommandError(f'Training failed: {result.error_message}')
+                raise CommandError(f"Training failed: {result.error_message}")
 
         except Exception as e:
-            if options['verbose']:
+            if options["verbose"]:
                 import traceback
+
                 self.stdout.write(self.style.ERROR(traceback.format_exc()))
 
-            raise CommandError(f'Training command failed: {str(e)}')
+            raise CommandError(f"Training command failed: {str(e)}")
 
     def _load_config(self, options):
         """Load training configuration from options and config file."""
@@ -140,11 +145,11 @@ class Command(BaseCommand):
         config = TrainingConfig()
 
         # Load from config file if provided
-        if options['config']:
-            if not os.path.exists(options['config']):
+        if options["config"]:
+            if not os.path.exists(options["config"]):
                 raise CommandError(f"Config file not found: {options['config']}")
 
-            with open(options['config'], 'r') as f:
+            with open(options["config"], "r") as f:
                 config_data = json.load(f)
 
             # Update config with file values
@@ -153,104 +158,108 @@ class Command(BaseCommand):
                     setattr(config, key, value)
 
         # Override with command line options
-        if options['algorithm']:
-            config.algorithm = options['algorithm']
+        if options["algorithm"]:
+            config.algorithm = options["algorithm"]
 
-        if options['model_type']:
-            config.model_type = options['model_type']
+        if options["model_type"]:
+            config.model_type = options["model_type"]
 
-        if options['min_samples']:
-            config.min_training_samples = options['min_samples']
+        if options["min_samples"]:
+            config.min_training_samples = options["min_samples"]
 
-        if options['test_size']:
-            config.test_size = options['test_size']
+        if options["test_size"]:
+            config.test_size = options["test_size"]
 
-        if options['deploy']:
+        if options["deploy"]:
             config.auto_deployment = True
 
         return config
 
     def _show_dry_run_info(self, pipeline_manager, options):
         """Show information about what would be done in a dry run."""
-        self.stdout.write(self.style.WARNING('DRY RUN MODE - No actual training will occur'))
-        self.stdout.write('')
+        self.stdout.write(
+            self.style.WARNING("DRY RUN MODE - No actual training will occur")
+        )
+        self.stdout.write("")
 
         status = pipeline_manager.get_training_status()
         self._display_training_status(status)
 
-        self.stdout.write('Training configuration:')
+        self.stdout.write("Training configuration:")
         config = pipeline_manager.config
-        self.stdout.write(f'  Algorithm: {config.algorithm}')
-        self.stdout.write(f'  Model type: {config.model_type}')
-        self.stdout.write(f'  Min samples: {config.min_training_samples}')
-        self.stdout.write(f'  Test size: {config.test_size}')
-        self.stdout.write(f'  Auto deployment: {config.auto_deployment}')
-        self.stdout.write('')
+        self.stdout.write(f"  Algorithm: {config.algorithm}")
+        self.stdout.write(f"  Model type: {config.model_type}")
+        self.stdout.write(f"  Min samples: {config.min_training_samples}")
+        self.stdout.write(f"  Test size: {config.test_size}")
+        self.stdout.write(f"  Auto deployment: {config.auto_deployment}")
+        self.stdout.write("")
 
-        if status['training_data']['ready_for_training']:
-            self.stdout.write(self.style.SUCCESS('✓ Ready for training'))
+        if status["training_data"]["ready_for_training"]:
+            self.stdout.write(self.style.SUCCESS("✓ Ready for training"))
         else:
-            self.stdout.write(self.style.ERROR('✗ Not ready for training'))
+            self.stdout.write(self.style.ERROR("✗ Not ready for training"))
 
     def _display_training_status(self, status):
         """Display current training status."""
-        self.stdout.write('Current training status:')
+        self.stdout.write("Current training status:")
 
         # Latest model info
-        latest = status['latest_model']
-        if latest['version']:
+        latest = status["latest_model"]
+        if latest["version"]:
             self.stdout.write(f'  Latest model: {latest["version"]}')
             self.stdout.write(f'  Active: {latest["is_active"]}')
-            if latest['performance']:
-                accuracy = latest['performance'].get('validation_accuracy', 'N/A')
-                self.stdout.write(f'  Validation accuracy: {accuracy}')
+            if latest["performance"]:
+                accuracy = latest["performance"].get("validation_accuracy", "N/A")
+                self.stdout.write(f"  Validation accuracy: {accuracy}")
         else:
-            self.stdout.write('  No existing models found')
+            self.stdout.write("  No existing models found")
 
         # Training data info
-        data_info = status['training_data']
+        data_info = status["training_data"]
         self.stdout.write(f'  Training samples: {data_info["total_samples"]}')
         self.stdout.write(f'  Ready for training: {data_info["ready_for_training"]}')
 
         # Recent activity
-        activity = status['recent_activity']
-        self.stdout.write(f'  Recent feedback: {activity["feedback_last_week"]} (last 7 days)')
-        self.stdout.write('')
+        activity = status["recent_activity"]
+        self.stdout.write(
+            f'  Recent feedback: {activity["feedback_last_week"]} (last 7 days)'
+        )
+        self.stdout.write("")
 
     def _display_training_results(self, result, options):
         """Display training results."""
         if not result.success:
-            self.stdout.write(self.style.ERROR(f'Training failed: {result.error_message}'))
+            self.stdout.write(
+                self.style.ERROR(f"Training failed: {result.error_message}")
+            )
             return
 
-        self.stdout.write(self.style.SUCCESS('Training Results:'))
-        self.stdout.write(f'  Model version: {result.model_version}')
-        self.stdout.write(f'  Training accuracy: {result.training_accuracy:.3f}')
-        self.stdout.write(f'  Validation accuracy: {result.validation_accuracy:.3f}')
-        self.stdout.write(f'  Test accuracy: {result.test_accuracy:.3f}')
-        self.stdout.write(f'  Training time: {result.training_time:.2f}s')
-        self.stdout.write(f'  Model saved to: {result.model_path}')
+        self.stdout.write(self.style.SUCCESS("Training Results:"))
+        self.stdout.write(f"  Model version: {result.model_version}")
+        self.stdout.write(f"  Training accuracy: {result.training_accuracy:.3f}")
+        self.stdout.write(f"  Validation accuracy: {result.validation_accuracy:.3f}")
+        self.stdout.write(f"  Test accuracy: {result.test_accuracy:.3f}")
+        self.stdout.write(f"  Training time: {result.training_time:.2f}s")
+        self.stdout.write(f"  Model saved to: {result.model_path}")
 
-        if options['verbose'] and result.metrics:
-            self.stdout.write('')
-            self.stdout.write('Detailed metrics:')
+        if options["verbose"] and result.metrics:
+            self.stdout.write("")
+            self.stdout.write("Detailed metrics:")
             for key, value in result.metrics.items():
                 if isinstance(value, float):
-                    self.stdout.write(f'  {key}: {value:.3f}')
+                    self.stdout.write(f"  {key}: {value:.3f}")
                 else:
-                    self.stdout.write(f'  {key}: {value}')
+                    self.stdout.write(f"  {key}: {value}")
 
-        if options['verbose'] and result.feature_importance:
-            self.stdout.write('')
-            self.stdout.write('Top 10 most important features:')
+        if options["verbose"] and result.feature_importance:
+            self.stdout.write("")
+            self.stdout.write("Top 10 most important features:")
             sorted_features = sorted(
-                result.feature_importance.items(),
-                key=lambda x: x[1],
-                reverse=True
+                result.feature_importance.items(), key=lambda x: x[1], reverse=True
             )[:10]
 
             for feature, importance in sorted_features:
-                self.stdout.write(f'  {feature}: {importance:.3f}')
+                self.stdout.write(f"  {feature}: {importance:.3f}")
 
     def _create_sample_config(self):
         """Create a sample configuration file."""
@@ -267,11 +276,11 @@ class Command(BaseCommand):
             "hyperparameter_tuning": True,
             "model_versioning": True,
             "auto_deployment": False,
-            "performance_threshold": 0.7
+            "performance_threshold": 0.7,
         }
 
-        config_path = os.path.join(settings.BASE_DIR, 'ml_training_config.json')
-        with open(config_path, 'w') as f:
+        config_path = os.path.join(settings.BASE_DIR, "ml_training_config.json")
+        with open(config_path, "w") as f:
             json.dump(sample_config, f, indent=2)
 
-        self.stdout.write(f'Sample config created at: {config_path}')
+        self.stdout.write(f"Sample config created at: {config_path}")

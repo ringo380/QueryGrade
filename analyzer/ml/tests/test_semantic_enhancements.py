@@ -9,10 +9,11 @@ Tests for Phase 1: Nested Subquery Analysis
 """
 
 import logging
+
 from django.test import TestCase
 
 # Suppress verbose logging during tests
-logging.getLogger('analyzer').setLevel(logging.WARNING)
+logging.getLogger("analyzer").setLevel(logging.WARNING)
 
 
 class NestedSubqueryAnalyzerInitializationTestCase(TestCase):
@@ -194,8 +195,10 @@ class SubqueryTypeClassificationTestCase(TestCase):
 
     def test_scalar_subquery_classification(self):
         """Test scalar subquery type detection"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
-        from analyzer.ml.analysis.nested_subquery_analyzer import SubqueryType
+        from analyzer.ml.analysis.nested_subquery_analyzer import (
+            NestedSubqueryAnalyzer,
+            SubqueryType,
+        )
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -223,8 +226,10 @@ class SubqueryTypeClassificationTestCase(TestCase):
 
     def test_in_list_subquery_classification(self):
         """Test IN subquery type detection"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
-        from analyzer.ml.analysis.nested_subquery_analyzer import SubqueryType
+        from analyzer.ml.analysis.nested_subquery_analyzer import (
+            NestedSubqueryAnalyzer,
+            SubqueryType,
+        )
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -239,8 +244,10 @@ class SubqueryTypeClassificationTestCase(TestCase):
 
     def test_exists_subquery_classification(self):
         """Test EXISTS subquery type detection"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
-        from analyzer.ml.analysis.nested_subquery_analyzer import SubqueryType
+        from analyzer.ml.analysis.nested_subquery_analyzer import (
+            NestedSubqueryAnalyzer,
+            SubqueryType,
+        )
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -301,7 +308,9 @@ class ComplexityScoreTestCase(TestCase):
 
         # Deep query should have higher or equal complexity
         if deep_analysis.total_subquery_count > shallow_analysis.total_subquery_count:
-            self.assertGreaterEqual(deep_analysis.complexity_score, shallow_analysis.complexity_score)
+            self.assertGreaterEqual(
+                deep_analysis.complexity_score, shallow_analysis.complexity_score
+            )
 
 
 class PerformanceRiskAssessmentTestCase(TestCase):
@@ -352,7 +361,9 @@ class PerformanceRiskAssessmentTestCase(TestCase):
         analysis = analyzer.analyze_nested_subqueries(query)
 
         # Should have higher risk due to depth
-        self.assertIn(analysis.performance_risk_level, ["low", "medium", "high", "critical"])
+        self.assertIn(
+            analysis.performance_risk_level, ["low", "medium", "high", "critical"]
+        )
 
     def test_correlated_increases_risk(self):
         """Test correlated subqueries increase risk"""
@@ -367,7 +378,9 @@ class PerformanceRiskAssessmentTestCase(TestCase):
 
         # Correlated subqueries are expensive
         if analysis.correlated_count > 0:
-            self.assertIn(analysis.performance_risk_level, ["low", "medium", "high", "critical"])
+            self.assertIn(
+                analysis.performance_risk_level, ["low", "medium", "high", "critical"]
+            )
 
 
 class SemanticMetricsIntegrationTestCase(TestCase):
@@ -415,7 +428,10 @@ class SemanticMetricsIntegrationTestCase(TestCase):
 
         # Complex query should have higher or equal conceptual complexity
         if complex_metrics.nesting_depth > simple_metrics.nesting_depth:
-            self.assertGreaterEqual(complex_metrics.conceptual_complexity, simple_metrics.conceptual_complexity)
+            self.assertGreaterEqual(
+                complex_metrics.conceptual_complexity,
+                simple_metrics.conceptual_complexity,
+            )
 
     def test_maintenance_difficulty_increased_by_correlated(self):
         """Test maintenance difficulty increases with correlated subqueries"""
@@ -435,8 +451,14 @@ class SemanticMetricsIntegrationTestCase(TestCase):
         corr_metrics = extractor.extract_semantic_features(corr_query)
 
         # Correlated should have higher or equal maintenance difficulty
-        if corr_metrics.correlated_subquery_count > non_corr_metrics.correlated_subquery_count:
-            self.assertGreaterEqual(corr_metrics.maintenance_difficulty, non_corr_metrics.maintenance_difficulty)
+        if (
+            corr_metrics.correlated_subquery_count
+            > non_corr_metrics.correlated_subquery_count
+        ):
+            self.assertGreaterEqual(
+                corr_metrics.maintenance_difficulty,
+                non_corr_metrics.maintenance_difficulty,
+            )
 
 
 # ===== JOIN SEMANTIC ANALYZER TESTS (Phase 2) =====
@@ -514,8 +536,10 @@ class JoinTypeClassificationTestCase(TestCase):
 
     def test_inner_join_classification(self):
         """Test INNER JOIN classification"""
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinType
+        from analyzer.ml.analysis.join_semantic_analyzer import (
+            JoinSemanticAnalyzer,
+            JoinType,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a INNER JOIN b ON a.id = b.id"
@@ -526,8 +550,10 @@ class JoinTypeClassificationTestCase(TestCase):
 
     def test_left_join_classification(self):
         """Test LEFT JOIN classification"""
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinType
+        from analyzer.ml.analysis.join_semantic_analyzer import (
+            JoinSemanticAnalyzer,
+            JoinType,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a LEFT JOIN b ON a.id = b.id"
@@ -538,8 +564,10 @@ class JoinTypeClassificationTestCase(TestCase):
 
     def test_cross_join_classification(self):
         """Test CROSS JOIN classification"""
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinType
+        from analyzer.ml.analysis.join_semantic_analyzer import (
+            JoinSemanticAnalyzer,
+            JoinType,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a CROSS JOIN b"
@@ -589,8 +617,10 @@ class JoinCardinalityImpactTestCase(TestCase):
 
     def test_inner_join_result_reducing(self):
         """Test INNER JOIN has result reducing impact"""
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinImpact
+        from analyzer.ml.analysis.join_semantic_analyzer import (
+            JoinImpact,
+            JoinSemanticAnalyzer,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a INNER JOIN b ON a.id = b.id"
@@ -601,8 +631,10 @@ class JoinCardinalityImpactTestCase(TestCase):
 
     def test_left_join_result_preserving(self):
         """Test LEFT JOIN has result preserving impact"""
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinImpact
+        from analyzer.ml.analysis.join_semantic_analyzer import (
+            JoinImpact,
+            JoinSemanticAnalyzer,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a LEFT JOIN b ON a.id = b.id"
@@ -613,8 +645,10 @@ class JoinCardinalityImpactTestCase(TestCase):
 
     def test_cross_join_result_expanding(self):
         """Test CROSS JOIN has result expanding impact"""
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
-        from analyzer.ml.analysis.join_semantic_analyzer import JoinImpact
+        from analyzer.ml.analysis.join_semantic_analyzer import (
+            JoinImpact,
+            JoinSemanticAnalyzer,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a CROSS JOIN b"
@@ -663,7 +697,9 @@ class JoinComplexityScoreTestCase(TestCase):
 
         # Complex should have >= complexity
         if complex.total_join_count > simple.total_join_count:
-            self.assertGreaterEqual(complex.overall_complexity_score, simple.overall_complexity_score)
+            self.assertGreaterEqual(
+                complex.overall_complexity_score, simple.overall_complexity_score
+            )
 
 
 class ImplicitJoinDetectionTestCase(TestCase):
@@ -724,7 +760,10 @@ class JoinSemanticMetricsIntegrationTestCase(TestCase):
 
         # Complex should have >= complexity
         if complex_metrics.join_count > simple_metrics.join_count:
-            self.assertGreaterEqual(complex_metrics.conceptual_complexity, simple_metrics.conceptual_complexity)
+            self.assertGreaterEqual(
+                complex_metrics.conceptual_complexity,
+                simple_metrics.conceptual_complexity,
+            )
 
     def test_cross_join_high_complexity(self):
         """Test CROSS JOIN significantly increases complexity"""
@@ -742,7 +781,10 @@ class JoinSemanticMetricsIntegrationTestCase(TestCase):
 
         # CROSS should have higher complexity
         if cross_metrics.cross_join_count > 0:
-            self.assertGreaterEqual(cross_metrics.maintenance_difficulty, normal_metrics.maintenance_difficulty)
+            self.assertGreaterEqual(
+                cross_metrics.maintenance_difficulty,
+                normal_metrics.maintenance_difficulty,
+            )
 
 
 class RealWorldJoinQueryTestCase(TestCase):
@@ -878,8 +920,10 @@ class CTEPurposeClassificationTestCase(TestCase):
 
     def test_aggregation_cte(self):
         """Test aggregation CTE classification"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
-        from analyzer.ml.analysis.cte_semantic_analyzer import CTEPurpose
+        from analyzer.ml.analysis.cte_semantic_analyzer import (
+            CTEPurpose,
+            CTESemanticAnalyzer,
+        )
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -931,7 +975,7 @@ class RecursiveCTEDetectionTestCase(TestCase):
         analysis = analyzer.analyze_ctes(query)
 
         # Recursive CTE detection - check for WITH RECURSIVE keyword
-        self.assertIn('RECURSIVE', query.upper())
+        self.assertIn("RECURSIVE", query.upper())
         # Analyzer should run without error
         self.assertIsNotNone(analysis)
 
@@ -1025,7 +1069,10 @@ class CTESemanticMetricsIntegrationTestCase(TestCase):
 
         # Complex should have >= complexity
         if complex_metrics.cte_count > simple_metrics.cte_count:
-            self.assertGreaterEqual(complex_metrics.conceptual_complexity, simple_metrics.conceptual_complexity)
+            self.assertGreaterEqual(
+                complex_metrics.conceptual_complexity,
+                simple_metrics.conceptual_complexity,
+            )
 
     def test_recursive_cte_complexity(self):
         """Test recursive CTE increases complexity"""
@@ -1055,7 +1102,9 @@ class CTESemanticMetricsIntegrationTestCase(TestCase):
 
         # Recursive should have higher maintenance difficulty
         if rec_metrics.has_recursive_cte:
-            self.assertGreater(rec_metrics.maintenance_difficulty, non_metrics.maintenance_difficulty)
+            self.assertGreater(
+                rec_metrics.maintenance_difficulty, non_metrics.maintenance_difficulty
+            )
 
 
 class RealWorldCTEQueryTestCase(TestCase):
@@ -1188,8 +1237,10 @@ class StatementTypeClassificationTestCase(TestCase):
 
     def test_select_statement_classification(self):
         """Test SELECT statement classification"""
-        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
-        from analyzer.ml.analysis.context_window_analyzer import StatementType
+        from analyzer.ml.analysis.context_window_analyzer import (
+            ContextWindowAnalyzer,
+            StatementType,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "SELECT * FROM users; INSERT INTO audit VALUES (1)"
@@ -1200,8 +1251,10 @@ class StatementTypeClassificationTestCase(TestCase):
 
     def test_insert_statement_classification(self):
         """Test INSERT statement classification"""
-        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
-        from analyzer.ml.analysis.context_window_analyzer import StatementType
+        from analyzer.ml.analysis.context_window_analyzer import (
+            ContextWindowAnalyzer,
+            StatementType,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "INSERT INTO users VALUES (1, 'John')"
@@ -1212,8 +1265,10 @@ class StatementTypeClassificationTestCase(TestCase):
 
     def test_update_delete_statements(self):
         """Test UPDATE and DELETE statements"""
-        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
-        from analyzer.ml.analysis.context_window_analyzer import StatementType
+        from analyzer.ml.analysis.context_window_analyzer import (
+            ContextWindowAnalyzer,
+            StatementType,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "UPDATE users SET active = 1; DELETE FROM logs"
@@ -1223,8 +1278,8 @@ class StatementTypeClassificationTestCase(TestCase):
             stmt_types = list(analysis.statement_types.keys())
             # Should have update and/or delete
             self.assertTrue(
-                StatementType.UPDATE.value in stmt_types or
-                StatementType.DELETE.value in stmt_types
+                StatementType.UPDATE.value in stmt_types
+                or StatementType.DELETE.value in stmt_types
             )
 
 
@@ -1233,8 +1288,10 @@ class TransactionDetectionTestCase(TestCase):
 
     def test_explicit_transaction_detection(self):
         """Test explicit transaction detection"""
-        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
-        from analyzer.ml.analysis.context_window_analyzer import TransactionScope
+        from analyzer.ml.analysis.context_window_analyzer import (
+            ContextWindowAnalyzer,
+            TransactionScope,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1250,8 +1307,10 @@ class TransactionDetectionTestCase(TestCase):
 
     def test_auto_commit_detection(self):
         """Test auto-commit transaction detection"""
-        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
-        from analyzer.ml.analysis.context_window_analyzer import TransactionScope
+        from analyzer.ml.analysis.context_window_analyzer import (
+            ContextWindowAnalyzer,
+            TransactionScope,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "SELECT * FROM users"
@@ -1334,7 +1393,9 @@ class ComplexityScoreTestCase(TestCase):
 
         # Complex should have >= complexity
         if complex.total_statement_count > simple.total_statement_count:
-            self.assertGreaterEqual(complex.overall_complexity_score, simple.overall_complexity_score)
+            self.assertGreaterEqual(
+                complex.overall_complexity_score, simple.overall_complexity_score
+            )
 
 
 class ContextWindowMetricsIntegrationTestCase(TestCase):
@@ -1364,11 +1425,15 @@ class ContextWindowMetricsIntegrationTestCase(TestCase):
         single = extractor.extract_semantic_features("SELECT * FROM users")
 
         # Multiple statements
-        multi = extractor.extract_semantic_features("SELECT * FROM users; UPDATE users SET active = 1")
+        multi = extractor.extract_semantic_features(
+            "SELECT * FROM users; UPDATE users SET active = 1"
+        )
 
         # Multi should have >= complexity
         if multi.statement_count > single.statement_count:
-            self.assertGreaterEqual(multi.conceptual_complexity, single.conceptual_complexity)
+            self.assertGreaterEqual(
+                multi.conceptual_complexity, single.conceptual_complexity
+            )
 
     def test_explicit_transaction_complexity(self):
         """Test explicit transactions increase complexity"""
@@ -1391,7 +1456,9 @@ class ContextWindowMetricsIntegrationTestCase(TestCase):
 
         # With transaction should have higher maintenance difficulty
         if with_txn.has_explicit_transaction:
-            self.assertGreater(with_txn.maintenance_difficulty, no_txn.maintenance_difficulty)
+            self.assertGreater(
+                with_txn.maintenance_difficulty, no_txn.maintenance_difficulty
+            )
 
 
 class RealWorldMultiStatementTestCase(TestCase):
@@ -1623,7 +1690,9 @@ class TransactionalGoalDetectionTestCase(TestCase):
         from analyzer.ml.analysis.goal_classifier import QueryGoalClassifier
 
         classifier = QueryGoalClassifier()
-        query = "INSERT INTO users (id, name, email) VALUES (1, 'John', 'john@example.com')"
+        query = (
+            "INSERT INTO users (id, name, email) VALUES (1, 'John', 'john@example.com')"
+        )
         analysis = classifier.classify_goal(query)
 
         self.assertEqual(analysis.primary_goal.value, "transactional")

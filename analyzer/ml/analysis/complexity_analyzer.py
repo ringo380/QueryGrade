@@ -6,40 +6,52 @@ across multiple dimensions, enabling intelligent benchmark organization and grad
 """
 
 import logging
-import re
 import math
-from typing import Dict, List, Optional, Tuple, Set, Any
-from dataclasses import dataclass, asdict
+import re
+from dataclasses import asdict, dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import sqlparse
-from sqlparse import sql, tokens, keywords
-from sqlparse.sql import Statement, Token, TokenList, IdentifierList, Identifier, Function, Where
+from sqlparse import keywords, sql, tokens
+from sqlparse.sql import (
+    Function,
+    Identifier,
+    IdentifierList,
+    Statement,
+    Token,
+    TokenList,
+    Where,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ComplexityDimension(Enum):
     """Different dimensions of query complexity."""
-    SYNTACTIC = "syntactic"          # Syntax complexity (keywords, nesting)
-    SEMANTIC = "semantic"            # Logical complexity (joins, subqueries)
+
+    SYNTACTIC = "syntactic"  # Syntax complexity (keywords, nesting)
+    SEMANTIC = "semantic"  # Logical complexity (joins, subqueries)
     COMPUTATIONAL = "computational"  # Execution complexity (performance impact)
-    COGNITIVE = "cognitive"          # Human readability complexity
+    COGNITIVE = "cognitive"  # Human readability complexity
     ARCHITECTURAL = "architectural"  # Database design complexity
 
 
 class ComplexityLevel(Enum):
     """Complexity levels for categorization."""
-    TRIVIAL = 1      # Very simple queries
-    SIMPLE = 2       # Basic queries
-    MODERATE = 3     # Moderately complex queries
-    COMPLEX = 4      # Complex queries
-    ADVANCED = 5     # Very complex queries
-    EXPERT = 6       # Expert-level queries
+
+    TRIVIAL = 1  # Very simple queries
+    SIMPLE = 2  # Basic queries
+    MODERATE = 3  # Moderately complex queries
+    COMPLEX = 4  # Complex queries
+    ADVANCED = 5  # Very complex queries
+    EXPERT = 6  # Expert-level queries
 
 
 @dataclass
 class ComplexityMetrics:
     """Comprehensive complexity metrics for a query."""
+
     # Syntactic complexity
     token_count: int = 0
     keyword_count: int = 0
@@ -77,6 +89,7 @@ class ComplexityMetrics:
 @dataclass
 class ComplexityCategory:
     """A category for organizing queries by complexity."""
+
     name: str
     description: str
     complexity_range: Tuple[float, float]  # Min, max complexity scores
@@ -95,7 +108,7 @@ class QueryComplexityAnalyzer:
             ComplexityDimension.SEMANTIC: 0.30,
             ComplexityDimension.COMPUTATIONAL: 0.25,
             ComplexityDimension.COGNITIVE: 0.15,
-            ComplexityDimension.ARCHITECTURAL: 0.10
+            ComplexityDimension.ARCHITECTURAL: 0.10,
         }
 
         self.complexity_categories = self._initialize_complexity_categories()
@@ -113,15 +126,14 @@ class QueryComplexityAnalyzer:
                     "Single table access",
                     "Primary key or unique index lookup",
                     "No joins or subqueries",
-                    "Simple WHERE conditions"
+                    "Simple WHERE conditions",
                 ],
                 example_patterns=[
                     "SELECT * FROM table WHERE id = ?",
-                    "SELECT column FROM table WHERE unique_key = ?"
+                    "SELECT column FROM table WHERE unique_key = ?",
                 ],
-                training_weight=1.2
+                training_weight=1.2,
             ),
-
             ComplexityCategory(
                 name="simple_queries",
                 description="Basic queries with simple conditions and sorting",
@@ -131,16 +143,15 @@ class QueryComplexityAnalyzer:
                     "Single table or simple joins",
                     "Basic WHERE conditions",
                     "Simple ORDER BY or GROUP BY",
-                    "Standard aggregate functions"
+                    "Standard aggregate functions",
                 ],
                 example_patterns=[
                     "SELECT * FROM table WHERE condition ORDER BY column",
                     "SELECT COUNT(*) FROM table WHERE condition",
-                    "SELECT * FROM table1 JOIN table2 ON simple_condition"
+                    "SELECT * FROM table1 JOIN table2 ON simple_condition",
                 ],
-                training_weight=1.0
+                training_weight=1.0,
             ),
-
             ComplexityCategory(
                 name="moderate_queries",
                 description="Moderately complex queries with multiple tables and conditions",
@@ -151,16 +162,15 @@ class QueryComplexityAnalyzer:
                     "Complex WHERE conditions",
                     "Subqueries or CTEs",
                     "Window functions",
-                    "Advanced grouping"
+                    "Advanced grouping",
                 ],
                 example_patterns=[
                     "SELECT ... FROM table1 JOIN table2 JOIN table3 WHERE complex_conditions",
                     "SELECT ... FROM table WHERE col IN (SELECT ...)",
-                    "SELECT ROW_NUMBER() OVER (...) FROM table"
+                    "SELECT ROW_NUMBER() OVER (...) FROM table",
                 ],
-                training_weight=1.1
+                training_weight=1.1,
             ),
-
             ComplexityCategory(
                 name="complex_queries",
                 description="Complex analytical queries with advanced features",
@@ -171,16 +181,15 @@ class QueryComplexityAnalyzer:
                     "Complex joins (CROSS, FULL OUTER)",
                     "Recursive CTEs",
                     "Advanced window functions",
-                    "Multiple UNION operations"
+                    "Multiple UNION operations",
                 ],
                 example_patterns=[
                     "WITH RECURSIVE cte AS (...) SELECT ...",
                     "SELECT ... FROM (SELECT ... FROM (SELECT ...))",
-                    "Complex analytical queries with multiple CTEs"
+                    "Complex analytical queries with multiple CTEs",
                 ],
-                training_weight=1.3
+                training_weight=1.3,
             ),
-
             ComplexityCategory(
                 name="advanced_queries",
                 description="Very complex queries with performance implications",
@@ -191,16 +200,15 @@ class QueryComplexityAnalyzer:
                     "Cartesian products",
                     "Complex correlated subqueries",
                     "Advanced analytical functions",
-                    "Dynamic SQL patterns"
+                    "Dynamic SQL patterns",
                 ],
                 example_patterns=[
                     "Queries with CROSS JOINs",
                     "Multiple correlated subqueries",
-                    "Complex pivot operations"
+                    "Complex pivot operations",
                 ],
-                training_weight=1.5
+                training_weight=1.5,
             ),
-
             ComplexityCategory(
                 name="expert_queries",
                 description="Expert-level queries requiring deep optimization knowledge",
@@ -210,29 +218,74 @@ class QueryComplexityAnalyzer:
                     "Extreme nesting or complexity",
                     "Anti-patterns that need rewriting",
                     "Queries requiring deep database knowledge",
-                    "Performance-critical optimizations"
+                    "Performance-critical optimizations",
                 ],
                 example_patterns=[
                     "Extremely complex analytical queries",
                     "Queries with multiple anti-patterns",
-                    "Resource-intensive operations"
+                    "Resource-intensive operations",
                 ],
-                training_weight=2.0
-            )
+                training_weight=2.0,
+            ),
         ]
 
     def _get_sql_keywords(self) -> Set[str]:
         """Get set of SQL keywords for analysis."""
         return {
-            'SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER',
-            'ON', 'GROUP', 'BY', 'HAVING', 'ORDER', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
-            'DISTINCT', 'AS', 'AND', 'OR', 'NOT', 'IN', 'EXISTS', 'LIKE', 'BETWEEN',
-            'IS', 'NULL', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'WITH', 'RECURSIVE',
-            'OVER', 'PARTITION', 'WINDOW', 'ROW_NUMBER', 'RANK', 'DENSE_RANK',
-            'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CROSS', 'NATURAL'
+            "SELECT",
+            "FROM",
+            "WHERE",
+            "JOIN",
+            "INNER",
+            "LEFT",
+            "RIGHT",
+            "FULL",
+            "OUTER",
+            "ON",
+            "GROUP",
+            "BY",
+            "HAVING",
+            "ORDER",
+            "LIMIT",
+            "OFFSET",
+            "UNION",
+            "ALL",
+            "DISTINCT",
+            "AS",
+            "AND",
+            "OR",
+            "NOT",
+            "IN",
+            "EXISTS",
+            "LIKE",
+            "BETWEEN",
+            "IS",
+            "NULL",
+            "CASE",
+            "WHEN",
+            "THEN",
+            "ELSE",
+            "END",
+            "WITH",
+            "RECURSIVE",
+            "OVER",
+            "PARTITION",
+            "WINDOW",
+            "ROW_NUMBER",
+            "RANK",
+            "DENSE_RANK",
+            "COUNT",
+            "SUM",
+            "AVG",
+            "MIN",
+            "MAX",
+            "CROSS",
+            "NATURAL",
         }
 
-    def analyze_complexity(self, query: str, database_type: str = 'generic') -> ComplexityMetrics:
+    def analyze_complexity(
+        self, query: str, database_type: str = "generic"
+    ) -> ComplexityMetrics:
         """
         Perform comprehensive complexity analysis of a SQL query.
 
@@ -255,13 +308,17 @@ class QueryComplexityAnalyzer:
             self._analyze_semantic_complexity(query, parsed, metrics)
             self._analyze_computational_complexity(query, parsed, metrics)
             self._analyze_cognitive_complexity(query, parsed, metrics)
-            self._analyze_architectural_complexity(query, parsed, metrics, database_type)
+            self._analyze_architectural_complexity(
+                query, parsed, metrics, database_type
+            )
 
             # Calculate overall complexity
             self._calculate_overall_complexity(metrics)
 
             # Determine complexity level and confidence
-            metrics.complexity_level = self._determine_complexity_level(metrics.overall_complexity)
+            metrics.complexity_level = self._determine_complexity_level(
+                metrics.overall_complexity
+            )
             metrics.confidence = self._calculate_confidence(metrics)
 
             return metrics
@@ -270,7 +327,9 @@ class QueryComplexityAnalyzer:
             logger.error(f"Error analyzing query complexity: {e}")
             return ComplexityMetrics()
 
-    def _analyze_syntactic_complexity(self, query: str, parsed: Statement, metrics: ComplexityMetrics):
+    def _analyze_syntactic_complexity(
+        self, query: str, parsed: Statement, metrics: ComplexityMetrics
+    ):
         """Analyze syntactic complexity of the query."""
         # Token and keyword counts
         tokens = list(parsed.flatten())
@@ -278,7 +337,10 @@ class QueryComplexityAnalyzer:
 
         keyword_count = 0
         for token in tokens:
-            if token.ttype in keywords.Keyword or token.value.upper() in self.sql_keywords:
+            if (
+                token.ttype in keywords.Keyword
+                or token.value.upper() in self.sql_keywords
+            ):
                 keyword_count += 1
         metrics.keyword_count = keyword_count
 
@@ -286,24 +348,26 @@ class QueryComplexityAnalyzer:
         nesting_depth = 0
         max_depth = 0
         for char in query:
-            if char == '(':
+            if char == "(":
                 nesting_depth += 1
                 max_depth = max(max_depth, nesting_depth)
-            elif char == ')':
+            elif char == ")":
                 nesting_depth -= 1
         metrics.nesting_depth = max_depth
 
         # Line count
-        metrics.line_count = len(query.split('\n'))
+        metrics.line_count = len(query.split("\n"))
 
-    def _analyze_semantic_complexity(self, query: str, parsed: Statement, metrics: ComplexityMetrics):
+    def _analyze_semantic_complexity(
+        self, query: str, parsed: Statement, metrics: ComplexityMetrics
+    ):
         """Analyze semantic complexity of the query."""
         query_upper = query.upper()
 
         # Table count (FROM and JOIN patterns)
         table_patterns = [
-            r'\bFROM\s+([a-zA-Z_][a-zA-Z0-9_]*)',
-            r'\bJOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)'
+            r"\bFROM\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+            r"\bJOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)",
         ]
         tables = set()
         for pattern in table_patterns:
@@ -312,26 +376,35 @@ class QueryComplexityAnalyzer:
         metrics.table_count = len(tables)
 
         # Join count
-        join_types = ['JOIN', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'CROSS JOIN']
-        metrics.join_count = sum(query_upper.count(join_type) for join_type in join_types)
+        join_types = [
+            "JOIN",
+            "INNER JOIN",
+            "LEFT JOIN",
+            "RIGHT JOIN",
+            "FULL JOIN",
+            "CROSS JOIN",
+        ]
+        metrics.join_count = sum(
+            query_upper.count(join_type) for join_type in join_types
+        )
 
         # Subquery count
         # Count SELECT statements (excluding the main one)
-        select_count = query_upper.count('SELECT')
+        select_count = query_upper.count("SELECT")
         metrics.subquery_count = max(0, select_count - 1)
 
         # Function count
         function_patterns = [
-            r'COUNT\s*\(',
-            r'SUM\s*\(',
-            r'AVG\s*\(',
-            r'MIN\s*\(',
-            r'MAX\s*\(',
-            r'ROW_NUMBER\s*\(',
-            r'RANK\s*\(',
-            r'DENSE_RANK\s*\(',
-            r'LAG\s*\(',
-            r'LEAD\s*\(',
+            r"COUNT\s*\(",
+            r"SUM\s*\(",
+            r"AVG\s*\(",
+            r"MIN\s*\(",
+            r"MAX\s*\(",
+            r"ROW_NUMBER\s*\(",
+            r"RANK\s*\(",
+            r"DENSE_RANK\s*\(",
+            r"LAG\s*\(",
+            r"LEAD\s*\(",
         ]
         function_count = 0
         for pattern in function_patterns:
@@ -339,24 +412,26 @@ class QueryComplexityAnalyzer:
         metrics.function_count = function_count
 
         # Condition count
-        condition_keywords = ['WHERE', 'HAVING', 'ON']
+        condition_keywords = ["WHERE", "HAVING", "ON"]
         condition_count = 0
         for keyword in condition_keywords:
             if keyword in query_upper:
                 # Count AND/OR operators after the keyword
                 keyword_pos = query_upper.find(keyword)
                 remaining = query_upper[keyword_pos:]
-                condition_count += remaining.count('AND') + remaining.count('OR') + 1
+                condition_count += remaining.count("AND") + remaining.count("OR") + 1
         metrics.condition_count = condition_count
 
-    def _analyze_computational_complexity(self, query: str, parsed: Statement, metrics: ComplexityMetrics):
+    def _analyze_computational_complexity(
+        self, query: str, parsed: Statement, metrics: ComplexityMetrics
+    ):
         """Analyze computational complexity and performance implications."""
         query_upper = query.upper()
 
         # Cartesian product risk
-        has_cross_join = 'CROSS JOIN' in query_upper
-        join_count = metrics.join_count if hasattr(metrics, 'join_count') else 0
-        on_count = query_upper.count(' ON ')
+        has_cross_join = "CROSS JOIN" in query_upper
+        join_count = metrics.join_count if hasattr(metrics, "join_count") else 0
+        on_count = query_upper.count(" ON ")
 
         if has_cross_join:
             metrics.cartesian_product_risk = 1.0
@@ -367,10 +442,10 @@ class QueryComplexityAnalyzer:
 
         # Index usage score
         index_indicators = [
-            ('WHERE.*=', 0.3),  # Equality conditions
-            ('WHERE.*ID\s*=', 0.5),  # ID equality (likely indexed)
-            ('ORDER BY.*ID', 0.2),  # Ordering by ID
-            ('GROUP BY', 0.1),  # Grouping operations
+            ("WHERE.*=", 0.3),  # Equality conditions
+            ("WHERE.*ID\s*=", 0.5),  # ID equality (likely indexed)
+            ("ORDER BY.*ID", 0.2),  # Ordering by ID
+            ("GROUP BY", 0.1),  # Grouping operations
         ]
 
         index_score = 0.0
@@ -379,16 +454,16 @@ class QueryComplexityAnalyzer:
                 index_score += score
 
         # Negative indicators
-        if 'SELECT *' in query_upper:
+        if "SELECT *" in query_upper:
             index_score -= 0.2
-        if re.search(r'WHERE.*LIKE.*%.*%', query, re.IGNORECASE):
+        if re.search(r"WHERE.*LIKE.*%.*%", query, re.IGNORECASE):
             index_score -= 0.3  # LIKE with leading wildcard
 
         metrics.index_usage_score = max(0.0, min(1.0, index_score))
 
         # Scan efficiency
         scan_efficiency = 1.0
-        if 'SELECT *' in query_upper:
+        if "SELECT *" in query_upper:
             scan_efficiency -= 0.3
         if metrics.cartesian_product_risk > 0.5:
             scan_efficiency -= 0.4
@@ -397,7 +472,9 @@ class QueryComplexityAnalyzer:
 
         metrics.scan_efficiency = max(0.0, scan_efficiency)
 
-    def _analyze_cognitive_complexity(self, query: str, parsed: Statement, metrics: ComplexityMetrics):
+    def _analyze_cognitive_complexity(
+        self, query: str, parsed: Statement, metrics: ComplexityMetrics
+    ):
         """Analyze cognitive complexity (readability and maintainability)."""
         # Readability score based on various factors
         readability = 1.0
@@ -421,13 +498,13 @@ class QueryComplexityAnalyzer:
             readability -= 0.1
 
         # Bonus for good formatting (multiple lines, proper indentation)
-        if metrics.line_count > 1 and '\n' in query:
+        if metrics.line_count > 1 and "\n" in query:
             readability += 0.1
 
         metrics.readability_score = max(0.0, readability)
 
         # Alias clarity (simplified analysis)
-        alias_patterns = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s+AS\s+([a-zA-Z_][a-zA-Z0-9_]*)'
+        alias_patterns = r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s+AS\s+([a-zA-Z_][a-zA-Z0-9_]*)"
         aliases = re.findall(alias_patterns, query, re.IGNORECASE)
 
         clear_aliases = 0
@@ -438,9 +515,9 @@ class QueryComplexityAnalyzer:
         metrics.alias_clarity = clear_aliases / max(1, len(aliases)) if aliases else 1.0
 
         # Naming consistency (simplified)
-        identifiers = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', query)
-        snake_case = sum(1 for id in identifiers if '_' in id)
-        camel_case = sum(1 for id in identifiers if re.match(r'[a-z]+[A-Z]', id))
+        identifiers = re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", query)
+        snake_case = sum(1 for id in identifiers if "_" in id)
+        camel_case = sum(1 for id in identifiers if re.match(r"[a-z]+[A-Z]", id))
 
         if len(identifiers) > 0:
             consistency = max(snake_case, camel_case) / len(identifiers)
@@ -449,8 +526,13 @@ class QueryComplexityAnalyzer:
 
         metrics.naming_consistency = consistency
 
-    def _analyze_architectural_complexity(self, query: str, parsed: Statement,
-                                        metrics: ComplexityMetrics, database_type: str):
+    def _analyze_architectural_complexity(
+        self,
+        query: str,
+        parsed: Statement,
+        metrics: ComplexityMetrics,
+        database_type: str,
+    ):
         """Analyze architectural complexity and database-specific features."""
         query_upper = query.upper()
 
@@ -458,7 +540,7 @@ class QueryComplexityAnalyzer:
         metrics.schema_dependencies = metrics.table_count * (1 + metrics.join_count)
 
         # Data type complexity (simplified)
-        complex_types = ['JSON', 'XML', 'GEOMETRY', 'ARRAY', 'JSONB']
+        complex_types = ["JSON", "XML", "GEOMETRY", "ARRAY", "JSONB"]
         type_complexity = 0.0
         for data_type in complex_types:
             if data_type in query_upper:
@@ -469,13 +551,13 @@ class QueryComplexityAnalyzer:
         constraint_complexity = 0.0
 
         # Advanced functions indicate complex constraints
-        advanced_functions = ['REGEXP', 'EXTRACT', 'CAST', 'CONVERT', 'COALESCE']
+        advanced_functions = ["REGEXP", "EXTRACT", "CAST", "CONVERT", "COALESCE"]
         for func in advanced_functions:
             if func in query_upper:
                 constraint_complexity += 0.1
 
         # Complex conditions
-        if re.search(r'CASE\s+WHEN', query, re.IGNORECASE):
+        if re.search(r"CASE\s+WHEN", query, re.IGNORECASE):
             constraint_complexity += 0.2
 
         metrics.constraint_complexity = min(1.0, constraint_complexity)
@@ -483,46 +565,57 @@ class QueryComplexityAnalyzer:
     def _calculate_overall_complexity(self, metrics: ComplexityMetrics):
         """Calculate the overall complexity score."""
         # Normalize individual scores to 0-100 range
-        syntactic_score = min(100, (
-            (metrics.token_count / 10) +
-            (metrics.keyword_count * 2) +
-            (metrics.nesting_depth * 10) +
-            (metrics.line_count * 2)
-        ))
+        syntactic_score = min(
+            100,
+            (
+                (metrics.token_count / 10)
+                + (metrics.keyword_count * 2)
+                + (metrics.nesting_depth * 10)
+                + (metrics.line_count * 2)
+            ),
+        )
 
-        semantic_score = min(100, (
-            (metrics.table_count * 10) +
-            (metrics.join_count * 15) +
-            (metrics.subquery_count * 20) +
-            (metrics.function_count * 5) +
-            (metrics.condition_count * 3)
-        ))
+        semantic_score = min(
+            100,
+            (
+                (metrics.table_count * 10)
+                + (metrics.join_count * 15)
+                + (metrics.subquery_count * 20)
+                + (metrics.function_count * 5)
+                + (metrics.condition_count * 3)
+            ),
+        )
 
         computational_score = (
-            (1 - metrics.index_usage_score) * 40 +
-            metrics.cartesian_product_risk * 40 +
-            (1 - metrics.scan_efficiency) * 20
+            (1 - metrics.index_usage_score) * 40
+            + metrics.cartesian_product_risk * 40
+            + (1 - metrics.scan_efficiency) * 20
         )
 
         cognitive_score = (
-            (1 - metrics.readability_score) * 40 +
-            (1 - metrics.alias_clarity) * 30 +
-            (1 - metrics.naming_consistency) * 30
+            (1 - metrics.readability_score) * 40
+            + (1 - metrics.alias_clarity) * 30
+            + (1 - metrics.naming_consistency) * 30
         )
 
-        architectural_score = min(100, (
-            (metrics.schema_dependencies * 5) +
-            (metrics.data_type_complexity * 30) +
-            (metrics.constraint_complexity * 30)
-        ))
+        architectural_score = min(
+            100,
+            (
+                (metrics.schema_dependencies * 5)
+                + (metrics.data_type_complexity * 30)
+                + (metrics.constraint_complexity * 30)
+            ),
+        )
 
         # Weighted combination
         overall = (
-            syntactic_score * self.complexity_weights[ComplexityDimension.SYNTACTIC] +
-            semantic_score * self.complexity_weights[ComplexityDimension.SEMANTIC] +
-            computational_score * self.complexity_weights[ComplexityDimension.COMPUTATIONAL] +
-            cognitive_score * self.complexity_weights[ComplexityDimension.COGNITIVE] +
-            architectural_score * self.complexity_weights[ComplexityDimension.ARCHITECTURAL]
+            syntactic_score * self.complexity_weights[ComplexityDimension.SYNTACTIC]
+            + semantic_score * self.complexity_weights[ComplexityDimension.SEMANTIC]
+            + computational_score
+            * self.complexity_weights[ComplexityDimension.COMPUTATIONAL]
+            + cognitive_score * self.complexity_weights[ComplexityDimension.COGNITIVE]
+            + architectural_score
+            * self.complexity_weights[ComplexityDimension.ARCHITECTURAL]
         )
 
         metrics.overall_complexity = min(100.0, overall)
@@ -559,7 +652,7 @@ class QueryComplexityAnalyzer:
             metrics.nesting_depth > 2,
             metrics.join_count > 1,
             metrics.subquery_count > 0,
-            metrics.function_count > 2
+            metrics.function_count > 2,
         ]
 
         indicator_count = sum(complexity_indicators)
@@ -570,7 +663,9 @@ class QueryComplexityAnalyzer:
 
         return max(0.1, min(1.0, confidence))
 
-    def categorize_query(self, query: str, database_type: str = 'generic') -> Tuple[ComplexityCategory, ComplexityMetrics]:
+    def categorize_query(
+        self, query: str, database_type: str = "generic"
+    ) -> Tuple[ComplexityCategory, ComplexityMetrics]:
         """
         Categorize a query based on its complexity analysis.
 
@@ -581,7 +676,7 @@ class QueryComplexityAnalyzer:
 
         # Find the best matching category
         best_category = None
-        best_score = float('inf')
+        best_score = float("inf")
 
         for category in self.complexity_categories:
             min_range, max_range = category.complexity_range
@@ -641,39 +736,48 @@ class QueryComplexityAnalyzer:
 
 
 # Usage examples and utilities
-def analyze_query_complexity(query: str, database_type: str = 'generic') -> Dict[str, Any]:
+def analyze_query_complexity(
+    query: str, database_type: str = "generic"
+) -> Dict[str, Any]:
     """Convenience function to analyze a single query."""
     analyzer = QueryComplexityAnalyzer()
     category, metrics = analyzer.categorize_query(query, database_type)
 
     return {
-        'query': query,
-        'category': {
-            'name': category.name,
-            'description': category.description,
-            'expected_grade_range': category.expected_grade_range
+        "query": query,
+        "category": {
+            "name": category.name,
+            "description": category.description,
+            "expected_grade_range": category.expected_grade_range,
         },
-        'metrics': asdict(metrics),
-        'recommendations': _generate_complexity_recommendations(metrics, category)
+        "metrics": asdict(metrics),
+        "recommendations": _generate_complexity_recommendations(metrics, category),
     }
 
 
-def _generate_complexity_recommendations(metrics: ComplexityMetrics,
-                                       category: ComplexityCategory) -> List[str]:
+def _generate_complexity_recommendations(
+    metrics: ComplexityMetrics, category: ComplexityCategory
+) -> List[str]:
     """Generate recommendations based on complexity analysis."""
     recommendations = []
 
     if metrics.cartesian_product_risk > 0.5:
-        recommendations.append("Consider adding proper JOIN conditions to avoid cartesian products")
+        recommendations.append(
+            "Consider adding proper JOIN conditions to avoid cartesian products"
+        )
 
     if metrics.index_usage_score < 0.3:
         recommendations.append("Review WHERE conditions for better index utilization")
 
     if metrics.readability_score < 0.5:
-        recommendations.append("Consider breaking down complex query into smaller parts or adding comments")
+        recommendations.append(
+            "Consider breaking down complex query into smaller parts or adding comments"
+        )
 
     if metrics.nesting_depth > 4:
-        recommendations.append("High nesting depth may impact readability and performance")
+        recommendations.append(
+            "High nesting depth may impact readability and performance"
+        )
 
     if metrics.subquery_count > 3:
         recommendations.append("Multiple subqueries may benefit from CTE refactoring")
@@ -697,7 +801,7 @@ if __name__ == "__main__":
         print(f"Category: {result['category']['name']}")
         print(f"Complexity Score: {result['metrics']['overall_complexity']:.1f}")
         print(f"Level: {result['metrics']['complexity_level']}")
-        if result['recommendations']:
+        if result["recommendations"]:
             print("Recommendations:")
-            for rec in result['recommendations']:
+            for rec in result["recommendations"]:
                 print(f"  - {rec}")

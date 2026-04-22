@@ -9,15 +9,16 @@ Tests for:
 - ConfidenceBasedRetrainingSystem (retraining decisions)
 """
 
+import logging
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, Mock, patch
+
 import numpy as np
-from unittest.mock import Mock, patch, MagicMock
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
-from datetime import datetime, timedelta
-import logging
 
 # Suppress verbose logging during tests
-logging.getLogger('analyzer').setLevel(logging.WARNING)
+logging.getLogger("analyzer").setLevel(logging.WARNING)
 
 
 class IncrementalLearningEngineInitializationTestCase(TestCase):
@@ -47,9 +48,13 @@ class IncrementalLearningEngineInitializationTestCase(TestCase):
 
     def test_learning_rate_scheduler_init(self):
         """Test learning rate scheduler initialization"""
-        from analyzer.ml.learning.incremental_engine import AdaptiveLearningRateScheduler
+        from analyzer.ml.learning.incremental_engine import (
+            AdaptiveLearningRateScheduler,
+        )
 
-        scheduler = AdaptiveLearningRateScheduler(initial_lr=0.01, min_lr=1e-6, max_lr=0.1)
+        scheduler = AdaptiveLearningRateScheduler(
+            initial_lr=0.01, min_lr=1e-6, max_lr=0.1
+        )
 
         self.assertEqual(scheduler.current_lr, 0.01)
         self.assertEqual(scheduler.initial_lr, 0.01)
@@ -89,19 +94,19 @@ class IncrementalLearningProcessingTestCase(TestCase):
             weight=1.0,
             timestamp=timezone.now(),
             query_id=1,
-            source="test"
+            source="test",
         )
 
         result = self.engine.process_learning_instance(instance)
 
         # Result should be a dictionary with either success or error
         self.assertIsInstance(result, dict)
-        self.assertIn('success', result)
-        if result['success']:
-            self.assertGreaterEqual(result['samples_processed'], 1)
-            self.assertIn('processing_time_ms', result)
+        self.assertIn("success", result)
+        if result["success"]:
+            self.assertGreaterEqual(result["samples_processed"], 1)
+            self.assertIn("processing_time_ms", result)
         else:
-            self.assertIn('error', result)
+            self.assertIn("error", result)
 
     def test_multiple_instances_processing(self):
         """Test processing multiple learning instances"""
@@ -116,11 +121,11 @@ class IncrementalLearningProcessingTestCase(TestCase):
                 weight=1.0,
                 timestamp=timezone.now(),
                 query_id=i,
-                source="test"
+                source="test",
             )
 
             result = self.engine.process_learning_instance(instance)
-            if result['success']:
+            if result["success"]:
                 successful_count += 1
 
         # At least some instances should process successfully
@@ -140,16 +145,18 @@ class IncrementalLearningProcessingTestCase(TestCase):
             weight=1.0,
             timestamp=timezone.now(),
             query_id=999,
-            source="test"
+            source="test",
         )
 
         result = self.engine.process_learning_instance(invalid_instance)
 
-        self.assertFalse(result['success'])
+        self.assertFalse(result["success"])
 
     def test_learning_rate_adaptation(self):
         """Test adaptive learning rate updates"""
-        from analyzer.ml.learning.incremental_engine import AdaptiveLearningRateScheduler
+        from analyzer.ml.learning.incremental_engine import (
+            AdaptiveLearningRateScheduler,
+        )
 
         scheduler = AdaptiveLearningRateScheduler()
 
@@ -197,8 +204,9 @@ class PerformanceTrackerInitializationTestCase(TestCase):
 
     def test_performance_metrics_structure(self):
         """Test PerformanceMetrics dataclass structure"""
-        from analyzer.ml.monitoring.performance_tracker import PerformanceMetrics
         from datetime import datetime
+
+        from analyzer.ml.monitoring.performance_tracker import PerformanceMetrics
 
         metrics = PerformanceMetrics(
             model_id="test_model",
@@ -215,7 +223,7 @@ class PerformanceTrackerInitializationTestCase(TestCase):
             user_satisfaction=0.82,
             confidence_accuracy=0.85,
             drift_resistance=0.9,
-            timestamp=timezone.now()
+            timestamp=timezone.now(),
         )
 
         self.assertEqual(metrics.model_id, "test_model")
@@ -240,7 +248,7 @@ class PerformanceTrackingTestCase(TestCase):
             prediction=75.0,
             confidence=0.85,
             processing_time_ms=15.0,
-            actual_score=78.0
+            actual_score=78.0,
         )
 
         self.assertIn("test_model", self.tracker.prediction_cache)
@@ -249,10 +257,7 @@ class PerformanceTrackingTestCase(TestCase):
     def test_record_feedback(self):
         """Test recording user feedback"""
         self.tracker.record_feedback(
-            model_id="test_model",
-            query_id=1,
-            user_feedback=77.0,
-            user_satisfaction=4
+            model_id="test_model", query_id=1, user_feedback=77.0, user_satisfaction=4
         )
 
         self.assertIn("test_model", self.tracker.feedback_cache)
@@ -271,7 +276,7 @@ class PerformanceTrackingTestCase(TestCase):
                 prediction=prediction,
                 confidence=0.8,
                 processing_time_ms=10.0,
-                actual_score=actual
+                actual_score=actual,
             )
 
         metrics = self.tracker.calculate_performance_metrics("test_model")
@@ -310,10 +315,7 @@ class ConfidenceAnalyzerTestCase(TestCase):
     def test_add_prediction_result(self):
         """Test adding prediction results"""
         self.analyzer.add_prediction_result(
-            prediction=75.0,
-            confidence=0.85,
-            actual=78.0,
-            query_id=1
+            prediction=75.0, confidence=0.85, actual=78.0, query_id=1
         )
 
         self.assertEqual(len(self.analyzer.confidence_history), 1)
@@ -328,7 +330,7 @@ class ConfidenceAnalyzerTestCase(TestCase):
                 prediction=70 + np.random.normal(0, 5),
                 confidence=0.5 + np.random.uniform(0, 0.4),
                 actual=70 + np.random.normal(0, 5),
-                query_id=i
+                query_id=i,
             )
 
         score = self.analyzer.calculate_calibration_score()
@@ -345,12 +347,14 @@ class ConfidenceAnalyzerTestCase(TestCase):
                 prediction=75.0,
                 confidence=min(0.99, confidence),
                 actual=75.0,
-                query_id=i
+                query_id=i,
             )
 
         trend = self.analyzer.analyze_confidence_trend()
 
-        self.assertIn(trend, ["increasing", "decreasing", "stable", "insufficient_data"])
+        self.assertIn(
+            trend, ["increasing", "decreasing", "stable", "insufficient_data"]
+        )
 
     def test_low_confidence_queries_detection(self):
         """Test detection of low confidence queries"""
@@ -358,10 +362,7 @@ class ConfidenceAnalyzerTestCase(TestCase):
         for i in range(30):
             confidence = 0.3 if i < 10 else 0.8
             self.analyzer.add_prediction_result(
-                prediction=75.0,
-                confidence=confidence,
-                actual=75.0,
-                query_id=i
+                prediction=75.0, confidence=confidence, actual=75.0, query_id=i
             )
 
         low_conf_queries = self.analyzer.get_low_confidence_queries(threshold=0.5)
@@ -416,7 +417,7 @@ class DataDriftDetectorTestCase(TestCase):
         results = detector.detect_drift()
 
         self.assertIsNotNone(results)
-        self.assertIn('drift_detected', results)
+        self.assertIn("drift_detected", results)
 
 
 class RetrainingSystemTestCase(TestCase):
@@ -424,7 +425,9 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_system_initialization(self):
         """Test retraining system initialization"""
-        from analyzer.ml.monitoring.retraining_system import ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -435,22 +438,20 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_confidence_metrics_gathering(self):
         """Test gathering confidence metrics"""
-        from analyzer.ml.monitoring.retraining_system import ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
         # Add some data to the system
         for i in range(50):
             system.confidence_analyzer.add_prediction_result(
-                prediction=75.0,
-                confidence=0.8,
-                actual=76.0,
-                query_id=i
+                prediction=75.0, confidence=0.8, actual=76.0, query_id=i
             )
 
             system.performance_monitor.add_feedback_result(
-                predicted_score=75.0,
-                user_feedback_score=76.0
+                predicted_score=75.0, user_feedback_score=76.0
             )
 
         metrics = system._gather_confidence_metrics()
@@ -461,7 +462,9 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_model_health_evaluation(self):
         """Test model health status evaluation"""
-        from analyzer.ml.monitoring.retraining_system import ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -471,7 +474,7 @@ class RetrainingSystemTestCase(TestCase):
                 prediction=70.0 + np.random.normal(0, 5),
                 confidence=0.8,
                 actual=70.0 + np.random.normal(0, 5),
-                query_id=i
+                query_id=i,
             )
 
         health = system.get_model_health_status()
@@ -479,11 +482,15 @@ class RetrainingSystemTestCase(TestCase):
         self.assertIsNotNone(health)
         self.assertGreaterEqual(health.overall_health, 0)
         self.assertLessEqual(health.overall_health, 1)
-        self.assertIn(health.risk_level, ['low', 'medium', 'high', 'critical', 'unknown'])
+        self.assertIn(
+            health.risk_level, ["low", "medium", "high", "critical", "unknown"]
+        )
 
     def test_retraining_trigger_evaluation(self):
         """Test retraining trigger evaluation"""
-        from analyzer.ml.monitoring.retraining_system import ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -493,7 +500,7 @@ class RetrainingSystemTestCase(TestCase):
                 prediction=75.0,
                 confidence=0.3,  # Low confidence
                 actual=75.0,
-                query_id=i
+                query_id=i,
             )
 
         triggers = system.evaluate_retraining_need()
@@ -520,7 +527,7 @@ class ModelComparisonTestCase(TestCase):
                 prediction=75.0,
                 confidence=0.85,
                 processing_time_ms=10.0,
-                actual_score=76.0
+                actual_score=76.0,
             )
 
         # Record predictions for model B
@@ -531,7 +538,7 @@ class ModelComparisonTestCase(TestCase):
                 prediction=74.0,
                 confidence=0.82,
                 processing_time_ms=12.0,
-                actual_score=76.0
+                actual_score=76.0,
             )
 
         comparison = selector.compare_models("model_a", "model_b")
@@ -580,12 +587,12 @@ class ABTestingTestCase(TestCase):
                 model_used=model,
                 prediction=75.0,
                 actual_score=76.0,
-                user_feedback=4.0
+                user_feedback=4.0,
             )
 
         test = framework.active_tests[test_id]
-        self.assertEqual(test['samples_a'], 15)
-        self.assertEqual(test['samples_b'], 15)
+        self.assertEqual(test["samples_a"], 15)
+        self.assertEqual(test["samples_b"], 15)
 
     def test_ab_test_analysis(self):
         """Test A/B test analysis"""
@@ -602,7 +609,7 @@ class ABTestingTestCase(TestCase):
                 model_used=model,
                 prediction=75.0,
                 actual_score=76.0,
-                user_feedback=4.0
+                user_feedback=4.0,
             )
 
         result = framework.analyze_ab_test(test_id)
@@ -649,8 +656,10 @@ class PerformanceMonitorTestCase(TestCase):
 
         trend = monitor.calculate_performance_trend(window_size=100)
 
-        self.assertIn(trend['trend'], ['improving', 'degrading', 'stable', 'insufficient_data'])
-        self.assertIn('change', trend)
+        self.assertIn(
+            trend["trend"], ["improving", "degrading", "stable", "insufficient_data"]
+        )
+        self.assertIn("change", trend)
 
     def test_feedback_agreement_calculation(self):
         """Test feedback agreement calculation"""
@@ -660,10 +669,7 @@ class PerformanceMonitorTestCase(TestCase):
 
         # Add feedback results
         for i in range(60):
-            monitor.add_feedback_result(
-                predicted_score=75.0,
-                user_feedback_score=76.0
-            )
+            monitor.add_feedback_result(predicted_score=75.0, user_feedback_score=76.0)
 
         agreement = monitor.calculate_feedback_agreement()
 

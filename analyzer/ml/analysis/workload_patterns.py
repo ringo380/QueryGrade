@@ -5,22 +5,24 @@ This module identifies and analyzes workload patterns in database query streams,
 detecting recurring patterns, time-based trends, and workload characteristics.
 """
 
-import re
-import logging
 import hashlib
-from typing import Dict, List, Tuple, Optional, Any, Set
+import logging
+import pickle
+import re
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
+from datetime import datetime, time, timedelta
 from enum import Enum
-from datetime import datetime, timedelta, time
-from collections import defaultdict, deque, Counter
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import numpy as np
 from sklearn.cluster import DBSCAN, KMeans
 from sklearn.preprocessing import StandardScaler
-import pickle
 
 
 class WorkloadType(Enum):
     """Types of database workloads"""
+
     OLTP = "oltp"  # Online Transaction Processing
     OLAP = "olap"  # Online Analytical Processing
     HYBRID = "hybrid"  # Mixed workload
@@ -31,6 +33,7 @@ class WorkloadType(Enum):
 
 class PatternType(Enum):
     """Types of query patterns"""
+
     SEQUENTIAL = "sequential"  # Sequential access pattern
     RANDOM = "random"  # Random access pattern
     TEMPORAL = "temporal"  # Time-based pattern
@@ -41,6 +44,7 @@ class PatternType(Enum):
 
 class TimeWindow(Enum):
     """Time windows for analysis"""
+
     MINUTE = 60
     HOUR = 3600
     DAY = 86400
@@ -51,6 +55,7 @@ class TimeWindow(Enum):
 @dataclass
 class QueryPattern:
     """Represents a discovered query pattern"""
+
     pattern_id: str
     pattern_type: PatternType
     query_template: str
@@ -66,6 +71,7 @@ class QueryPattern:
 @dataclass
 class WorkloadProfile:
     """Profile of database workload characteristics"""
+
     workload_type: WorkloadType
     start_time: datetime
     end_time: datetime
@@ -84,6 +90,7 @@ class WorkloadProfile:
 @dataclass
 class TemporalPattern:
     """Time-based pattern in workload"""
+
     pattern_name: str
     time_window: TimeWindow
     recurrence_type: str  # daily, weekly, monthly
@@ -113,15 +120,19 @@ class WorkloadPatternRecognizer:
         self.scaler = StandardScaler()
 
         # Statistics
-        self.pattern_statistics = defaultdict(lambda: {
-            'count': 0,
-            'total_time': 0,
-            'min_time': float('inf'),
-            'max_time': 0,
-            'last_seen': None
-        })
+        self.pattern_statistics = defaultdict(
+            lambda: {
+                "count": 0,
+                "total_time": 0,
+                "min_time": float("inf"),
+                "max_time": 0,
+                "last_seen": None,
+            }
+        )
 
-    def process_query_stream(self, queries: List[Tuple[str, datetime, float]]) -> WorkloadProfile:
+    def process_query_stream(
+        self, queries: List[Tuple[str, datetime, float]]
+    ) -> WorkloadProfile:
         """
         Process a stream of queries to identify patterns
         Args:
@@ -148,14 +159,18 @@ class WorkloadPatternRecognizer:
         temporal_patterns = self._detect_temporal_patterns(queries)
 
         # Analyze workload characteristics
-        workload_profile = self._analyze_workload_characteristics(queries, patterns, temporal_patterns)
+        workload_profile = self._analyze_workload_characteristics(
+            queries, patterns, temporal_patterns
+        )
 
         # Store results
         self.workload_profiles.append(workload_profile)
 
         return workload_profile
 
-    def _extract_query_features(self, queries: List[Tuple[str, datetime, float]]) -> np.ndarray:
+    def _extract_query_features(
+        self, queries: List[Tuple[str, datetime, float]]
+    ) -> np.ndarray:
         """Extract features from queries for pattern recognition"""
         features = []
 
@@ -164,18 +179,20 @@ class WorkloadPatternRecognizer:
 
             # Basic features
             query_length = len(query)
-            num_tables = len(re.findall(r'\bFROM\b|\bJOIN\b', query_upper))
-            num_conditions = len(re.findall(r'\bWHERE\b|\bAND\b|\bOR\b', query_upper))
-            num_aggregates = len(re.findall(r'\b(COUNT|SUM|AVG|MAX|MIN)\s*\(', query_upper))
-            has_group_by = 1 if 'GROUP BY' in query_upper else 0
-            has_order_by = 1 if 'ORDER BY' in query_upper else 0
-            has_subquery = 1 if query_upper.count('SELECT') > 1 else 0
+            num_tables = len(re.findall(r"\bFROM\b|\bJOIN\b", query_upper))
+            num_conditions = len(re.findall(r"\bWHERE\b|\bAND\b|\bOR\b", query_upper))
+            num_aggregates = len(
+                re.findall(r"\b(COUNT|SUM|AVG|MAX|MIN)\s*\(", query_upper)
+            )
+            has_group_by = 1 if "GROUP BY" in query_upper else 0
+            has_order_by = 1 if "ORDER BY" in query_upper else 0
+            has_subquery = 1 if query_upper.count("SELECT") > 1 else 0
 
             # Operation type
-            is_select = 1 if query_upper.startswith('SELECT') else 0
-            is_insert = 1 if query_upper.startswith('INSERT') else 0
-            is_update = 1 if query_upper.startswith('UPDATE') else 0
-            is_delete = 1 if query_upper.startswith('DELETE') else 0
+            is_select = 1 if query_upper.startswith("SELECT") else 0
+            is_insert = 1 if query_upper.startswith("INSERT") else 0
+            is_update = 1 if query_upper.startswith("UPDATE") else 0
+            is_delete = 1 if query_upper.startswith("DELETE") else 0
 
             # Temporal features
             hour_of_day = timestamp.hour
@@ -185,23 +202,25 @@ class WorkloadPatternRecognizer:
             # Performance features
             log_exec_time = np.log1p(exec_time)
 
-            features.append([
-                query_length / 1000,  # Normalize
-                num_tables,
-                num_conditions,
-                num_aggregates,
-                has_group_by,
-                has_order_by,
-                has_subquery,
-                is_select,
-                is_insert,
-                is_update,
-                is_delete,
-                hour_of_day / 24,  # Normalize
-                day_of_week / 7,   # Normalize
-                is_weekend,
-                log_exec_time
-            ])
+            features.append(
+                [
+                    query_length / 1000,  # Normalize
+                    num_tables,
+                    num_conditions,
+                    num_aggregates,
+                    has_group_by,
+                    has_order_by,
+                    has_subquery,
+                    is_select,
+                    is_insert,
+                    is_update,
+                    is_delete,
+                    hour_of_day / 24,  # Normalize
+                    day_of_week / 7,  # Normalize
+                    is_weekend,
+                    log_exec_time,
+                ]
+            )
 
         return np.array(features)
 
@@ -228,7 +247,9 @@ class WorkloadPatternRecognizer:
 
                 if len(cluster_indices) >= 5:  # Minimum pattern size
                     # Extract pattern characteristics
-                    pattern = self._create_pattern_from_cluster(cluster_indices, features)
+                    pattern = self._create_pattern_from_cluster(
+                        cluster_indices, features
+                    )
                     if pattern:
                         patterns.append(pattern)
 
@@ -237,7 +258,9 @@ class WorkloadPatternRecognizer:
 
         return patterns
 
-    def _create_pattern_from_cluster(self, indices: np.ndarray, features: np.ndarray) -> Optional[QueryPattern]:
+    def _create_pattern_from_cluster(
+        self, indices: np.ndarray, features: np.ndarray
+    ) -> Optional[QueryPattern]:
         """Create a QueryPattern from a cluster of similar queries"""
         try:
             cluster_features = features[indices]
@@ -254,7 +277,9 @@ class WorkloadPatternRecognizer:
                 pattern_type = PatternType.PERIODIC
 
             # Generate pattern ID
-            pattern_id = hashlib.md5(str(cluster_features.mean(axis=0)).encode()).hexdigest()[:8]
+            pattern_id = hashlib.md5(
+                str(cluster_features.mean(axis=0)).encode()
+            ).hexdigest()[:8]
 
             # Extract dominant operations
             operations = set()
@@ -281,14 +306,16 @@ class WorkloadPatternRecognizer:
                 parameter_variations=[],
                 tables_involved=set(),
                 operations=operations,
-                confidence=0.8
+                confidence=0.8,
             )
 
         except Exception as e:
             self.logger.error(f"Error creating pattern: {e}")
             return None
 
-    def _detect_temporal_patterns(self, queries: List[Tuple[str, datetime, float]]) -> List[TemporalPattern]:
+    def _detect_temporal_patterns(
+        self, queries: List[Tuple[str, datetime, float]]
+    ) -> List[TemporalPattern]:
         """Detect time-based patterns in query workload"""
         temporal_patterns = []
 
@@ -305,14 +332,22 @@ class WorkloadPatternRecognizer:
                 hourly_distribution[ts.hour].append(ts)
 
             # Find peak and quiet hours
-            hour_counts = {hour: len(times) for hour, times in hourly_distribution.items()}
+            hour_counts = {
+                hour: len(times) for hour, times in hourly_distribution.items()
+            }
             avg_count = np.mean(list(hour_counts.values()))
             std_count = np.std(list(hour_counts.values()))
 
-            peak_hours = [hour for hour, count in hour_counts.items()
-                         if count > avg_count + std_count]
-            quiet_hours = [hour for hour, count in hour_counts.items()
-                          if count < avg_count - std_count]
+            peak_hours = [
+                hour
+                for hour, count in hour_counts.items()
+                if count > avg_count + std_count
+            ]
+            quiet_hours = [
+                hour
+                for hour, count in hour_counts.items()
+                if count < avg_count - std_count
+            ]
 
             # Detect daily patterns
             if peak_hours:
@@ -321,10 +356,12 @@ class WorkloadPatternRecognizer:
                     time_window=TimeWindow.DAY,
                     recurrence_type="daily",
                     peak_times=self._hours_to_time_ranges(peak_hours),
-                    intensity_profile=[hour_counts.get(h, 0) / max(hour_counts.values())
-                                     for h in range(24)],
+                    intensity_profile=[
+                        hour_counts.get(h, 0) / max(hour_counts.values())
+                        for h in range(24)
+                    ],
                     confidence=0.7,
-                    next_occurrence=self._predict_next_occurrence(peak_hours[0])
+                    next_occurrence=self._predict_next_occurrence(peak_hours[0]),
                 )
                 temporal_patterns.append(daily_pattern)
 
@@ -333,7 +370,9 @@ class WorkloadPatternRecognizer:
             for ts in timestamps:
                 weekly_distribution[ts.weekday()].append(ts)
 
-            weekday_counts = {day: len(times) for day, times in weekly_distribution.items()}
+            weekday_counts = {
+                day: len(times) for day, times in weekly_distribution.items()
+            }
 
             # Check for weekend pattern
             weekday_avg = np.mean([weekday_counts.get(d, 0) for d in range(5)])
@@ -345,10 +384,12 @@ class WorkloadPatternRecognizer:
                     time_window=TimeWindow.WEEK,
                     recurrence_type="weekly",
                     peak_times=[],
-                    intensity_profile=[weekday_counts.get(d, 0) / max(weekday_counts.values())
-                                     for d in range(7)],
+                    intensity_profile=[
+                        weekday_counts.get(d, 0) / max(weekday_counts.values())
+                        for d in range(7)
+                    ],
                     confidence=0.6,
-                    next_occurrence=self._predict_next_weekday()
+                    next_occurrence=self._predict_next_weekday(),
                 )
                 temporal_patterns.append(weekly_pattern)
 
@@ -357,9 +398,12 @@ class WorkloadPatternRecognizer:
 
         return temporal_patterns
 
-    def _analyze_workload_characteristics(self, queries: List[Tuple[str, datetime, float]],
-                                         query_patterns: List[QueryPattern],
-                                         temporal_patterns: List[TemporalPattern]) -> WorkloadProfile:
+    def _analyze_workload_characteristics(
+        self,
+        queries: List[Tuple[str, datetime, float]],
+        query_patterns: List[QueryPattern],
+        temporal_patterns: List[TemporalPattern],
+    ) -> WorkloadProfile:
         """Analyze overall workload characteristics"""
         if not queries:
             return self._create_empty_profile()
@@ -374,9 +418,9 @@ class WorkloadPatternRecognizer:
         queries_per_second = total_queries / duration if duration > 0 else 0
 
         # Determine read/write ratio
-        read_count = sum(1 for q, _, _ in queries if q.upper().startswith('SELECT'))
+        read_count = sum(1 for q, _, _ in queries if q.upper().startswith("SELECT"))
         write_count = total_queries - read_count
-        read_write_ratio = read_count / write_count if write_count > 0 else float('inf')
+        read_write_ratio = read_count / write_count if write_count > 0 else float("inf")
 
         # Determine workload type
         workload_type = self._determine_workload_type(
@@ -412,12 +456,15 @@ class WorkloadPatternRecognizer:
             quiet_hours=quiet_hours,
             dominant_patterns=query_patterns[:5],  # Top 5 patterns
             anomaly_score=anomaly_score,
-            resource_usage=resource_usage
+            resource_usage=resource_usage,
         )
 
-    def _determine_workload_type(self, queries: List[Tuple[str, datetime, float]],
-                                read_write_ratio: float,
-                                patterns: List[QueryPattern]) -> WorkloadType:
+    def _determine_workload_type(
+        self,
+        queries: List[Tuple[str, datetime, float]],
+        read_write_ratio: float,
+        patterns: List[QueryPattern],
+    ) -> WorkloadType:
         """Determine the type of workload"""
         # OLTP characteristics: High write ratio, simple queries, low complexity
         # OLAP characteristics: High read ratio, complex queries, aggregations
@@ -443,8 +490,8 @@ class WorkloadPatternRecognizer:
         timestamps = [q[1] for q in queries]
         if len(timestamps) > 100:
             time_diffs = [
-                (timestamps[i+1] - timestamps[i]).total_seconds()
-                for i in range(len(timestamps)-1)
+                (timestamps[i + 1] - timestamps[i]).total_seconds()
+                for i in range(len(timestamps) - 1)
             ]
             if np.std(time_diffs) < np.mean(time_diffs) * 0.1:  # Consistent rate
                 return WorkloadType.STREAMING
@@ -452,7 +499,9 @@ class WorkloadPatternRecognizer:
         # Default to hybrid
         return WorkloadType.HYBRID
 
-    def _calculate_average_complexity(self, queries: List[Tuple[str, datetime, float]]) -> float:
+    def _calculate_average_complexity(
+        self, queries: List[Tuple[str, datetime, float]]
+    ) -> float:
         """Calculate average query complexity"""
         complexities = []
 
@@ -460,18 +509,21 @@ class WorkloadPatternRecognizer:
             query_upper = query.upper()
 
             complexity = 0
-            complexity += len(re.findall(r'\bJOIN\b', query_upper)) * 2
-            complexity += len(re.findall(r'\bGROUP BY\b', query_upper)) * 3
-            complexity += len(re.findall(r'\bHAVING\b', query_upper)) * 2
-            complexity += query_upper.count('SELECT') - 1  # Subqueries
-            complexity += len(re.findall(r'\b(COUNT|SUM|AVG|MAX|MIN)\s*\(', query_upper))
+            complexity += len(re.findall(r"\bJOIN\b", query_upper)) * 2
+            complexity += len(re.findall(r"\bGROUP BY\b", query_upper)) * 3
+            complexity += len(re.findall(r"\bHAVING\b", query_upper)) * 2
+            complexity += query_upper.count("SELECT") - 1  # Subqueries
+            complexity += len(
+                re.findall(r"\b(COUNT|SUM|AVG|MAX|MIN)\s*\(", query_upper)
+            )
 
             complexities.append(complexity)
 
         return np.mean(complexities) if complexities else 0
 
-    def _calculate_anomaly_score(self, queries: List[Tuple[str, datetime, float]],
-                                patterns: List[QueryPattern]) -> float:
+    def _calculate_anomaly_score(
+        self, queries: List[Tuple[str, datetime, float]], patterns: List[QueryPattern]
+    ) -> float:
         """Calculate anomaly score for the workload"""
         if not patterns:
             return 0.5  # Neutral score if no patterns
@@ -490,7 +542,9 @@ class WorkloadPatternRecognizer:
 
         return min(1.0, max(0.0, anomaly_score))
 
-    def _estimate_resource_usage(self, queries: List[Tuple[str, datetime, float]]) -> Dict[str, float]:
+    def _estimate_resource_usage(
+        self, queries: List[Tuple[str, datetime, float]]
+    ) -> Dict[str, float]:
         """Estimate resource usage based on query characteristics"""
         cpu_score = 0.0
         memory_score = 0.0
@@ -500,19 +554,21 @@ class WorkloadPatternRecognizer:
             query_upper = query.upper()
 
             # CPU-intensive operations
-            cpu_score += len(re.findall(r'\bJOIN\b', query_upper)) * 0.2
-            cpu_score += len(re.findall(r'\b(COUNT|SUM|AVG|MAX|MIN)\s*\(', query_upper)) * 0.1
+            cpu_score += len(re.findall(r"\bJOIN\b", query_upper)) * 0.2
+            cpu_score += (
+                len(re.findall(r"\b(COUNT|SUM|AVG|MAX|MIN)\s*\(", query_upper)) * 0.1
+            )
             cpu_score += (exec_time / 1000) * 0.1  # Long-running queries use more CPU
 
             # Memory-intensive operations
-            memory_score += len(re.findall(r'\bGROUP BY\b', query_upper)) * 0.3
-            memory_score += len(re.findall(r'\bORDER BY\b', query_upper)) * 0.2
-            memory_score += len(re.findall(r'\bDISTINCT\b', query_upper)) * 0.2
+            memory_score += len(re.findall(r"\bGROUP BY\b", query_upper)) * 0.3
+            memory_score += len(re.findall(r"\bORDER BY\b", query_upper)) * 0.2
+            memory_score += len(re.findall(r"\bDISTINCT\b", query_upper)) * 0.2
 
             # IO-intensive operations
-            if 'SELECT *' in query_upper:
+            if "SELECT *" in query_upper:
                 io_score += 0.5
-            io_score += len(re.findall(r'\bFROM\b', query_upper)) * 0.2
+            io_score += len(re.findall(r"\bFROM\b", query_upper)) * 0.2
 
         # Normalize scores (0-100%)
         num_queries = len(queries)
@@ -521,11 +577,7 @@ class WorkloadPatternRecognizer:
             memory_score = min(100, (memory_score / num_queries) * 100)
             io_score = min(100, (io_score / num_queries) * 100)
 
-        return {
-            'cpu': cpu_score,
-            'memory': memory_score,
-            'io': io_score
-        }
+        return {"cpu": cpu_score, "memory": memory_score, "io": io_score}
 
     def _hours_to_time_ranges(self, hours: List[int]) -> List[Tuple[time, time]]:
         """Convert list of hours to time ranges"""
@@ -582,17 +634,17 @@ class WorkloadPatternRecognizer:
             quiet_hours=[],
             dominant_patterns=[],
             anomaly_score=0.0,
-            resource_usage={'cpu': 0.0, 'memory': 0.0, 'io': 0.0}
+            resource_usage={"cpu": 0.0, "memory": 0.0, "io": 0.0},
         )
 
     def predict_future_workload(self, time_horizon: timedelta) -> Dict[str, Any]:
         """Predict future workload based on historical patterns"""
         predictions = {
-            'expected_queries': 0,
-            'expected_patterns': [],
-            'peak_periods': [],
-            'resource_requirements': {},
-            'confidence': 0.0
+            "expected_queries": 0,
+            "expected_patterns": [],
+            "peak_periods": [],
+            "resource_requirements": {},
+            "confidence": 0.0,
         }
 
         if not self.workload_profiles:
@@ -603,7 +655,7 @@ class WorkloadPatternRecognizer:
 
         # Average statistics
         avg_qps = np.mean([p.queries_per_second for p in recent_profiles])
-        predictions['expected_queries'] = int(avg_qps * time_horizon.total_seconds())
+        predictions["expected_queries"] = int(avg_qps * time_horizon.total_seconds())
 
         # Predict patterns
         pattern_counts = Counter()
@@ -611,7 +663,7 @@ class WorkloadPatternRecognizer:
             for pattern in profile.dominant_patterns:
                 pattern_counts[pattern.pattern_id] += 1
 
-        predictions['expected_patterns'] = [
+        predictions["expected_patterns"] = [
             pid for pid, _ in pattern_counts.most_common(5)
         ]
 
@@ -622,17 +674,19 @@ class WorkloadPatternRecognizer:
 
         if all_peak_hours:
             peak_hour_counts = Counter(all_peak_hours)
-            predictions['peak_periods'] = [
+            predictions["peak_periods"] = [
                 hour for hour, _ in peak_hour_counts.most_common(3)
             ]
 
         # Predict resource requirements
         avg_resources = {
-            'cpu': np.mean([p.resource_usage.get('cpu', 0) for p in recent_profiles]),
-            'memory': np.mean([p.resource_usage.get('memory', 0) for p in recent_profiles]),
-            'io': np.mean([p.resource_usage.get('io', 0) for p in recent_profiles])
+            "cpu": np.mean([p.resource_usage.get("cpu", 0) for p in recent_profiles]),
+            "memory": np.mean(
+                [p.resource_usage.get("memory", 0) for p in recent_profiles]
+            ),
+            "io": np.mean([p.resource_usage.get("io", 0) for p in recent_profiles]),
         }
-        predictions['resource_requirements'] = avg_resources
+        predictions["resource_requirements"] = avg_resources
 
         # Calculate confidence based on consistency
         if len(recent_profiles) >= 5:
@@ -640,7 +694,7 @@ class WorkloadPatternRecognizer:
             qps_mean = np.mean([p.queries_per_second for p in recent_profiles])
             if qps_mean > 0:
                 cv = qps_std / qps_mean
-                predictions['confidence'] = max(0.0, min(1.0, 1.0 - cv))
+                predictions["confidence"] = max(0.0, min(1.0, 1.0 - cv))
 
         return predictions
 
@@ -648,42 +702,42 @@ class WorkloadPatternRecognizer:
         """Export discovered patterns to a file"""
         try:
             export_data = {
-                'query_patterns': [
+                "query_patterns": [
                     {
-                        'pattern_id': p.pattern_id,
-                        'pattern_type': p.pattern_type.value,
-                        'frequency': p.frequency,
-                        'avg_execution_time': p.avg_execution_time,
-                        'confidence': p.confidence,
-                        'operations': list(p.operations)
+                        "pattern_id": p.pattern_id,
+                        "pattern_type": p.pattern_type.value,
+                        "frequency": p.frequency,
+                        "avg_execution_time": p.avg_execution_time,
+                        "confidence": p.confidence,
+                        "operations": list(p.operations),
                     }
                     for p in self.query_patterns.values()
                 ],
-                'temporal_patterns': [
+                "temporal_patterns": [
                     {
-                        'pattern_name': p.pattern_name,
-                        'time_window': p.time_window.value,
-                        'recurrence_type': p.recurrence_type,
-                        'confidence': p.confidence,
-                        'next_occurrence': p.next_occurrence.isoformat()
+                        "pattern_name": p.pattern_name,
+                        "time_window": p.time_window.value,
+                        "recurrence_type": p.recurrence_type,
+                        "confidence": p.confidence,
+                        "next_occurrence": p.next_occurrence.isoformat(),
                     }
                     for p in self.temporal_patterns
                 ],
-                'workload_profiles': [
+                "workload_profiles": [
                     {
-                        'workload_type': p.workload_type.value,
-                        'start_time': p.start_time.isoformat(),
-                        'end_time': p.end_time.isoformat(),
-                        'total_queries': p.total_queries,
-                        'queries_per_second': p.queries_per_second,
-                        'read_write_ratio': p.read_write_ratio,
-                        'anomaly_score': p.anomaly_score
+                        "workload_type": p.workload_type.value,
+                        "start_time": p.start_time.isoformat(),
+                        "end_time": p.end_time.isoformat(),
+                        "total_queries": p.total_queries,
+                        "queries_per_second": p.queries_per_second,
+                        "read_write_ratio": p.read_write_ratio,
+                        "anomaly_score": p.anomaly_score,
                     }
                     for p in self.workload_profiles[-100:]  # Last 100 profiles
-                ]
+                ],
             }
 
-            with open(output_path, 'wb') as f:
+            with open(output_path, "wb") as f:
                 pickle.dump(export_data, f)
 
             self.logger.info(f"Exported patterns to {output_path}")
@@ -703,33 +757,33 @@ def analyze_workload(query_log: List[Tuple[str, datetime, float]]) -> Dict[str, 
     future_prediction = recognizer.predict_future_workload(timedelta(hours=24))
 
     return {
-        'current_profile': {
-            'workload_type': profile.workload_type.value,
-            'queries_per_second': profile.queries_per_second,
-            'read_write_ratio': profile.read_write_ratio,
-            'avg_complexity': profile.avg_query_complexity,
-            'unique_patterns': profile.unique_patterns,
-            'peak_hours': profile.peak_hours,
-            'anomaly_score': profile.anomaly_score,
-            'resource_usage': profile.resource_usage
+        "current_profile": {
+            "workload_type": profile.workload_type.value,
+            "queries_per_second": profile.queries_per_second,
+            "read_write_ratio": profile.read_write_ratio,
+            "avg_complexity": profile.avg_query_complexity,
+            "unique_patterns": profile.unique_patterns,
+            "peak_hours": profile.peak_hours,
+            "anomaly_score": profile.anomaly_score,
+            "resource_usage": profile.resource_usage,
         },
-        'patterns': [
+        "patterns": [
             {
-                'pattern_id': p.pattern_id,
-                'type': p.pattern_type.value,
-                'frequency': p.frequency,
-                'avg_time': p.avg_execution_time
+                "pattern_id": p.pattern_id,
+                "type": p.pattern_type.value,
+                "frequency": p.frequency,
+                "avg_time": p.avg_execution_time,
             }
             for p in profile.dominant_patterns
         ],
-        'future_prediction': future_prediction
+        "future_prediction": future_prediction,
     }
 
 
 if __name__ == "__main__":
     # Example usage
-    from datetime import datetime, timedelta
     import random
+    from datetime import datetime, timedelta
 
     # Generate sample query log
     query_log = []
@@ -737,9 +791,9 @@ if __name__ == "__main__":
 
     for i in range(1000):
         # Generate different types of queries
-        query_type = random.choice(['select', 'insert', 'update'])
+        query_type = random.choice(["select", "insert", "update"])
 
-        if query_type == 'select':
+        if query_type == "select":
             if random.random() < 0.3:  # Complex analytical query
                 query = """
                 SELECT c.customer_name, SUM(o.total) as total_spent
@@ -753,14 +807,14 @@ if __name__ == "__main__":
             else:  # Simple lookup
                 query = "SELECT * FROM users WHERE id = 123"
                 exec_time = random.uniform(1, 10)
-        elif query_type == 'insert':
+        elif query_type == "insert":
             query = "INSERT INTO logs (message, timestamp) VALUES ('test', NOW())"
             exec_time = random.uniform(5, 20)
         else:
             query = "UPDATE users SET last_login = NOW() WHERE id = 456"
             exec_time = random.uniform(10, 50)
 
-        timestamp = base_time + timedelta(seconds=i*86.4)  # Spread over 24 hours
+        timestamp = base_time + timedelta(seconds=i * 86.4)  # Spread over 24 hours
 
         # Add some temporal patterns (peak during business hours)
         if 9 <= timestamp.hour <= 17:
@@ -773,13 +827,15 @@ if __name__ == "__main__":
 
     print("=== Workload Analysis Results ===")
     print("\nCurrent Profile:")
-    for key, value in results['current_profile'].items():
+    for key, value in results["current_profile"].items():
         print(f"  {key}: {value}")
 
     print("\nDominant Patterns:")
-    for pattern in results['patterns']:
-        print(f"  Pattern {pattern['pattern_id']}: {pattern['type']} (freq: {pattern['frequency']})")
+    for pattern in results["patterns"]:
+        print(
+            f"  Pattern {pattern['pattern_id']}: {pattern['type']} (freq: {pattern['frequency']})"
+        )
 
     print("\nFuture Prediction (next 24 hours):")
-    for key, value in results['future_prediction'].items():
+    for key, value in results["future_prediction"].items():
         print(f"  {key}: {value}")

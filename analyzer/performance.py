@@ -3,19 +3,19 @@ Performance optimization utilities for QueryGrade.
 Includes caching, query optimization, and monitoring tools.
 """
 
-import time
 import hashlib
-import pickle
 import logging
+import pickle
+import time
 from functools import wraps
-from typing import Any, Callable, Optional, Dict, List
-from django.core.cache import caches
+from typing import Any, Callable, Dict, List, Optional
+
 from django.conf import settings
+from django.core.cache import caches
 from django.db import connection
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class PerformanceMonitor:
         """
         Decorator to time function execution and log slow operations.
         """
+
         def decorator(func):
             @wraps(func)
             def wrapper(*args, **kwargs):
@@ -42,13 +43,15 @@ class PerformanceMonitor:
                     execution_time = time.time() - start_time
 
                     # Log slow operations
-                    if execution_time > getattr(settings, 'SLOW_QUERY_THRESHOLD', 1.0):
+                    if execution_time > getattr(settings, "SLOW_QUERY_THRESHOLD", 1.0):
                         logger.warning(
                             f"Slow operation detected: {function_name} "
                             f"took {execution_time:.2f} seconds"
                         )
-                    elif getattr(settings, 'PERFORMANCE_MONITORING_ENABLED', False):
-                        logger.info(f"{function_name} completed in {execution_time:.3f}s")
+                    elif getattr(settings, "PERFORMANCE_MONITORING_ENABLED", False):
+                        logger.info(
+                            f"{function_name} completed in {execution_time:.3f}s"
+                        )
 
                     return result
 
@@ -60,6 +63,7 @@ class PerformanceMonitor:
                     raise
 
             return wrapper
+
         return decorator
 
     @staticmethod
@@ -67,9 +71,10 @@ class PerformanceMonitor:
         """
         Decorator to monitor database query count and execution time.
         """
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-            if not getattr(settings, 'PERFORMANCE_MONITORING_ENABLED', False):
+            if not getattr(settings, "PERFORMANCE_MONITORING_ENABLED", False):
                 return func(*args, **kwargs)
 
             # Reset query count
@@ -106,21 +111,22 @@ class QueryCache:
     Advanced caching utility for query analysis results.
     """
 
-    def __init__(self, cache_name: str = 'query_analysis_cache'):
+    def __init__(self, cache_name: str = "query_analysis_cache"):
         self.cache = caches[cache_name]
-        self.default_timeout = getattr(settings, 'QUERY_ANALYSIS_CACHE_TIMEOUT', 7200)
+        self.default_timeout = getattr(settings, "QUERY_ANALYSIS_CACHE_TIMEOUT", 7200)
 
-    def generate_cache_key(self, sql_text: str, database_type: str = '',
-                          version: str = '1.0') -> str:
+    def generate_cache_key(
+        self, sql_text: str, database_type: str = "", version: str = "1.0"
+    ) -> str:
         """
         Generate a consistent cache key for SQL query analysis.
         """
         # Normalize the SQL for consistent caching
-        normalized_sql = ' '.join(sql_text.strip().split())
+        normalized_sql = " ".join(sql_text.strip().split())
         key_data = f"{normalized_sql}|{database_type}|{version}"
-        return hashlib.md5(key_data.encode('utf-8')).hexdigest()
+        return hashlib.md5(key_data.encode("utf-8")).hexdigest()
 
-    def get_analysis(self, sql_text: str, database_type: str = '') -> Optional[Any]:
+    def get_analysis(self, sql_text: str, database_type: str = "") -> Optional[Any]:
         """
         Retrieve cached analysis result.
         """
@@ -131,8 +137,13 @@ class QueryCache:
             logger.warning(f"Cache retrieval failed: {e}")
             return None
 
-    def set_analysis(self, sql_text: str, result: Any, database_type: str = '',
-                    timeout: Optional[int] = None) -> bool:
+    def set_analysis(
+        self,
+        sql_text: str,
+        result: Any,
+        database_type: str = "",
+        timeout: Optional[int] = None,
+    ) -> bool:
         """
         Store analysis result in cache.
         """
@@ -146,7 +157,7 @@ class QueryCache:
             logger.warning(f"Cache storage failed: {e}")
             return False
 
-    def invalidate_analysis(self, sql_text: str, database_type: str = '') -> bool:
+    def invalidate_analysis(self, sql_text: str, database_type: str = "") -> bool:
         """
         Invalidate cached analysis result.
         """
@@ -176,8 +187,9 @@ class DatabaseOptimizer:
     """
 
     @staticmethod
-    def optimize_queryset(queryset, select_related: List[str] = None,
-                         prefetch_related: List[str] = None):
+    def optimize_queryset(
+        queryset, select_related: List[str] = None, prefetch_related: List[str] = None
+    ):
         """
         Optimize Django queryset with select_related and prefetch_related.
         """
@@ -190,18 +202,17 @@ class DatabaseOptimizer:
         return queryset
 
     @staticmethod
-    def bulk_create_optimized(model_class, objects: List[Any],
-                            batch_size: int = 1000) -> int:
+    def bulk_create_optimized(
+        model_class, objects: List[Any], batch_size: int = 1000
+    ) -> int:
         """
         Optimized bulk create with batching.
         """
         total_created = 0
         for i in range(0, len(objects), batch_size):
-            batch = objects[i:i + batch_size]
+            batch = objects[i : i + batch_size]
             created_objects = model_class.objects.bulk_create(
-                batch,
-                ignore_conflicts=True,
-                batch_size=batch_size
+                batch, ignore_conflicts=True, batch_size=batch_size
             )
             total_created += len(created_objects)
 
@@ -212,13 +223,14 @@ def cached_analysis(timeout: int = 3600):
     """
     Decorator for caching analysis function results.
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Generate cache key from function arguments
             cache_key = f"analysis_{func.__name__}_{hashlib.md5(str(args + tuple(kwargs.items())).encode()).hexdigest()}"
 
-            cache = caches['query_analysis_cache']
+            cache = caches["query_analysis_cache"]
             result = cache.get(cache_key)
 
             if result is None:
@@ -226,7 +238,9 @@ def cached_analysis(timeout: int = 3600):
                 cache.set(cache_key, result, timeout)
 
             return result
+
         return wrapper
+
     return decorator
 
 
@@ -234,14 +248,17 @@ def optimize_view_performance(cache_timeout: int = 300):
     """
     Decorator to optimize view performance with caching and headers.
     """
+
     def decorator(view_func):
-        @cache_page(cache_timeout, cache='template_cache')
-        @vary_on_headers('User-Agent', 'Accept-Language')
+        @cache_page(cache_timeout, cache="template_cache")
+        @vary_on_headers("User-Agent", "Accept-Language")
         @PerformanceMonitor.time_function()
         @PerformanceMonitor.monitor_database_queries
         def wrapper(*args, **kwargs):
             return view_func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -257,7 +274,7 @@ class MemoryOptimizer:
         """
         count = queryset.count()
         for offset in range(0, count, batch_size):
-            yield queryset[offset:offset + batch_size]
+            yield queryset[offset : offset + batch_size]
 
     @staticmethod
     def chunked_processing(iterable, chunk_size: int = 1000):
@@ -288,8 +305,7 @@ class AsyncOptimizer:
         size_threshold = 10 * 1024 * 1024  # 10MB
         complexity_threshold = 5
 
-        return (data_size > size_threshold or
-                complexity_score > complexity_threshold)
+        return data_size > size_threshold or complexity_score > complexity_threshold
 
     @staticmethod
     def estimate_processing_time(data_size: int, query_count: int = 1) -> float:
@@ -301,7 +317,9 @@ class AsyncOptimizer:
         base_time_per_query = 0.05  # seconds
 
         size_mb = data_size / (1024 * 1024)
-        estimated_time = (size_mb * base_time_per_mb) + (query_count * base_time_per_query)
+        estimated_time = (size_mb * base_time_per_mb) + (
+            query_count * base_time_per_query
+        )
 
         return max(estimated_time, 1.0)  # Minimum 1 second
 

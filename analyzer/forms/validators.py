@@ -1,8 +1,9 @@
-from django import forms
-from django.core.exceptions import ValidationError
 import os
 import re
+
 import sqlparse
+from django import forms
+from django.core.exceptions import ValidationError
 
 
 def validate_log_file(file):
@@ -15,8 +16,9 @@ def validate_log_file(file):
     Raises:
         forms.ValidationError: If the file is not a valid log file or poses security risks.
     """
-    import magic
     import mimetypes
+
+    import magic
 
     # File size validation (max 50MB)
     max_size = 50 * 1024 * 1024  # 50MB
@@ -29,7 +31,7 @@ def validate_log_file(file):
         )
 
     # Validate file extension
-    valid_extensions = ['.log', '.txt']
+    valid_extensions = [".log", ".txt"]
     if not any(file.name.lower().endswith(ext) for ext in valid_extensions):
         file_ext = os.path.splitext(file.name)[1]
         raise ValidationError(
@@ -38,7 +40,7 @@ def validate_log_file(file):
         )
 
     # Validate MIME type using multiple methods
-    valid_mime_types = ['text/plain', 'application/octet-stream']
+    valid_mime_types = ["text/plain", "application/octet-stream"]
 
     # Primary MIME type check
     if file.content_type not in valid_mime_types:
@@ -55,7 +57,11 @@ def validate_log_file(file):
         file.seek(0)  # Reset file pointer
 
         detected_mime = magic.from_buffer(file_content, mime=True)
-        if detected_mime not in ['text/plain', 'application/octet-stream', 'text/x-log']:
+        if detected_mime not in [
+            "text/plain",
+            "application/octet-stream",
+            "text/x-log",
+        ]:
             raise ValidationError(
                 f"⚠️ File content appears to be '{detected_mime}', not a text log file. "
                 f"Please ensure you're uploading an actual database log file."
@@ -64,14 +70,16 @@ def validate_log_file(file):
         # python-magic not available, use mimetypes as fallback
         guessed_type, _ = mimetypes.guess_type(file.name)
         if guessed_type and guessed_type not in valid_mime_types:
-            raise ValidationError(f"Invalid file type based on filename: {guessed_type}")
+            raise ValidationError(
+                f"Invalid file type based on filename: {guessed_type}"
+            )
 
     # Check for potentially malicious filename patterns
     dangerous_patterns = [
-        r'\.\./',  # Directory traversal
+        r"\.\./",  # Directory traversal
         r'[<>:"|?*]',  # Invalid filename characters
-        r'\x00',  # Null bytes
-        r'\.exe$|\.bat$|\.cmd$|\.com$|\.scr$|\.pif$',  # Executable extensions
+        r"\x00",  # Null bytes
+        r"\.exe$|\.bat$|\.cmd$|\.com$|\.scr$|\.pif$",  # Executable extensions
     ]
 
     for pattern in dangerous_patterns:
@@ -92,19 +100,19 @@ def validate_log_file(file):
     # Basic content validation - check for text file characteristics
     try:
         file.seek(0)
-        sample_content = file.read(512).decode('utf-8', errors='ignore')
+        sample_content = file.read(512).decode("utf-8", errors="ignore")
         file.seek(0)
 
         # Check for potentially malicious content patterns
         malicious_patterns = [
-            r'<script[^>]*>',  # JavaScript injection
-            r'<iframe[^>]*>',  # Iframe injection
-            r'(?i)exec\s*\(',  # Code execution attempts
-            r'(?i)eval\s*\(',  # Eval attempts
-            r'(?i)system\s*\(',  # System command execution
-            r'(?i)shell_exec\s*\(',  # Shell execution
-            r'%[0-9a-fA-F]{2}%[0-9a-fA-F]{2}',  # URL encoding (potential obfuscation)
-            r'\\x[0-9a-fA-F]{2}',  # Hex encoding (potential obfuscation)
+            r"<script[^>]*>",  # JavaScript injection
+            r"<iframe[^>]*>",  # Iframe injection
+            r"(?i)exec\s*\(",  # Code execution attempts
+            r"(?i)eval\s*\(",  # Eval attempts
+            r"(?i)system\s*\(",  # System command execution
+            r"(?i)shell_exec\s*\(",  # Shell execution
+            r"%[0-9a-fA-F]{2}%[0-9a-fA-F]{2}",  # URL encoding (potential obfuscation)
+            r"\\x[0-9a-fA-F]{2}",  # Hex encoding (potential obfuscation)
         ]
 
         for pattern in malicious_patterns:
@@ -116,9 +124,13 @@ def validate_log_file(file):
                 )
 
         # Check for excessive binary data (should be mostly text)
-        printable_chars = sum(1 for c in sample_content if c.isprintable() or c.isspace())
+        printable_chars = sum(
+            1 for c in sample_content if c.isprintable() or c.isspace()
+        )
         if len(sample_content) > 0 and (printable_chars / len(sample_content)) < 0.8:
-            binary_percent = ((len(sample_content) - printable_chars) / len(sample_content)) * 100
+            binary_percent = (
+                (len(sample_content) - printable_chars) / len(sample_content)
+            ) * 100
             raise ValidationError(
                 f"📊 File appears to be binary ({binary_percent:.0f}% non-text). "
                 f"Database logs should be plain text. "
@@ -127,16 +139,19 @@ def validate_log_file(file):
 
         # Check if content looks like a log file (contains timestamps, common log patterns)
         log_patterns = [
-            r'\d{4}-\d{2}-\d{2}',  # Date pattern
-            r'\d{2}:\d{2}:\d{2}',  # Time pattern
-            r'(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)',  # SQL keywords
-            r'(INFO|WARN|ERROR|DEBUG)',  # Log levels
-            r'mysql-slow',  # MySQL slow log identifier
-            r'mysqld',  # MySQL daemon references
-            r'Time:\s*\d+',  # Query time references
+            r"\d{4}-\d{2}-\d{2}",  # Date pattern
+            r"\d{2}:\d{2}:\d{2}",  # Time pattern
+            r"(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)",  # SQL keywords
+            r"(INFO|WARN|ERROR|DEBUG)",  # Log levels
+            r"mysql-slow",  # MySQL slow log identifier
+            r"mysqld",  # MySQL daemon references
+            r"Time:\s*\d+",  # Query time references
         ]
 
-        has_log_content = any(re.search(pattern, sample_content, re.IGNORECASE) for pattern in log_patterns)
+        has_log_content = any(
+            re.search(pattern, sample_content, re.IGNORECASE)
+            for pattern in log_patterns
+        )
         if not has_log_content and len(sample_content.strip()) > 0:
             raise ValidationError(
                 "📋 File doesn't look like a database log. "
@@ -152,7 +167,7 @@ def validate_log_file(file):
             )
 
         # Check for excessive line length (potential attack vector)
-        lines = sample_content.split('\n')
+        lines = sample_content.split("\n")
         max_line_length = max(len(line) for line in lines) if lines else 0
         if max_line_length > 5000:  # Reasonable limit for log lines
             raise ValidationError(
@@ -196,18 +211,18 @@ def validate_sql_query(sql_text):
 
     # Basic security checks - block dangerous patterns
     dangerous_patterns = [
-        r'(?i)\b(exec|execute|sp_executesql)\b',  # Stored procedure execution
-        r'(?i)\b(xp_cmdshell|xp_regread|xp_regwrite)\b',  # System commands
-        r'(?i)\b(alter\s+table|drop\s+table|drop\s+database|truncate)\b',  # DDL operations
-        r'(?i)\b(insert\s+into|update\s+|delete\s+from)\b',  # DML operations
-        r'(?i)\b(create\s+|drop\s+|alter\s+)\b',  # Schema modifications
-        r'(?i)\b(grant\s+|revoke\s+)\b',  # Permission changes
-        r'(?i)(\-\-|\#|\/\*)',  # Comment injection attempts
-        r'(?i)\b(union\s+(?:all\s+)?select)\b',  # Union-based injection
-        r'(?i)\b(information_schema|sys\.|pg_catalog)\b',  # System schema access
-        r'(?i)\b(char|ascii|substring|mid|left|right)\s*\(',  # String manipulation functions
-        r'(?i)\b(sleep|waitfor|benchmark)\s*\(',  # Time-based attacks
-        r'(?i)\b(load_file|into\s+outfile|into\s+dumpfile)\b',  # File operations
+        r"(?i)\b(exec|execute|sp_executesql)\b",  # Stored procedure execution
+        r"(?i)\b(xp_cmdshell|xp_regread|xp_regwrite)\b",  # System commands
+        r"(?i)\b(alter\s+table|drop\s+table|drop\s+database|truncate)\b",  # DDL operations
+        r"(?i)\b(insert\s+into|update\s+|delete\s+from)\b",  # DML operations
+        r"(?i)\b(create\s+|drop\s+|alter\s+)\b",  # Schema modifications
+        r"(?i)\b(grant\s+|revoke\s+)\b",  # Permission changes
+        r"(?i)(\-\-|\#|\/\*)",  # Comment injection attempts
+        r"(?i)\b(union\s+(?:all\s+)?select)\b",  # Union-based injection
+        r"(?i)\b(information_schema|sys\.|pg_catalog)\b",  # System schema access
+        r"(?i)\b(char|ascii|substring|mid|left|right)\s*\(",  # String manipulation functions
+        r"(?i)\b(sleep|waitfor|benchmark)\s*\(",  # Time-based attacks
+        r"(?i)\b(load_file|into\s+outfile|into\s+dumpfile)\b",  # File operations
     ]
 
     for pattern in dangerous_patterns:
@@ -219,7 +234,7 @@ def validate_sql_query(sql_text):
             )
 
     # Check for excessive semicolons (potential multi-statement injection)
-    semicolon_count = sql_text.count(';')
+    semicolon_count = sql_text.count(";")
     if semicolon_count > 1:
         raise ValidationError(
             "⚠️ Multiple statements detected. "
@@ -254,7 +269,7 @@ def validate_sql_query(sql_text):
                     break
 
             if first_token and first_token.ttype is sqlparse.tokens.DML:
-                if first_token.value.upper() != 'SELECT':
+                if first_token.value.upper() != "SELECT":
                     statement_type = first_token.value.upper()
                     raise ValidationError(
                         f"🛑 {statement_type} statements are not supported. "
@@ -262,7 +277,7 @@ def validate_sql_query(sql_text):
                         f"Data modifications are not allowed for security reasons."
                     )
             elif first_token and first_token.ttype is sqlparse.tokens.Keyword:
-                if first_token.value.upper() not in ['SELECT', 'WITH']:
+                if first_token.value.upper() not in ["SELECT", "WITH"]:
                     statement_type = first_token.value.upper()
                     raise ValidationError(
                         f"🛑 {statement_type} statements are not supported. "

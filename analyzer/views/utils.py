@@ -15,11 +15,11 @@ def get_client_ip(request):
     Returns:
         str: The client's IP address.
     """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
+        ip = x_forwarded_for.split(",")[0]
     else:
-        ip = request.META.get('REMOTE_ADDR')
+        ip = request.META.get("REMOTE_ADDR")
     return ip
 
 
@@ -34,4 +34,4 @@ def csrf_failure(request, reason=""):
     Returns:
         HttpResponse: A rendered template with the CSRF error message.
     """
-    return render(request, '403_csrf.html', {'reason': reason}, status=403)
+    return render(request, "403_csrf.html", {"reason": reason}, status=403)

@@ -12,32 +12,33 @@ Related Documentation:
 - TESTING.md - Comprehensive testing guide
 - test_integration_refactored.py - Similar pattern with detailed documentation
 """
-from django.test import TransactionTestCase, override_settings
+
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.test import TransactionTestCase, override_settings
 
-from .models import Query, QueryAnalysis, UserQueryHistory, QueryFeedback
-from .services import QueryAnalysisService, FeedbackService
-from .services.query_analysis_service import QueryAnalysisRequest
+from .models import Query, QueryAnalysis, QueryFeedback, UserQueryHistory
+from .services import FeedbackService, QueryAnalysisService
 from .services.feedback_service import FeedbackSubmission
+from .services.query_analysis_service import QueryAnalysisRequest
 
 
 @override_settings(
     RATELIMIT_ENABLE=False,
     CACHES={
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'query_analysis_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "query_analysis_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'process_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "process_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'template_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        }
-    }
+        "template_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        },
+    },
 )
 class QueryAnalysisServiceTests(TransactionTestCase):
     """Tests for QueryAnalysisService"""
@@ -45,14 +46,20 @@ class QueryAnalysisServiceTests(TransactionTestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Reinitialize cache to use test cache backend
-        from analyzer.performance import query_cache
         from django.core.cache import caches
 
+        from analyzer.performance import query_cache
+
         # Force query_cache to use test cache backend
-        query_cache.cache = caches['query_analysis_cache']
+        query_cache.cache = caches["query_analysis_cache"]
 
         # Clear all caches
-        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+        for cache_name in [
+            "default",
+            "query_analysis_cache",
+            "process_cache",
+            "template_cache",
+        ]:
             try:
                 caches[cache_name].clear()
             except:
@@ -60,9 +67,7 @@ class QueryAnalysisServiceTests(TransactionTestCase):
 
         with transaction.atomic():
             self.user = User.objects.create_user(
-                username='testuser',
-                email='test@example.com',
-                password='testpass123'
+                username="testuser", email="test@example.com", password="testpass123"
             )
         self.service = QueryAnalysisService()
 
@@ -80,10 +85,10 @@ class QueryAnalysisServiceTests(TransactionTestCase):
         request = QueryAnalysisRequest(
             sql_query="SELECT * FROM users",
             user=self.user,
-            database_type='mysql',
-            ip_address='127.0.0.1',
-            user_agent='Test',
-            enable_ml=False  # Disable ML for basic test
+            database_type="mysql",
+            ip_address="127.0.0.1",
+            user_agent="Test",
+            enable_ml=False,  # Disable ML for basic test
         )
 
         result = self.service.analyze_query_for_user(request)
@@ -99,10 +104,10 @@ class QueryAnalysisServiceTests(TransactionTestCase):
         request = QueryAnalysisRequest(
             sql_query="SELCT * FROM users",  # Typo
             user=self.user,
-            database_type='mysql',
-            ip_address='127.0.0.1',
-            user_agent='Test',
-            enable_ml=False
+            database_type="mysql",
+            ip_address="127.0.0.1",
+            user_agent="Test",
+            enable_ml=False,
         )
 
         with self.assertRaises(ValueError):
@@ -114,10 +119,10 @@ class QueryAnalysisServiceTests(TransactionTestCase):
         request = QueryAnalysisRequest(
             sql_query="SELECT id, name FROM products",
             user=self.user,
-            database_type='postgresql',
-            ip_address='127.0.0.1',
-            user_agent='Test',
-            enable_ml=False
+            database_type="postgresql",
+            ip_address="127.0.0.1",
+            user_agent="Test",
+            enable_ml=False,
         )
 
         result = self.service.analyze_query_for_user(request)
@@ -138,19 +143,19 @@ class QueryAnalysisServiceTests(TransactionTestCase):
 @override_settings(
     RATELIMIT_ENABLE=False,
     CACHES={
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'query_analysis_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "query_analysis_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'process_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "process_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'template_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        }
-    }
+        "template_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        },
+    },
 )
 class FeedbackServiceTests(TransactionTestCase):
     """Tests for FeedbackService"""
@@ -158,14 +163,20 @@ class FeedbackServiceTests(TransactionTestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Reinitialize cache to use test cache backend
-        from analyzer.performance import query_cache
         from django.core.cache import caches
 
+        from analyzer.performance import query_cache
+
         # Force query_cache to use test cache backend
-        query_cache.cache = caches['query_analysis_cache']
+        query_cache.cache = caches["query_analysis_cache"]
 
         # Clear all caches
-        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+        for cache_name in [
+            "default",
+            "query_analysis_cache",
+            "process_cache",
+            "template_cache",
+        ]:
             try:
                 caches[cache_name].clear()
             except:
@@ -173,28 +184,23 @@ class FeedbackServiceTests(TransactionTestCase):
 
         with transaction.atomic():
             self.user = User.objects.create_user(
-                username='testuser',
-                email='test@example.com',
-                password='testpass123'
+                username="testuser", email="test@example.com", password="testpass123"
             )
         self.service = FeedbackService()
 
         # Create a query and analysis for testing
         with transaction.atomic():
             self.query = Query.objects.create(
-                sql_text="SELECT * FROM users",
-                query_hash="test_hash_12345"
+                sql_text="SELECT * FROM users", query_hash="test_hash_12345"
             )
             self.analysis = QueryAnalysis.objects.create(
-                query=self.query,
-                grade='B',
-                score=75.0
+                query=self.query, grade="B", score=75.0
             )
             self.user_history = UserQueryHistory.objects.create(
                 user=self.user,
                 query=self.query,
-                ip_address='127.0.0.1',
-                user_agent='Test'
+                ip_address="127.0.0.1",
+                user_agent="Test",
             )
 
     def tearDown(self):
@@ -214,8 +220,8 @@ class FeedbackServiceTests(TransactionTestCase):
             accuracy_rating=5,
             usefulness_rating=4,
             clarity_rating=5,
-            suggestions='Great analysis!',
-            would_recommend=True
+            suggestions="Great analysis!",
+            would_recommend=True,
         )
 
         result = self.service.submit_detailed_feedback(submission)
@@ -234,7 +240,7 @@ class FeedbackServiceTests(TransactionTestCase):
                 user_history=self.user_history,
                 accuracy_rating=3,
                 usefulness_rating=3,
-                clarity_rating=3
+                clarity_rating=3,
             )
 
         # Update it
@@ -244,8 +250,8 @@ class FeedbackServiceTests(TransactionTestCase):
             accuracy_rating=5,
             usefulness_rating=5,
             clarity_rating=5,
-            suggestions='Updated!',
-            would_recommend=True
+            suggestions="Updated!",
+            would_recommend=True,
         )
 
         result = self.service.submit_detailed_feedback(submission)
@@ -257,9 +263,7 @@ class FeedbackServiceTests(TransactionTestCase):
     def test_submit_quick_feedback(self):
         """Test submitting quick thumbs up/down feedback."""
         submission = FeedbackSubmission(
-            user=self.user,
-            analysis_id=self.analysis.id,
-            is_helpful=True
+            user=self.user, analysis_id=self.analysis.id, is_helpful=True
         )
 
         result = self.service.submit_quick_feedback(submission)
@@ -276,14 +280,11 @@ class FeedbackServiceTests(TransactionTestCase):
                 user_history=self.user_history,
                 accuracy_rating=4,
                 usefulness_rating=4,
-                clarity_rating=4
+                clarity_rating=4,
             )
 
         # Retrieve it
-        feedback = self.service.get_feedback_for_analysis(
-            self.user,
-            self.analysis.id
-        )
+        feedback = self.service.get_feedback_for_analysis(self.user, self.analysis.id)
 
         self.assertIsNotNone(feedback)
         self.assertEqual(feedback.accuracy_rating, 4)
@@ -294,20 +295,18 @@ class FeedbackServiceTests(TransactionTestCase):
         with transaction.atomic():
             for i in range(3):
                 user_history = UserQueryHistory.objects.create(
-                    user=self.user,
-                    query=self.query,
-                    ip_address='127.0.0.1'
+                    user=self.user, query=self.query, ip_address="127.0.0.1"
                 )
                 QueryFeedback.objects.create(
                     user_history=user_history,
                     accuracy_rating=4,
                     usefulness_rating=5,
                     clarity_rating=4,
-                    would_recommend=True
+                    would_recommend=True,
                 )
 
         stats = self.service.get_feedback_statistics()
 
-        self.assertGreater(stats['total_feedback'], 0)
-        self.assertGreater(stats['average_accuracy'], 0)
-        self.assertGreater(stats['recommendation_rate'], 0)
+        self.assertGreater(stats["total_feedback"], 0)
+        self.assertGreater(stats["average_accuracy"], 0)
+        self.assertGreater(stats["recommendation_rate"], 0)

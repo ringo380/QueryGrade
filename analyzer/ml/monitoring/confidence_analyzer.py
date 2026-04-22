@@ -6,13 +6,15 @@ model predictions become unreliable and retraining may be needed.
 """
 
 import logging
-import numpy as np
-from typing import List
 from collections import deque
+from typing import List
+
+import numpy as np
 from django.utils import timezone
 
 try:
     from scipy import stats
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -28,8 +30,9 @@ class ConfidenceAnalyzer:
         self.accuracy_history = deque(maxlen=1000)
         self.prediction_cache = {}
 
-    def add_prediction_result(self, prediction: float, confidence: float,
-                            actual: float, query_id: int):
+    def add_prediction_result(
+        self, prediction: float, confidence: float, actual: float, query_id: int
+    ):
         """Add prediction result for confidence analysis."""
         accuracy = 1.0 - abs(prediction - actual) / max(100.0, abs(actual))
         accuracy = max(0.0, accuracy)
@@ -39,11 +42,11 @@ class ConfidenceAnalyzer:
 
         # Cache for detailed analysis
         self.prediction_cache[query_id] = {
-            'prediction': prediction,
-            'confidence': confidence,
-            'actual': actual,
-            'accuracy': accuracy,
-            'timestamp': timezone.now()
+            "prediction": prediction,
+            "confidence": confidence,
+            "actual": actual,
+            "accuracy": accuracy,
+            "timestamp": timezone.now(),
         }
 
     def calculate_calibration_score(self) -> float:
@@ -65,8 +68,9 @@ class ConfidenceAnalyzer:
         # Fallback: simple binned analysis
         return self._simple_calibration_analysis(confidences, accuracies)
 
-    def _simple_calibration_analysis(self, confidences: List[float],
-                                   accuracies: List[float]) -> float:
+    def _simple_calibration_analysis(
+        self, confidences: List[float], accuracies: List[float]
+    ) -> float:
         """Simple calibration analysis without scipy."""
         # Bin predictions by confidence level
         bins = [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
@@ -117,7 +121,7 @@ class ConfidenceAnalyzer:
         low_confidence_queries = []
 
         for query_id, data in self.prediction_cache.items():
-            if data['confidence'] < threshold:
+            if data["confidence"] < threshold:
                 low_confidence_queries.append(query_id)
 
         return low_confidence_queries

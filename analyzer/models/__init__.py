@@ -14,25 +14,25 @@ IMPORTANT: This package maintains the same import paths as the original
 monolithic models.py to ensure Django migrations continue to work correctly.
 """
 
+# Machine learning models
+from .ml_models import FeedbackLearning, LearningMetrics, MLModel, TrainingData
+
 # Core query models
 from .query_models import Query, QueryAnalysis
 
 # User interaction models
-from .user_models import UserQueryHistory, QueryFeedback
-
-# Machine learning models
-from .ml_models import MLModel, TrainingData, LearningMetrics, FeedbackLearning
+from .user_models import QueryFeedback, UserQueryHistory
 
 __all__ = [
     # Query models
-    'Query',
-    'QueryAnalysis',
+    "Query",
+    "QueryAnalysis",
     # User models
-    'UserQueryHistory',
-    'QueryFeedback',
+    "UserQueryHistory",
+    "QueryFeedback",
     # ML models
-    'MLModel',
-    'TrainingData',
-    'LearningMetrics',
-    'FeedbackLearning',
+    "MLModel",
+    "TrainingData",
+    "LearningMetrics",
+    "FeedbackLearning",
 ]

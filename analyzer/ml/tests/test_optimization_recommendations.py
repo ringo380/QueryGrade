@@ -8,12 +8,13 @@ Tests for:
 """
 
 import logging
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
 from django.test import TestCase
 from django.utils import timezone
 
 # Suppress verbose logging during tests
-logging.getLogger('analyzer').setLevel(logging.WARNING)
+logging.getLogger("analyzer").setLevel(logging.WARNING)
 
 
 class QueryPlanPredictorInitializationTestCase(TestCase):
@@ -23,16 +24,19 @@ class QueryPlanPredictorInitializationTestCase(TestCase):
         """Test basic predictor initialization"""
         from analyzer.ml.optimization.plan_predictor import QueryPlanPredictor
 
-        predictor = QueryPlanPredictor(database_type='mysql')
+        predictor = QueryPlanPredictor(database_type="mysql")
 
         self.assertIsNotNone(predictor)
-        self.assertEqual(predictor.database_type, 'mysql')
+        self.assertEqual(predictor.database_type, "mysql")
         self.assertIsNotNone(predictor.cost_models)
         self.assertIsNotNone(predictor.statistics_cache)
 
     def test_cost_models_initialization(self):
         """Test cost models are initialized correctly"""
-        from analyzer.ml.optimization.plan_predictor import QueryPlanPredictor, PlanNodeType
+        from analyzer.ml.optimization.plan_predictor import (
+            PlanNodeType,
+            QueryPlanPredictor,
+        )
 
         predictor = QueryPlanPredictor()
 
@@ -48,9 +52,9 @@ class QueryPlanPredictorInitializationTestCase(TestCase):
         predictor = QueryPlanPredictor()
 
         # Verify cache structure
-        self.assertIn('table_sizes', predictor.statistics_cache)
-        self.assertIn('index_selectivity', predictor.statistics_cache)
-        self.assertIn('column_cardinality', predictor.statistics_cache)
+        self.assertIn("table_sizes", predictor.statistics_cache)
+        self.assertIn("index_selectivity", predictor.statistics_cache)
+        self.assertIn("column_cardinality", predictor.statistics_cache)
 
 
 class ExecutionPlanPredictionTestCase(TestCase):
@@ -120,8 +124,8 @@ class ExecutionPlanPredictionTestCase(TestCase):
         query = "SELECT * FROM customers WHERE age > 21"
 
         stats = {
-            'table_sizes': {'customers': 100000},
-            'column_cardinality': {'age': 100}
+            "table_sizes": {"customers": 100000},
+            "column_cardinality": {"age": 100},
         }
 
         prediction = self.predictor.predict_execution_plan(query, stats)
@@ -174,8 +178,8 @@ class QueryAnalysisTestCase(TestCase):
 
         analysis = self.predictor._analyze_query_structure(query)
 
-        self.assertIn('tables', analysis)
-        self.assertGreater(len(analysis['tables']), 0)
+        self.assertIn("tables", analysis)
+        self.assertGreater(len(analysis["tables"]), 0)
 
     def test_join_extraction(self):
         """Test JOIN extraction"""
@@ -187,9 +191,9 @@ class QueryAnalysisTestCase(TestCase):
 
         analysis = self.predictor._analyze_query_structure(query)
 
-        self.assertIn('joins', analysis)
+        self.assertIn("joins", analysis)
         # JOIN extraction may not always work due to regex complexity
-        self.assertIsInstance(analysis['joins'], list)
+        self.assertIsInstance(analysis["joins"], list)
 
     def test_filter_extraction(self):
         """Test WHERE clause extraction"""
@@ -197,8 +201,8 @@ class QueryAnalysisTestCase(TestCase):
 
         analysis = self.predictor._analyze_query_structure(query)
 
-        self.assertIn('filters', analysis)
-        self.assertGreater(len(analysis['filters']), 0)
+        self.assertIn("filters", analysis)
+        self.assertGreater(len(analysis["filters"]), 0)
 
     def test_aggregation_extraction(self):
         """Test aggregation function extraction"""
@@ -210,8 +214,8 @@ class QueryAnalysisTestCase(TestCase):
 
         analysis = self.predictor._analyze_query_structure(query)
 
-        self.assertIn('aggregations', analysis)
-        self.assertGreater(len(analysis['aggregations']), 0)
+        self.assertIn("aggregations", analysis)
+        self.assertGreater(len(analysis["aggregations"]), 0)
 
 
 class IntelligentQueryRewriterInitializationTestCase(TestCase):
@@ -229,7 +233,10 @@ class IntelligentQueryRewriterInitializationTestCase(TestCase):
 
     def test_rewrite_patterns_structure(self):
         """Test rewrite patterns are properly structured"""
-        from analyzer.ml.optimization.query_rewriter import IntelligentQueryRewriter, RewriteRule
+        from analyzer.ml.optimization.query_rewriter import (
+            IntelligentQueryRewriter,
+            RewriteRule,
+        )
 
         rewriter = IntelligentQueryRewriter()
 
@@ -251,7 +258,7 @@ class QueryRewriteTestCase(TestCase):
         """Test rewriting a simple query"""
         query = "SELECT * FROM users WHERE id = 1"
 
-        rewrite = self.rewriter.rewrite_query(query, safety_level='conservative')
+        rewrite = self.rewriter.rewrite_query(query, safety_level="conservative")
 
         self.assertIsNotNone(rewrite)
         self.assertEqual(rewrite.original_query, query)
@@ -266,7 +273,7 @@ class QueryRewriteTestCase(TestCase):
             SELECT id, name FROM archived_users
         """
 
-        rewrite = self.rewriter.rewrite_query(query, safety_level='moderate')
+        rewrite = self.rewriter.rewrite_query(query, safety_level="moderate")
 
         self.assertIsNotNone(rewrite)
         self.assertIsInstance(rewrite.rewrite_steps, list)
@@ -275,9 +282,9 @@ class QueryRewriteTestCase(TestCase):
         """Test different safety levels"""
         query = "SELECT * FROM users WHERE age > 21"
 
-        conservative = self.rewriter.rewrite_query(query, safety_level='conservative')
-        moderate = self.rewriter.rewrite_query(query, safety_level='moderate')
-        aggressive = self.rewriter.rewrite_query(query, safety_level='aggressive')
+        conservative = self.rewriter.rewrite_query(query, safety_level="conservative")
+        moderate = self.rewriter.rewrite_query(query, safety_level="moderate")
+        aggressive = self.rewriter.rewrite_query(query, safety_level="aggressive")
 
         self.assertIsNotNone(conservative)
         self.assertIsNotNone(moderate)
@@ -290,10 +297,7 @@ class QueryRewriteTestCase(TestCase):
         """Test rewrite with context"""
         query = "SELECT DISTINCT * FROM users"
 
-        context = {
-            'primary_key_only': True,
-            'unique_result_guaranteed': True
-        }
+        context = {"primary_key_only": True, "unique_result_guaranteed": True}
 
         rewrite = self.rewriter.rewrite_query(query, context=context)
 
@@ -315,7 +319,7 @@ class QueryRewriteTestCase(TestCase):
         """Test recommendations generation"""
         query = "SELECT * FROM users WHERE id IN (SELECT user_id FROM orders)"
 
-        rewrite = self.rewriter.rewrite_query(query, safety_level='moderate')
+        rewrite = self.rewriter.rewrite_query(query, safety_level="moderate")
 
         self.assertIsNotNone(rewrite.test_recommendations)
         self.assertIsInstance(rewrite.test_recommendations, list)
@@ -364,7 +368,7 @@ class RewriteMetricsTestCase(TestCase):
         """Test safety score calculation"""
         query = "SELECT * FROM users"
 
-        rewrite = self.rewriter.rewrite_query(query, safety_level='conservative')
+        rewrite = self.rewriter.rewrite_query(query, safety_level="conservative")
 
         self.assertIsNotNone(rewrite.safety_score)
         self.assertGreaterEqual(rewrite.safety_score, 0.0)
@@ -460,7 +464,7 @@ class CostModelTestCase(TestCase):
             node_type=PlanNodeType.TABLE_SCAN,
             estimated_cost=0.0,
             estimated_rows=1000,
-            properties={'table': 'users'}
+            properties={"table": "users"},
         )
 
         self.predictor._calculate_plan_costs(node)
@@ -477,8 +481,8 @@ class CostModelTestCase(TestCase):
             estimated_rows=100,
             children=[
                 PlanNode(PlanNodeType.TABLE_SCAN, 0.0, 1000),
-                PlanNode(PlanNodeType.TABLE_SCAN, 0.0, 100)
-            ]
+                PlanNode(PlanNodeType.TABLE_SCAN, 0.0, 100),
+            ],
         )
 
         self.predictor._calculate_plan_costs(join_node)
@@ -490,9 +494,7 @@ class CostModelTestCase(TestCase):
         from analyzer.ml.optimization.plan_predictor import PlanNode, PlanNodeType
 
         sort_node = PlanNode(
-            node_type=PlanNodeType.SORT,
-            estimated_cost=0.0,
-            estimated_rows=10000
+            node_type=PlanNodeType.SORT, estimated_cost=0.0, estimated_rows=10000
         )
 
         self.predictor._calculate_plan_costs(sort_node)
