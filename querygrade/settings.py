@@ -433,6 +433,11 @@ CELERY_WORKER_MAX_MEMORY_PER_CHILD = 200000  # 200MB
 
 
 # Logging for Security Events
+# Ensure log dir exists so the file handler doesn't crash Django setup at import time.
+# In ephemeral container envs (Railway/etc) the dir may not exist.
+_LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(_LOG_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -454,14 +459,19 @@ LOGGING = {
     'handlers': {
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
+        },
+        'console_debug_only': {
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
         'file': {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'security.log'),
+            'filename': os.path.join(_LOG_DIR, 'security.log'),
             'maxBytes': 1024*1024*5,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -473,7 +483,7 @@ LOGGING = {
             'propagate': True,
         },
         'django.security': {
-            'handlers': ['file'],
+            'handlers': ['file', 'console'],
             'level': 'WARNING',
             'propagate': False,
         },
