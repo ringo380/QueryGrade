@@ -1,1965 +1,639 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
+{% block title %}Enhanced grade results · QueryGrade{% endblock %}
+
 {% block content %}
-<div class="results-container">
+<div class="space-y-6">
 
-    <!-- Enhanced Grade Display with ML Insights -->
-    <div class="enhanced-grade-display">
-        <div class="grade-badge grade-{{ analysis.grade|lower }}">
-            <div class="grade-letter">{{ analysis.grade }}</div>
-            <div class="grade-score">{{ analysis.score|floatformat:1 }}/100</div>
-            <div class="grade-label">
-                {% if analysis.grade == 'A' %}Excellent
-                {% elif analysis.grade == 'B' %}Good
-                {% elif analysis.grade == 'C' %}Average
-                {% elif analysis.grade == 'D' %}Poor
-                {% else %}Failing
-                {% endif %}
-            </div>
-        </div>
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-bold text-gray-900">Enhanced query analysis</h1>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <a href="{% url 'grade_query' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Grade another</a>
+      <a href="{% url 'query_history' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">History</a>
+      <a href="{% url 'index' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Dashboard</a>
+    </div>
+  </div>
 
-        <div class="analysis-summary">
-            <h2>Enhanced Query Analysis Results</h2>
-            <div class="summary-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Query Type:</span>
-                    <span class="stat-value">{{ query.query_type }}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Complexity:</span>
-                    <span class="stat-value">{{ query.estimated_complexity }}/100</span>
-                </div>
-                {% if ml_analysis.has_ml_analysis %}
-                <div class="stat-item ml-enhanced">
-                    <span class="stat-label">ML Semantic Score:</span>
-                    <span class="stat-value">{{ ml_analysis.semantic_score|floatformat:1 }}/100</span>
-                </div>
-                <div class="stat-item ml-enhanced">
-                    <span class="stat-label">Query Intent:</span>
-                    <span class="stat-value">{{ ml_analysis.query_intent|title }}</span>
-                </div>
-                {% endif %}
-                <div class="stat-item">
-                    <span class="stat-label">Tables:</span>
-                    <span class="stat-value">{{ query.table_count }}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Joins:</span>
-                    <span class="stat-value">{{ query.join_count }}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Analysis Time:</span>
-                    <span class="stat-value">{{ analysis.execution_time_ms }}ms</span>
-                </div>
-            </div>
-        </div>
+  {% with g=analysis.grade|lower %}
+  <section class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col md:flex-row gap-6">
+    <div class="flex-shrink-0 flex flex-col items-center justify-center text-center md:w-48 p-4 rounded-lg
+      {% if g == 'a' %}bg-emerald-50 ring-1 ring-emerald-200
+      {% elif g == 'b' %}bg-lime-50 ring-1 ring-lime-200
+      {% elif g == 'c' %}bg-amber-50 ring-1 ring-amber-200
+      {% elif g == 'd' %}bg-orange-50 ring-1 ring-orange-200
+      {% else %}bg-red-50 ring-1 ring-red-200{% endif %}">
+      <div class="text-6xl font-bold leading-none
+        {% if g == 'a' %}text-emerald-700
+        {% elif g == 'b' %}text-lime-700
+        {% elif g == 'c' %}text-amber-700
+        {% elif g == 'd' %}text-orange-700
+        {% else %}text-red-700{% endif %}">{{ analysis.grade }}</div>
+      <div class="mt-2 text-2xl font-semibold text-gray-900">{{ analysis.score|floatformat:1 }}<span class="text-base text-gray-500">/100</span></div>
+      <div class="mt-1 text-xs uppercase tracking-wide text-gray-500">
+        {% if g == 'a' %}Excellent{% elif g == 'b' %}Good{% elif g == 'c' %}Average{% elif g == 'd' %}Poor{% else %}Failing{% endif %}
+      </div>
+    </div>
 
+    <div class="flex-1">
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Summary</h2>
+        {% if ml_analysis.has_ml_analysis %}<span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-gradient-to-r from-indigo-500 to-purple-500 text-white">🤖 AI-Enhanced</span>{% endif %}
+      </div>
+      <dl class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+        <div><dt class="text-gray-500">Query type</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.query_type }}</dd></div>
+        <div><dt class="text-gray-500">Complexity</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.estimated_complexity }}/100</dd></div>
+        <div><dt class="text-gray-500">Tables / Joins</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.table_count }} / {{ query.join_count }}</dd></div>
+        <div><dt class="text-gray-500">Analysis time</dt><dd class="mt-0.5 font-medium text-gray-900">{{ analysis.execution_time_ms }}ms</dd></div>
         {% if ml_analysis.has_ml_analysis %}
-        <div class="ml-insights-panel">
-            <h3>🤖 AI Insights</h3>
-            <div class="ml-insights-grid">
-                <div class="insight-bg-white rounded-lg border border-gray-200">
-                    <div class="insight-icon">🎯</div>
-                    <div class="insight-content">
-                        <h4>Complexity Level</h4>
-                        <div class="insight-value">{{ ml_analysis.complexity_level }}</div>
-                    </div>
-                </div>
-                {% if ml_analysis.performance_prediction %}
-                <div class="insight-bg-white rounded-lg border border-gray-200">
-                    <div class="insight-icon">⚡</div>
-                    <div class="insight-content">
-                        <h4>Performance Impact</h4>
-                        <div class="insight-value">
-                            {% if ml_analysis.performance_prediction.estimated_execution_time %}
-                                ~{{ ml_analysis.performance_prediction.estimated_execution_time }}ms
-                            {% else %}
-                                Analyzing...
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+        <div><dt class="text-indigo-500">🤖 Semantic score</dt><dd class="mt-0.5 font-medium text-indigo-700">{{ ml_analysis.semantic_score|floatformat:1 }}/100</dd></div>
+        <div><dt class="text-indigo-500">🤖 Query intent</dt><dd class="mt-0.5 font-medium text-indigo-700">{{ ml_analysis.query_intent|title }}</dd></div>
         {% endif %}
+      </dl>
     </div>
+  </section>
+  {% endwith %}
 
-    <!-- Quick Feedback Section -->
-    <div class="quick-feedback-section" role="region" aria-labelledby="feedback-heading">
-        <h3 id="feedback-heading">Was this enhanced analysis helpful? 👍👎</h3>
-        <div class="feedback-buttons" role="group" aria-label="Quick feedback buttons">
-            <button id="thumbs-up" class="feedback-btn thumbs-up" onclick="submitQuickFeedback(true)" title="Yes, this analysis was helpful" aria-label="Mark analysis as helpful">
-                <span class="feedback-icon" aria-hidden="true">👍</span>
-                <span class="feedback-text">Helpful</span>
-            </button>
-            <button id="thumbs-down" class="feedback-btn thumbs-down" onclick="submitQuickFeedback(false)" title="No, this analysis needs improvement" aria-label="Mark analysis as not helpful">
-                <span class="feedback-icon" aria-hidden="true">👎</span>
-                <span class="feedback-text">Not Helpful</span>
-            </button>
+  {% if ml_analysis.has_ml_analysis %}
+  <section class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 p-5">
+    <h3 class="text-base font-semibold text-indigo-900 flex items-center gap-2"><span>🤖</span><span>AI insights</span></h3>
+    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="bg-white rounded-md p-4 flex items-center gap-3 ring-1 ring-indigo-100">
+        <span class="text-2xl">🎯</span>
+        <div>
+          <p class="text-xs text-gray-500">Complexity level</p>
+          <p class="text-sm font-semibold text-gray-900">{{ ml_analysis.complexity_level }}</p>
         </div>
-        <div id="feedback-status" class="feedback-status" style="display: none;" role="status" aria-live="polite"></div>
-
-        <!-- Expandable Detailed Feedback Form -->
-        <div class="detailed-feedback-toggle">
-            <button onclick="toggleDetailedFeedback()" class="detailed-feedback-btn" aria-expanded="false" aria-controls="detailedFeedbackForm" aria-label="Toggle detailed feedback form">
-                <span class="feedback-toggle-icon" aria-hidden="true">💬</span>
-                <span class="feedback-toggle-text">Provide Detailed Feedback</span>
-                <span class="toggle-arrow" aria-hidden="true">▼</span>
-            </button>
+      </div>
+      {% if ml_analysis.performance_prediction %}
+      <div class="bg-white rounded-md p-4 flex items-center gap-3 ring-1 ring-indigo-100">
+        <span class="text-2xl">⚡</span>
+        <div>
+          <p class="text-xs text-gray-500">Performance impact</p>
+          <p class="text-sm font-semibold text-gray-900">
+            {% if ml_analysis.performance_prediction.estimated_execution_time %}~{{ ml_analysis.performance_prediction.estimated_execution_time }}ms{% else %}Analyzing...{% endif %}
+          </p>
         </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
 
-        <div id="detailedFeedbackForm" class="detailed-feedback-form" style="display: none;" role="region" aria-label="Detailed feedback form">
-            <form id="feedbackForm" onsubmit="submitDetailedFeedback(event)">
-                <input type="hidden" name="analysis_id" value="{{ analysis.id }}">
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <p class="text-sm font-medium text-gray-700">Was this enhanced analysis helpful?</p>
+      <div class="flex gap-2">
+        <button id="thumbs-up" onclick="submitQuickFeedback(true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50">
+          <span>👍</span><span>Helpful</span>
+        </button>
+        <button id="thumbs-down" onclick="submitQuickFeedback(false)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50">
+          <span>👎</span><span>Not helpful</span>
+        </button>
+        <button onclick="toggleDetailedFeedback()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm text-indigo-700 hover:bg-indigo-50">
+          <span>💬</span><span>Detailed</span>
+        </button>
+      </div>
+    </div>
+    <div id="feedback-status" class="hidden mt-3 text-sm"></div>
 
-                <div class="feedback-form-grid">
-                    <!-- Accuracy Rating -->
-                    <div class="feedback-field">
-                        <label for="accuracyRating" class="feedback-label">
-                            <span class="label-icon">🎯</span>
-                            <span class="label-text">Accuracy Rating</span>
-                            <span class="label-hint">How accurate was the analysis?</span>
-                        </label>
-                        <div class="rating-stars" role="radiogroup" aria-label="Accuracy rating">
-                            <input type="radio" name="accuracy" id="accuracy1" value="1" required>
-                            <label for="accuracy1" class="star-label" aria-label="1 star">⭐</label>
-                            <input type="radio" name="accuracy" id="accuracy2" value="2">
-                            <label for="accuracy2" class="star-label" aria-label="2 stars">⭐</label>
-                            <input type="radio" name="accuracy" id="accuracy3" value="3">
-                            <label for="accuracy3" class="star-label" aria-label="3 stars">⭐</label>
-                            <input type="radio" name="accuracy" id="accuracy4" value="4">
-                            <label for="accuracy4" class="star-label" aria-label="4 stars">⭐</label>
-                            <input type="radio" name="accuracy" id="accuracy5" value="5">
-                            <label for="accuracy5" class="star-label" aria-label="5 stars">⭐</label>
-                        </div>
-                    </div>
-
-                    <!-- Usefulness Rating -->
-                    <div class="feedback-field">
-                        <label for="usefulnessRating" class="feedback-label">
-                            <span class="label-icon">💡</span>
-                            <span class="label-text">Usefulness Rating</span>
-                            <span class="label-hint">How useful were the recommendations?</span>
-                        </label>
-                        <div class="rating-stars" role="radiogroup" aria-label="Usefulness rating">
-                            <input type="radio" name="usefulness" id="usefulness1" value="1" required>
-                            <label for="usefulness1" class="star-label" aria-label="1 star">⭐</label>
-                            <input type="radio" name="usefulness" id="usefulness2" value="2">
-                            <label for="usefulness2" class="star-label" aria-label="2 stars">⭐</label>
-                            <input type="radio" name="usefulness" id="usefulness3" value="3">
-                            <label for="usefulness3" class="star-label" aria-label="3 stars">⭐</label>
-                            <input type="radio" name="usefulness" id="usefulness4" value="4">
-                            <label for="usefulness4" class="star-label" aria-label="4 stars">⭐</label>
-                            <input type="radio" name="usefulness" id="usefulness5" value="5">
-                            <label for="usefulness5" class="star-label" aria-label="5 stars">⭐</label>
-                        </div>
-                    </div>
-
-                    <!-- Clarity Rating -->
-                    <div class="feedback-field">
-                        <label for="clarityRating" class="feedback-label">
-                            <span class="label-icon">📖</span>
-                            <span class="label-text">Clarity Rating</span>
-                            <span class="label-hint">How clear were the explanations?</span>
-                        </label>
-                        <div class="rating-stars" role="radiogroup" aria-label="Clarity rating">
-                            <input type="radio" name="clarity" id="clarity1" value="1" required>
-                            <label for="clarity1" class="star-label" aria-label="1 star">⭐</label>
-                            <input type="radio" name="clarity" id="clarity2" value="2">
-                            <label for="clarity2" class="star-label" aria-label="2 stars">⭐</label>
-                            <input type="radio" name="clarity" id="clarity3" value="3">
-                            <label for="clarity3" class="star-label" aria-label="3 stars">⭐</label>
-                            <input type="radio" name="clarity" id="clarity4" value="4">
-                            <label for="clarity4" class="star-label" aria-label="4 stars">⭐</label>
-                            <input type="radio" name="clarity" id="clarity5" value="5">
-                            <label for="clarity5" class="star-label" aria-label="5 stars">⭐</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Comments Field -->
-                <div class="feedback-field feedback-field-full">
-                    <label for="feedbackComments" class="feedback-label">
-                        <span class="label-icon">✍️</span>
-                        <span class="label-text">Additional Comments</span>
-                        <span class="label-hint">Share any specific feedback or suggestions (optional)</span>
-                    </label>
-                    <textarea id="feedbackComments" name="comments" class="feedback-textarea" rows="4" placeholder="What did we do well? What could be improved?" aria-label="Additional comments"></textarea>
-                </div>
-
-                <!-- What was most/least helpful -->
-                <div class="feedback-form-grid">
-                    <div class="feedback-field">
-                        <label for="mostHelpful" class="feedback-label">
-                            <span class="label-icon">✅</span>
-                            <span class="label-text">Most Helpful</span>
-                        </label>
-                        <select id="mostHelpful" name="most_helpful" class="feedback-select">
-                            <option value="">Select one...</option>
-                            <option value="grade">Overall Grade</option>
-                            <option value="issues">Issues Identified</option>
-                            <option value="recommendations">Recommendations</option>
-                            <option value="ml_insights">ML Insights</option>
-                            <option value="examples">Code Examples</option>
-                        </select>
-                    </div>
-
-                    <div class="feedback-field">
-                        <label for="leastHelpful" class="feedback-label">
-                            <span class="label-icon">❌</span>
-                            <span class="label-text">Least Helpful</span>
-                        </label>
-                        <select id="leastHelpful" name="least_helpful" class="feedback-select">
-                            <option value="">Select one...</option>
-                            <option value="grade">Overall Grade</option>
-                            <option value="issues">Issues Identified</option>
-                            <option value="recommendations">Recommendations</option>
-                            <option value="ml_insights">ML Insights</option>
-                            <option value="examples">Code Examples</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Submit Buttons -->
-                <div class="feedback-actions">
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 feedback-submit-btn" aria-label="Submit detailed feedback">
-                        <span class="btn-icon" aria-hidden="true">🚀</span>
-                        Submit Feedback
-                    </button>
-                    <button type="button" onclick="toggleDetailedFeedback()" class="btn btn-outline feedback-cancel-btn" aria-label="Cancel and close feedback form">
-                        Cancel
-                    </button>
-                </div>
-
-                <div id="detailedFeedbackStatus" class="feedback-submission-status" style="display: none;" role="status" aria-live="polite"></div>
-            </form>
-        </div>
-
-        <!-- Feedback Impact Visualization -->
-        <div class="feedback-impact-section">
-            <button onclick="toggleFeedbackImpact()" class="impact-toggle-btn" aria-expanded="false" aria-controls="feedbackImpactStats" aria-label="Toggle feedback impact statistics">
-                <span class="impact-icon" aria-hidden="true">📊</span>
-                <span class="impact-text">See How Your Feedback Improves QueryGrade</span>
-                <span class="impact-arrow" aria-hidden="true">▼</span>
-            </button>
-
-            <div id="feedbackImpactStats" class="feedback-impact-stats" style="display: none;" role="region" aria-label="Feedback impact statistics">
-                <div class="impact-intro">
-                    <p class="impact-description">
-                        Your feedback directly improves our ML models and helps us build better query analysis features!
-                        Here's the real impact of community feedback:
-                    </p>
-                </div>
-
-                <div class="impact-metrics-grid">
-                    <!-- Total Feedback Count -->
-                    <div class="impact-metric">
-                        <div class="metric-icon">💬</div>
-                        <div class="metric-content">
-                            <div class="metric-value" id="totalFeedbackCount">1,247</div>
-                            <div class="metric-label">Total Feedback Submissions</div>
-                            <div class="metric-trend positive">
-                                <span class="trend-icon">📈</span>
-                                <span class="trend-text">+18% this month</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ML Model Accuracy -->
-                    <div class="impact-metric">
-                        <div class="metric-icon">🎯</div>
-                        <div class="metric-content">
-                            <div class="metric-value" id="mlAccuracy">87.3%</div>
-                            <div class="metric-label">ML Model Accuracy</div>
-                            <div class="metric-trend positive">
-                                <span class="trend-icon">⬆️</span>
-                                <span class="trend-text">+4.2% from feedback</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Features Improved -->
-                    <div class="impact-metric">
-                        <div class="metric-icon">✨</div>
-                        <div class="metric-content">
-                            <div class="metric-value" id="featuresImproved">23</div>
-                            <div class="metric-label">Features Improved</div>
-                            <div class="metric-trend">
-                                <span class="trend-text">Based on your input</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Average Satisfaction -->
-                    <div class="impact-metric">
-                        <div class="metric-icon">⭐</div>
-                        <div class="metric-content">
-                            <div class="metric-value" id="avgSatisfaction">4.6/5</div>
-                            <div class="metric-label">Average User Rating</div>
-                            <div class="metric-trend positive">
-                                <span class="trend-icon">📊</span>
-                                <span class="trend-text">Improving weekly</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Improvements Timeline -->
-                <div class="impact-timeline">
-                    <h4 class="timeline-title">
-                        <span class="timeline-icon">🔄</span>
-                        Recent Improvements from User Feedback
-                    </h4>
-                    <div class="timeline-items">
-                        <div class="timeline-item">
-                            <div class="timeline-date">This Week</div>
-                            <div class="timeline-content">
-                                <div class="timeline-badge new">New</div>
-                                <div class="timeline-text">Enhanced index recommendation accuracy by 12%</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-date">Last Week</div>
-                            <div class="timeline-content">
-                                <div class="timeline-badge improved">Improved</div>
-                                <div class="timeline-text">Clarified JOIN optimization explanations</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-date">2 Weeks Ago</div>
-                            <div class="timeline-content">
-                                <div class="timeline-badge fixed">Fixed</div>
-                                <div class="timeline-text">Reduced false positives in SELECT * detection</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-date">3 Weeks Ago</div>
-                            <div class="timeline-content">
-                                <div class="timeline-badge new">New</div>
-                                <div class="timeline-text">Added database-specific optimization hints</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Feedback Categories Breakdown -->
-                <div class="impact-categories">
-                    <h4 class="categories-title">
-                        <span class="categories-icon">📋</span>
-                        What Users Find Most Helpful
-                    </h4>
-                    <div class="category-bars">
-                        <div class="category-bar">
-                            <div class="category-label">
-                                <span>Performance Recommendations</span>
-                                <span class="category-percentage">89%</span>
-                            </div>
-                            <div class="category-progress">
-                                <div class="category-fill" style="width: 89%;" data-width="89%"></div>
-                            </div>
-                        </div>
-                        <div class="category-bar">
-                            <div class="category-label">
-                                <span>Code Examples</span>
-                                <span class="category-percentage">76%</span>
-                            </div>
-                            <div class="category-progress">
-                                <div class="category-fill" style="width: 76%;" data-width="76%"></div>
-                            </div>
-                        </div>
-                        <div class="category-bar">
-                            <div class="category-label">
-                                <span>ML Insights</span>
-                                <span class="category-percentage">71%</span>
-                            </div>
-                            <div class="category-progress">
-                                <div class="category-fill" style="width: 71%;" data-width="71%"></div>
-                            </div>
-                        </div>
-                        <div class="category-bar">
-                            <div class="category-label">
-                                <span>Issue Explanations</span>
-                                <span class="category-percentage">68%</span>
-                            </div>
-                            <div class="category-progress">
-                                <div class="category-fill" style="width: 68%;" data-width="68%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="impact-cta">
-                    <p class="cta-text">Your feedback shapes the future of QueryGrade! Every rating and comment helps us build better tools.</p>
-                    <button onclick="toggleDetailedFeedback()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 cta-btn">
-                        <span class="btn-icon">💬</span>
-                        Share Your Feedback Now
-                    </button>
-                </div>
+    <div id="detailedFeedbackForm" class="hidden mt-4 pt-4 border-t border-gray-100">
+      <form id="feedbackForm" onsubmit="submitDetailedFeedback(event)">
+        <input type="hidden" name="analysis_id" value="{{ analysis.id }}">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <fieldset class="rounded-md border border-gray-200 p-3">
+            <legend class="px-1 text-xs font-semibold text-gray-700">🎯 Accuracy</legend>
+            <div class="flex gap-1 mt-1 star-row" data-name="accuracy" role="radiogroup" aria-label="Accuracy">
+              {% for n in "12345" %}
+              <label class="cursor-pointer">
+                <input type="radio" name="accuracy_rating" value="{{ n }}" required class="sr-only">
+                <span class="text-xl opacity-30 hover:opacity-100 transition">⭐</span>
+              </label>
+              {% endfor %}
             </div>
+          </fieldset>
+          <fieldset class="rounded-md border border-gray-200 p-3">
+            <legend class="px-1 text-xs font-semibold text-gray-700">💡 Usefulness</legend>
+            <div class="flex gap-1 mt-1 star-row" data-name="usefulness" role="radiogroup" aria-label="Usefulness">
+              {% for n in "12345" %}
+              <label class="cursor-pointer">
+                <input type="radio" name="usefulness_rating" value="{{ n }}" required class="sr-only">
+                <span class="text-xl opacity-30 hover:opacity-100 transition">⭐</span>
+              </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          <fieldset class="rounded-md border border-gray-200 p-3">
+            <legend class="px-1 text-xs font-semibold text-gray-700">📖 Clarity</legend>
+            <div class="flex gap-1 mt-1 star-row" data-name="clarity" role="radiogroup" aria-label="Clarity">
+              {% for n in "12345" %}
+              <label class="cursor-pointer">
+                <input type="radio" name="clarity_rating" value="{{ n }}" required class="sr-only">
+                <span class="text-xl opacity-30 hover:opacity-100 transition">⭐</span>
+              </label>
+              {% endfor %}
+            </div>
+          </fieldset>
         </div>
+        <div class="mt-3">
+          <label for="suggestions" class="block text-xs font-semibold text-gray-700">Comments (optional)</label>
+          <textarea id="suggestions" name="suggestions" rows="3" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+        </div>
+        <label class="mt-3 flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="would_recommend" class="rounded text-indigo-600 focus:ring-indigo-500">
+          <span>I'd recommend QueryGrade to others</span>
+        </label>
+        <div class="mt-4 flex gap-2">
+          <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Submit feedback</button>
+          <button type="button" onclick="toggleDetailedFeedback()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {% if ml_analysis.has_ml_analysis and ml_analysis.personalized_feedback %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🎯</span><span>Personalized AI feedback</span></h3>
+    {% if ml_analysis.personalized_feedback.personalized_feedback %}
+    <p class="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{{ ml_analysis.personalized_feedback.personalized_feedback }}</p>
+    {% endif %}
+    {% if ml_analysis.personalized_feedback.learning_recommendations %}
+    <div class="mt-4">
+      <h4 class="text-sm font-semibold text-gray-700">📚 Learning recommendations</h4>
+      <ul class="mt-2 space-y-1 text-sm text-gray-700 list-disc pl-5">
+        {% for r in ml_analysis.personalized_feedback.learning_recommendations %}<li>{{ r }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if ml_analysis.has_ml_analysis and ml_analysis.performance_prediction %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>⚡</span><span>Performance predictions</span></h3>
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% if ml_analysis.performance_prediction.optimization_potential %}
+      <div class="rounded-md border border-gray-200 p-4">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-gray-700">Optimization potential</h4>
+          <span class="text-sm font-medium text-gray-900">{{ ml_analysis.performance_prediction.optimization_potential|floatformat:1 }}%</span>
+        </div>
+        <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
+          <div class="progress-fill h-full transition-all duration-700
+            {% if ml_analysis.performance_prediction.optimization_potential > 70 %}bg-emerald-500
+            {% elif ml_analysis.performance_prediction.optimization_potential > 40 %}bg-amber-500
+            {% else %}bg-red-500{% endif %}" style="width: {{ ml_analysis.performance_prediction.optimization_potential }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+      {% if ml_analysis.performance_prediction.risk_factors %}
+      <div class="rounded-md border border-gray-200 p-4">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-gray-700">Risk factors</h4>
+          <span class="text-sm font-medium text-red-700">{{ ml_analysis.performance_prediction.risk_factors|length }}</span>
+        </div>
+        <ul class="mt-3 space-y-1 text-xs text-gray-700">
+          {% for risk in ml_analysis.performance_prediction.risk_factors %}<li class="flex gap-2"><span class="text-red-500 flex-shrink-0">⚠</span><span>{{ risk }}</span></li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700">Overall score</h3>
+        <span class="text-sm font-medium text-gray-900">{{ analysis.score|floatformat:1 }}/100</span>
+      </div>
+      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
+        {% with g=analysis.grade|lower %}
+        <div class="progress-fill h-full transition-all duration-700
+          {% if g == 'a' %}bg-emerald-500{% elif g == 'b' %}bg-lime-500{% elif g == 'c' %}bg-amber-500{% elif g == 'd' %}bg-orange-500{% else %}bg-red-500{% endif %}" style="width: {{ analysis.score }}%"></div>
+        {% endwith %}
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>0</span><span>50</span><span>100</span></div>
     </div>
 
-    <!-- Export Options Section -->
-    <div class="export-section">
-        <h3>📥 Export Analysis</h3>
-        <p class="export-description">Download your query analysis in various formats for reporting, sharing, or archiving.</p>
-        <div class="export-buttons">
-            <button onclick="exportAsPDF()" class="btn btn-export btn-pdf" aria-label="Export analysis as PDF">
-                <span class="export-icon">📄</span>
-                <div class="export-details">
-                    <span class="export-format">PDF</span>
-                    <span class="export-desc">Print-friendly report</span>
-                </div>
-            </button>
-            <button onclick="exportAsJSON()" class="btn btn-export btn-json" aria-label="Export analysis as JSON">
-                <span class="export-icon">📋</span>
-                <div class="export-details">
-                    <span class="export-format">JSON</span>
-                    <span class="export-desc">Machine-readable data</span>
-                </div>
-            </button>
-            <button onclick="exportAsCSV()" class="btn btn-export btn-csv" aria-label="Export analysis as CSV">
-                <span class="export-icon">📊</span>
-                <div class="export-details">
-                    <span class="export-format">CSV</span>
-                    <span class="export-desc">Spreadsheet format</span>
-                </div>
-            </button>
-            <button onclick="exportAsMarkdown()" class="btn btn-export btn-markdown" aria-label="Export analysis as Markdown">
-                <span class="export-icon">📝</span>
-                <div class="export-details">
-                    <span class="export-format">Markdown</span>
-                    <span class="export-desc">Developer-friendly</span>
-                </div>
-            </button>
-        </div>
-    </div>
-
-    {% if ml_analysis.has_ml_analysis and ml_analysis.personalized_feedback %}
-    <!-- Personalized AI Feedback Section -->
-    <div class="personalized-feedback-section">
-        <h3>🎯 Personalized AI Feedback</h3>
-        <div class="personalized-content">
-            {% if ml_analysis.personalized_feedback.personalized_feedback %}
-                <div class="feedback-text">{{ ml_analysis.personalized_feedback.personalized_feedback }}</div>
-            {% endif %}
-
-            {% if ml_analysis.personalized_feedback.learning_recommendations %}
-                <div class="learning-recommendations">
-                    <h4>📚 Learning Recommendations</h4>
-                    <ul class="learning-list">
-                        {% for recommendation in ml_analysis.personalized_feedback.learning_recommendations %}
-                            <li class="learning-item">{{ recommendation }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-        </div>
+    {% if ml_analysis.has_ml_analysis %}
+    <div class="bg-white rounded-lg border border-indigo-200 p-5 ring-1 ring-indigo-100">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-indigo-700">🤖 AI semantic score</h3>
+        <span class="text-sm font-medium text-gray-900">{{ ml_analysis.semantic_score|floatformat:1 }}/100</span>
+      </div>
+      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
+        <div class="progress-fill h-full transition-all duration-700 bg-gradient-to-r from-indigo-500 to-purple-500" style="width: {{ ml_analysis.semantic_score }}%"></div>
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>Basic</span><span>Advanced</span><span>Expert</span></div>
     </div>
     {% endif %}
 
-    {% if ml_analysis.has_ml_analysis and ml_analysis.performance_prediction %}
-    <!-- ML Performance Predictions -->
-    <div class="ml-performance-section">
-        <h3>⚡ Performance Predictions</h3>
-        <div class="prediction-grid">
-            {% if ml_analysis.performance_prediction.optimization_potential %}
-            <div class="prediction-bg-white rounded-lg border border-gray-200">
-                <div class="prediction-header">
-                    <h4>Optimization Potential</h4>
-                    <span class="prediction-value">{{ ml_analysis.performance_prediction.optimization_potential|floatformat:1 }}%</span>
-                </div>
-                <div class="prediction-bar">
-                    <div class="prediction-fill" style="width: {{ ml_analysis.performance_prediction.optimization_potential }}%; background-color: {% if ml_analysis.performance_prediction.optimization_potential > 70 %}#28a745{% elif ml_analysis.performance_prediction.optimization_potential > 40 %}#ffc107{% else %}#dc3545{% endif %};"></div>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if ml_analysis.performance_prediction.risk_factors %}
-            <div class="prediction-bg-white rounded-lg border border-gray-200">
-                <div class="prediction-header">
-                    <h4>Risk Factors</h4>
-                    <span class="prediction-count">{{ ml_analysis.performance_prediction.risk_factors|length }}</span>
-                </div>
-                <div class="risk-list">
-                    {% for risk in ml_analysis.performance_prediction.risk_factors %}
-                        <div class="risk-item">{{ risk }}</div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Performance Indicators Section -->
-    <div class="performance-indicators collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('performance')" aria-expanded="true" aria-controls="performance-content">
-            <span class="section-title">📊 Performance Metrics</span>
-            <span class="toggle-icon" id="performance-toggle">▼</span>
-        </button>
-        <div class="section-content" id="performance-content">
-        <div class="metrics-grid">
-            <!-- Score Progress Bar -->
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-header">
-                    <h4>Overall Score</h4>
-                    <span class="metric-value">{{ analysis.score|floatformat:1 }}/100</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill score-progress" style="width: {{ analysis.score }}%; background-color: {% if analysis.grade == 'A' %}#28a745{% elif analysis.grade == 'B' %}#17a2b8{% elif analysis.grade == 'C' %}#ffc107{% elif analysis.grade == 'D' %}#fd7e14{% else %}#dc3545{% endif %};"></div>
-                </div>
-                <div class="progress-labels">
-                    <span>0</span>
-                    <span>25</span>
-                    <span>50</span>
-                    <span>75</span>
-                    <span>100</span>
-                </div>
-            </div>
-
-            <!-- ML Semantic Score -->
-            {% if ml_analysis.has_ml_analysis %}
-            <div class="metric-bg-white rounded-lg border border-gray-200 ml-metric">
-                <div class="metric-header">
-                    <h4>🤖 AI Semantic Score</h4>
-                    <span class="metric-value">{{ ml_analysis.semantic_score|floatformat:1 }}/100</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill ml-progress" style="width: {{ ml_analysis.semantic_score }}%; background-color: linear-gradient(90deg, #007bff, #6f42c1);"></div>
-                </div>
-                <div class="progress-labels">
-                    <span>Basic</span>
-                    <span>Advanced</span>
-                    <span>Expert</span>
-                    <span>Optimal</span>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Complexity Meter -->
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-header">
-                    <h4>Query Complexity</h4>
-                    <span class="metric-value">{{ query.estimated_complexity }}/100</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill complexity-progress" style="width: {{ query.estimated_complexity }}%; background-color: {% if query.estimated_complexity <= 25 %}#28a745{% elif query.estimated_complexity <= 50 %}#ffc107{% elif query.estimated_complexity <= 75 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
-                </div>
-                <div class="progress-labels">
-                    <span>Simple</span>
-                    <span>Moderate</span>
-                    <span>Complex</span>
-                    <span>Very Complex</span>
-                </div>
-            </div>
-
-            <!-- Issues Distribution Chart -->
-            <div class="metric-bg-white rounded-lg border border-gray-200 issues-chart">
-                <div class="metric-header">
-                    <h4>Issues by Severity</h4>
-                    <span class="metric-value">{{ analysis.issues_found|length }} total</span>
-                </div>
-                <div class="issues-breakdown">
-                    <div class="severity-bars">
-                        <div class="severity-bar">
-                            <span class="severity-label">🔴 Critical</span>
-                            <div class="severity-count" id="critical-count">0</div>
-                        </div>
-                        <div class="severity-bar">
-                            <span class="severity-label">🟠 High</span>
-                            <div class="severity-count" id="high-count">0</div>
-                        </div>
-                        <div class="severity-bar">
-                            <span class="severity-label">🟡 Medium</span>
-                            <div class="severity-count" id="medium-count">0</div>
-                        </div>
-                        <div class="severity-bar">
-                            <span class="severity-label">🔵 Low</span>
-                            <div class="severity-count" id="low-count">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700">Query complexity</h3>
+        <span class="text-sm font-medium text-gray-900">{{ query.estimated_complexity }}/100</span>
+      </div>
+      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
+        <div class="progress-fill h-full transition-all duration-700
+          {% if query.estimated_complexity <= 25 %}bg-emerald-500
+          {% elif query.estimated_complexity <= 50 %}bg-amber-500
+          {% elif query.estimated_complexity <= 75 %}bg-orange-500
+          {% else %}bg-red-500{% endif %}" style="width: {{ query.estimated_complexity }}%"></div>
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>Simple</span><span>Moderate</span><span>Complex</span><span>Very</span></div>
     </div>
 
-    <div class="query-display collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('query')" aria-expanded="true" aria-controls="query-content" aria-label="Toggle analyzed query section">
-            <span class="section-title">📝 Analyzed Query</span>
-            <span class="toggle-icon" id="query-toggle" aria-hidden="true">▼</span>
-        </button>
-        <div class="section-content" id="query-content">
-            <div class="section-header">
-                <button class="copy-btn" onclick="copyToClipboard('analyzed-query', 'Query copied!')" title="Copy SQL query" aria-label="Copy SQL query to clipboard">
-                    <span aria-hidden="true">📋</span> Copy Query
-                </button>
-            </div>
-            <div class="query-text">
-                <pre><code id="analyzed-query">{{ query.sql_text }}</code></pre>
-            </div>
-        </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Issues by severity</h3>
+        <span class="text-sm font-medium text-gray-900">{{ analysis.issues_found|length }} total</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-red-50"><span class="text-red-700">🔴 Critical</span><span id="critical-count" class="font-bold text-red-700">0</span></div>
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-orange-50"><span class="text-orange-700">🟠 High</span><span id="high-count" class="font-bold text-orange-700">0</span></div>
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-amber-50"><span class="text-amber-700">🟡 Medium</span><span id="medium-count" class="font-bold text-amber-700">0</span></div>
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-sky-50"><span class="text-sky-700">🔵 Low</span><span id="low-count" class="font-bold text-sky-700">0</span></div>
+      </div>
     </div>
+  </section>
 
-    {% if analysis.issues_found %}
-    <div class="issues-section collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('issues')" aria-expanded="true" aria-controls="issues-content" aria-label="Toggle issues found section, {{ analysis.issues_found|length }} issues">
-            <span class="section-title">🔍 Issues Found ({{ analysis.issues_found|length }})</span>
-            <span class="toggle-icon" id="issues-toggle" aria-hidden="true">▼</span>
-        </button>
-        <div class="section-content" id="issues-content">
-        <div class="issues-list">
-            {% for issue in analysis.issues_found %}
-                <div class="issue-item severity-{{ issue.severity }}">
-                    <div class="issue-header">
-                        <span class="issue-type">{{ issue.type|title }}</span>
-                        <span class="severity-badge severity-{{ issue.severity }}">
-                            {% if issue.severity == 'critical' %}🔴 Critical
-                            {% elif issue.severity == 'high' %}🟠 High
-                            {% elif issue.severity == 'medium' %}🟡 Medium
-                            {% else %}🔵 Low
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="issue-description">{{ issue.description }}</div>
-                </div>
-            {% endfor %}
-        </div>
-        </div>
+  <section class="bg-white rounded-lg border border-gray-200">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <h3 class="text-sm font-semibold text-gray-700">Analyzed query</h3>
+      <button onclick="copyToClipboard('analyzed-query', 'Query copied!')" class="text-xs text-indigo-600 hover:underline">📋 Copy</button>
     </div>
-    {% endif %}
+    <pre class="overflow-x-auto p-5 text-sm font-mono text-gray-100 bg-gray-900 rounded-b-lg"><code id="analyzed-query">{{ query.sql_text }}</code></pre>
+  </section>
 
-    {% if analysis.recommendations or ml_analysis.recommendations %}
-    <div class="recommendations-section collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('recommendations')" aria-expanded="true" aria-controls="recommendations-content" aria-label="Toggle recommendations section">
-            <span class="section-title">💡 Enhanced Recommendations</span>
-            <span class="toggle-icon" id="recommendations-toggle" aria-hidden="true">▼</span>
-        </button>
-        <div class="section-content" id="recommendations-content">
-        <div class="section-header">
-            <button class="copy-btn" onclick="copyAllRecommendations()" title="Copy all recommendations" aria-label="Copy all recommendations to clipboard">
-                <span aria-hidden="true">📋</span> Copy All
-            </button>
+  {% if analysis.issues_found %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔍</span><span>Issues found</span></h3>
+    <ul class="mt-4 space-y-3">
+      {% for issue in analysis.issues_found %}
+      <li class="issue-item rounded-md border-l-4 p-3
+        {% if issue.severity == 'critical' %}border-red-500 bg-red-50
+        {% elif issue.severity == 'high' %}border-orange-500 bg-orange-50
+        {% elif issue.severity == 'medium' %}border-amber-500 bg-amber-50
+        {% else %}border-sky-500 bg-sky-50{% endif %}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="issue-type text-sm font-semibold text-gray-900">{{ issue.type|title }}</span>
+          <span class="severity-badge text-xs font-medium px-2 py-0.5 rounded
+            {% if issue.severity == 'critical' %}bg-red-100 text-red-700
+            {% elif issue.severity == 'high' %}bg-orange-100 text-orange-700
+            {% elif issue.severity == 'medium' %}bg-amber-100 text-amber-700
+            {% else %}bg-sky-100 text-sky-700{% endif %}">
+            {% if issue.severity == 'critical' %}🔴 Critical{% elif issue.severity == 'high' %}🟠 High{% elif issue.severity == 'medium' %}🟡 Medium{% else %}🔵 Low{% endif %}
+          </span>
         </div>
+        <p class="issue-description mt-1 text-sm text-gray-700">{{ issue.description }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 
-        <!-- Traditional Recommendations -->
-        {% if analysis.recommendations %}
-        <div class="traditional-recommendations">
-            <h4>📊 Standard Analysis</h4>
-            <div class="recommendations-list" id="recommendations-list">
-                {% for recommendation in analysis.recommendations %}
-                    <div class="recommendation-item priority-{{ recommendation.priority }}">
-                        <div class="recommendation-header">
-                            <span class="recommendation-type">{{ recommendation.type|title }}</span>
-                            <span class="priority-badge priority-{{ recommendation.priority }}">
-                                {% if recommendation.priority == 'critical' %}⚡ Critical
-                                {% elif recommendation.priority == 'high' %}🔥 High Priority
-                                {% elif recommendation.priority == 'medium' %}📈 Medium Priority
-                                {% else %}💡 Suggestion
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="recommendation-description">{{ recommendation.description }}</div>
-                        {% if recommendation.example %}
-                            <div class="recommendation-example">
-                                <div class="example-header">
-                                    <strong>Example:</strong>
-                                    <button class="copy-btn-small" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')" title="Copy example" aria-label="Copy example code to clipboard">
-                                        <span aria-hidden="true">📋</span>
-                                    </button>
-                                </div>
-                                <code id="example-{{ forloop.counter }}">{{ recommendation.example }}</code>
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- ML Enhanced Recommendations -->
-        {% if ml_analysis.has_ml_analysis and ml_analysis.recommendations %}
-        <div class="ml-recommendations">
-            <h4>🤖 AI-Enhanced Recommendations</h4>
-            <div class="ml-recommendations-list">
-                {% for recommendation in ml_analysis.recommendations %}
-                    <div class="ml-recommendation-item">
-                        <div class="ml-recommendation-header">
-                            <span class="ml-recommendation-type">{{ recommendation.title|default:"AI Recommendation" }}</span>
-                            <span class="ml-confidence-badge">
-                                Confidence: {{ recommendation.confidence|default:85 }}%
-                            </span>
-                        </div>
-                        <div class="ml-recommendation-description">{{ recommendation.description|default:recommendation }}</div>
-                        {% if recommendation.impact_estimate %}
-                        <div class="impact-estimate">
-                            <strong>Expected Impact:</strong> {{ recommendation.impact_estimate }}
-                        </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        </div>
+  {% if analysis.recommendations or ml_analysis.recommendations %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>💡</span><span>Recommendations</span></h3>
+      <button onclick="copyAllRecommendations()" class="text-xs text-indigo-600 hover:underline">📋 Copy all</button>
     </div>
-    {% endif %}
-
-    {% if ml_analysis.has_ml_analysis and ml_analysis.rewrite_suggestions %}
-    <!-- AI Query Rewrite Suggestions -->
-    <div class="rewrite-suggestions-section collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('rewrite')" aria-expanded="false" aria-controls="rewrite-content" aria-label="Toggle AI query rewrite suggestions section">
-            <span class="section-title">🔄 AI Query Rewrite Suggestions</span>
-            <span class="toggle-icon" id="rewrite-toggle" aria-hidden="true">▶</span>
-        </button>
-        <div class="section-content collapsed" id="rewrite-content" style="display: none;">
-        <div class="section-header">
-            <button class="copy-btn" onclick="copyRewriteSuggestions()" title="Copy rewrite suggestions" aria-label="Copy all rewrite suggestions to clipboard">
-                <span aria-hidden="true">📋</span> Copy Suggestions
-            </button>
-        </div>
-        <div class="rewrite-suggestions-list">
-            {% for suggestion in ml_analysis.rewrite_suggestions %}
-                <div class="rewrite-suggestion-item">
-                    <div class="rewrite-header">
-                        <h4>{{ suggestion.title|default:"Optimization Suggestion" }}</h4>
-                        <span class="safety-badge safety-{{ suggestion.safety_level|default:'conservative' }}">
-                            {{ suggestion.safety_level|default:'conservative'|title }}
-                        </span>
-                    </div>
-                    {% if suggestion.explanation %}
-                    <div class="rewrite-explanation">{{ suggestion.explanation }}</div>
-                    {% endif %}
-                    {% if suggestion.rewritten_query %}
-                    <div class="rewritten-query">
-                        <div class="query-header">
-                            <strong>Suggested Query:</strong>
-                            <button class="copy-btn-small" onclick="copyToClipboard('rewrite-{{ forloop.counter }}', 'Rewritten query copied!')" title="Copy rewritten query" aria-label="Copy suggested rewritten query to clipboard">
-                                <span aria-hidden="true">📋</span>
-                            </button>
-                        </div>
-                        <div class="query-text">
-                            <pre><code id="rewrite-{{ forloop.counter }}">{{ suggestion.rewritten_query }}</code></pre>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if suggestion.estimated_improvement %}
-                    <div class="improvement-estimate">
-                        <strong>Estimated Improvement:</strong> {{ suggestion.estimated_improvement }}%
-                    </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if optimization_result and optimization_result.optimizations_applied %}
-    <div class="optimization-section collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('optimization')" aria-expanded="false" aria-controls="optimization-content" aria-label="Toggle query optimization suggestions section">
-            <span class="section-title">🚀 Query Optimization Suggestions</span>
-            <span class="toggle-icon" id="optimization-toggle" aria-hidden="true">▶</span>
-        </button>
-        <div class="section-content collapsed" id="optimization-content" style="display: none;">
-        <div class="section-header">
-            <button class="copy-btn" onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" title="Copy optimized query" aria-label="Copy optimized query to clipboard">
-                <span aria-hidden="true">📋</span> Copy Optimized Query
-            </button>
-        </div>
-
-        <div class="optimization-summary">
-            <div class="optimization-stats">
-                <div class="optimization-stat">
-                    <span class="stat-icon">🔧</span>
-                    <span class="stat-label">Optimizations Applied:</span>
-                    <span class="stat-value">{{ optimization_result.optimizations_applied|length }}</span>
-                </div>
-                <div class="optimization-stat">
-                    <span class="stat-icon">📈</span>
-                    <span class="stat-label">Estimated Improvement:</span>
-                    <span class="stat-value improvement-{{ optimization_result.improvement_estimate|floatformat:0 }}">
-                        {{ optimization_result.improvement_estimate }}%
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <div class="optimization-tabs">
-            <button class="tab-button active" onclick="showOptimizationTab('optimized')" id="optimized-tab">
-                Optimized Query
-            </button>
-            <button class="tab-button" onclick="showOptimizationTab('comparison')" id="comparison-tab">
-                Side-by-Side Comparison
-            </button>
-            <button class="tab-button" onclick="showOptimizationTab('explanations')" id="explanations-tab">
-                Explanations
-            </button>
-        </div>
-
-        <div class="optimization-content">
-            <!-- Optimized Query Tab -->
-            <div class="tab-content active" id="optimized-content">
-                <div class="query-container">
-                    <div class="query-header">
-                        <h4>🎯 Optimized Query</h4>
-                        <div class="query-actions">
-                            <button class="copy-btn-small" onclick="copyToClipboard('optimized-query', 'Optimized query copied!')">
-                                📋 Copy
-                            </button>
-                        </div>
-                    </div>
-                    <div class="query-text">
-                        <pre><code id="optimized-query">{{ optimization_result.optimized_query }}</code></pre>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comparison Tab -->
-            <div class="tab-content" id="comparison-content">
-                <div class="query-comparison">
-                    <div class="query-comparison-side">
-                        <h4>📄 Original Query</h4>
-                        <div class="query-text">
-                            <pre><code>{{ optimization_result.original_query }}</code></pre>
-                        </div>
-                    </div>
-                    <div class="comparison-arrow">
-                        <div class="arrow-icon">➡️</div>
-                        <div class="improvement-badge">
-                            +{{ optimization_result.improvement_estimate }}% improvement
-                        </div>
-                    </div>
-                    <div class="query-comparison-side">
-                        <h4>🎯 Optimized Query</h4>
-                        <div class="query-text">
-                            <pre><code>{{ optimization_result.optimized_query }}</code></pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Explanations Tab -->
-            <div class="tab-content" id="explanations-content">
-                <div class="optimization-explanations">
-                    <h4>🔍 What Was Changed</h4>
-                    <div class="optimizations-list">
-                        {% for optimization in optimization_result.optimizations_applied %}
-                            <div class="optimization-item">
-                                <div class="optimization-icon">✅</div>
-                                <div class="optimization-text">{{ optimization }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if optimization_result.explanation %}
-                    <h4>💡 Detailed Explanations</h4>
-                    <div class="explanations-list">
-                        {% for explanation in optimization_result.explanation %}
-                            <div class="explanation-item">
-                                <div class="explanation-icon">💡</div>
-                                <div class="explanation-text">{{ explanation }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="optimization-disclaimer">
-            <p><strong>⚠️ Important:</strong> These are automated optimization suggestions. Always test optimized queries in a development environment before applying them to production. Performance improvements may vary based on your specific database schema, indexes, and data distribution.</p>
-        </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if analysis.performance_notes %}
-    <div class="performance-notes collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('notes')" aria-expanded="false" aria-controls="notes-content" aria-label="Toggle performance notes section">
-            <span class="section-title">📊 Performance Notes</span>
-            <span class="toggle-icon" id="notes-toggle" aria-hidden="true">▶</span>
-        </button>
-        <div class="section-content collapsed" id="notes-content" style="display: none;">
-            <div class="notes-content">{{ analysis.performance_notes }}</div>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if user_history.database_type or user_history.database_version or user_history.use_case_notes %}
-    <div class="context-section collapsible-section">
-        <button class="section-toggle" onclick="toggleSection('context')" aria-expanded="false" aria-controls="context-content" aria-label="Toggle query context section">
-            <span class="section-title">📝 Query Context</span>
-            <span class="toggle-icon" id="context-toggle" aria-hidden="true">▶</span>
-        </button>
-        <div class="section-content collapsed" id="context-content" style="display: none;">
-        <div class="context-grid">
-            {% if user_history.database_type %}
-                <div class="context-item">
-                    <span class="context-label">Database:</span>
-                    <span class="context-value">{{ user_history.database_type|title }}</span>
-                </div>
-            {% endif %}
-            {% if user_history.database_version %}
-                <div class="context-item">
-                    <span class="context-label">Version:</span>
-                    <span class="context-value">{{ user_history.database_version }}</span>
-                </div>
-            {% endif %}
-        </div>
-        {% if user_history.use_case_notes %}
-            <div class="use-case-notes">
-                <span class="context-label">Use Case:</span>
-                <div class="notes-text">{{ user_history.use_case_notes }}</div>
-            </div>
-        {% endif %}
-        </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="action-buttons">
-        <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            Grade Another Query
-        </a>
-        <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
-            View Query History
-        </a>
-        <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-md hover:bg-sky-700">
-            💬 Provide Feedback
-        </a>
-        <div class="copy-dropdown">
-            <button onclick="toggleCopyDropdown()" class="btn btn-outline copy-dropdown-btn" aria-haspopup="true" aria-expanded="false" aria-label="Copy report in different formats">
-                📋 Copy Report <span class="dropdown-arrow">▼</span>
-            </button>
-            <div class="copy-dropdown-menu" id="copyDropdownMenu" role="menu" style="display: none;">
-                <button onclick="copyFullReport('plain')" class="copy-dropdown-item" role="menuitem" aria-label="Copy as plain text">
-                    <span class="format-icon">📄</span>
-                    <div class="format-details">
-                        <span class="format-name">Plain Text</span>
-                        <span class="format-hint">Simple formatted report</span>
-                    </div>
-                </button>
-                <button onclick="copyFullReport('markdown')" class="copy-dropdown-item" role="menuitem" aria-label="Copy as Markdown">
-                    <span class="format-icon">📝</span>
-                    <div class="format-details">
-                        <span class="format-name">Markdown</span>
-                        <span class="format-hint">GitHub/docs friendly</span>
-                    </div>
-                </button>
-                <button onclick="copyFullReport('json')" class="copy-dropdown-item" role="menuitem" aria-label="Copy as JSON">
-                    <span class="format-icon">📋</span>
-                    <div class="format-details">
-                        <span class="format-name">JSON</span>
-                        <span class="format-hint">Structured data format</span>
-                    </div>
-                </button>
-            </div>
-        </div>
-        <button onclick="window.print()" class="btn btn-outline">
-            🖨️ Print Results
-        </button>
-    </div>
-
-    <!-- Export Progress Indicator -->
-    <div id="exportProgress" class="export-progress" role="status" aria-live="polite">
-        <div class="export-progress-text" id="exportProgressText">Preparing export...</div>
-        <div class="export-spinner"></div>
-    </div>
-</div>
-
-
-
-<script>
-// Export functionality
-function exportAsPDF() {
-    showExportProgress('PDF');
-    window.print();
-    hideExportProgress();
-}
-
-function exportAsJSON() {
-    showExportProgress('JSON');
-    const analysisData = {
-        query: {
-            sql: `{{ query.sql_text|escapejs }}`,
-            type: "{{ query.query_type }}",
-            complexity: {{ query.estimated_complexity }}
-        },
-        analysis: {
-            grade: "{{ analysis.grade }}",
-            score: {{ analysis.score }},
-            issues: [
-                {% for issue in analysis.issues_found %}
-                {
-                    type: "{{ issue.type|escapejs }}",
-                    severity: "{{ issue.severity }}",
-                    description: "{{ issue.description|escapejs }}",
-                    recommendation: "{{ issue.recommendation|escapejs }}"
-                }{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            recommendations: [
-                {% for rec in analysis.recommendations %}
-                {
-                    type: "{{ rec.type|escapejs }}",
-                    priority: "{{ rec.priority }}",
-                    suggestion: "{{ rec.suggestion|escapejs }}",
-                    impact: "{{ rec.impact|escapejs }}"
-                }{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ]
-        },
-        timestamp: "{{ analysis.analyzed_at|date:'c' }}"
-    };
-
-    const blob = new Blob([JSON.stringify(analysisData, null, 2)], { type: 'application/json' });
-    downloadFile(blob, 'query-analysis-{{ analysis.id }}.json');
-    hideExportProgress();
-}
-
-function exportAsCSV() {
-    showExportProgress('CSV');
-    let csv = 'Category,Type,Severity/Priority,Description,Recommendation\n';
-
-    {% for issue in analysis.issues_found %}
-    csv += `"Issue","{{ issue.type|escapejs }}","{{ issue.severity }}","{{ issue.description|escapejs }}","{{ issue.recommendation|escapejs }}"\n`;
-    {% endfor %}
-
-    {% for rec in analysis.recommendations %}
-    csv += `"Recommendation","{{ rec.type|escapejs }}","{{ rec.priority }}","{{ rec.suggestion|escapejs }}","{{ rec.impact|escapejs }}"\n`;
-    {% endfor %}
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    downloadFile(blob, 'query-analysis-{{ analysis.id }}.csv');
-    hideExportProgress();
-}
-
-function exportAsMarkdown() {
-    showExportProgress('Markdown');
-    let markdown = `# Query Analysis Report\n\n`;
-    markdown += `**Grade:** {{ analysis.grade }} ({{ analysis.score }}/100)\n\n`;
-    markdown += `**Query Type:** {{ query.query_type }}\n\n`;
-    markdown += `**Analyzed:** {{ analysis.analyzed_at|date:'Y-m-d H:i' }}\n\n`;
-    markdown += `## SQL Query\n\n\`\`\`sql\n{{ query.sql_text|escapejs }}\n\`\`\`\n\n`;
-
-    {% if analysis.issues_found %}
-    markdown += `## Issues Found ({{ analysis.issues_found|length }})\n\n`;
-    {% for issue in analysis.issues_found %}
-    markdown += `### {{ forloop.counter }}. {{ issue.type }}\n\n`;
-    markdown += `- **Severity:** {{ issue.severity }}\n`;
-    markdown += `- **Description:** {{ issue.description|escapejs }}\n`;
-    markdown += `- **Recommendation:** {{ issue.recommendation|escapejs }}\n\n`;
-    {% endfor %}
-    {% endif %}
 
     {% if analysis.recommendations %}
-    markdown += `## Recommendations ({{ analysis.recommendations|length }})\n\n`;
-    {% for rec in analysis.recommendations %}
-    markdown += `### {{ forloop.counter }}. {{ rec.type }}\n\n`;
-    markdown += `- **Priority:** {{ rec.priority }}\n`;
-    markdown += `- **Suggestion:** {{ rec.suggestion|escapejs }}\n`;
-    markdown += `- **Impact:** {{ rec.impact|escapejs }}\n\n`;
-    {% endfor %}
+    <ul id="recommendations-list" class="mt-4 space-y-3">
+      {% for rec in analysis.recommendations %}
+      <li class="recommendation-item rounded-md border border-gray-200 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="recommendation-type text-sm font-semibold text-gray-900">{{ rec.type|title }}</span>
+          <span class="priority-badge text-xs font-medium px-2 py-0.5 rounded
+            {% if rec.priority == 'critical' %}bg-red-100 text-red-700
+            {% elif rec.priority == 'high' %}bg-orange-100 text-orange-700
+            {% elif rec.priority == 'medium' %}bg-amber-100 text-amber-700
+            {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+            {% if rec.priority == 'critical' %}⚡ Critical{% elif rec.priority == 'high' %}🔥 High{% elif rec.priority == 'medium' %}📈 Medium{% else %}💡 Suggestion{% endif %}
+          </span>
+        </div>
+        <p class="recommendation-description mt-2 text-sm text-gray-700">{{ rec.description }}</p>
+        {% if rec.example %}
+        <div class="recommendation-example mt-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-gray-500">Example</span>
+            <button class="text-xs text-indigo-600 hover:underline" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')">📋 Copy</button>
+          </div>
+          <pre class="text-xs font-mono p-3 bg-gray-900 text-gray-100 rounded overflow-x-auto"><code id="example-{{ forloop.counter }}">{{ rec.example }}</code></pre>
+        </div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
     {% endif %}
 
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    downloadFile(blob, 'query-analysis-{{ analysis.id }}.md');
-    hideExportProgress();
-}
+    {% if ml_analysis.has_ml_analysis and ml_analysis.recommendations %}
+    <div class="mt-5 pt-5 border-t border-gray-100">
+      <h4 class="text-sm font-semibold text-indigo-700 flex items-center gap-2"><span>🤖</span><span>AI-enhanced recommendations</span></h4>
+      <ul class="mt-3 space-y-3">
+        {% for r in ml_analysis.recommendations %}
+        <li class="rounded-md border border-indigo-200 bg-indigo-50/30 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-gray-900">{{ r.title|default:"AI Recommendation" }}</span>
+            <span class="text-xs font-medium px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">Confidence: {{ r.confidence|default:85 }}%</span>
+          </div>
+          <p class="mt-2 text-sm text-gray-700">{{ r.description|default:r }}</p>
+          {% if r.impact_estimate %}<p class="mt-2 text-xs text-gray-600"><strong>Expected impact:</strong> {{ r.impact_estimate }}</p>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
 
-function downloadFile(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
+  {% if ml_analysis.has_ml_analysis and ml_analysis.rewrite_suggestions %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔄</span><span>AI query rewrite suggestions</span></h3>
+      <button onclick="copyRewriteSuggestions()" class="text-xs text-indigo-600 hover:underline">📋 Copy all</button>
+    </div>
+    <ul class="mt-4 space-y-4">
+      {% for s in ml_analysis.rewrite_suggestions %}
+      <li class="rounded-md border border-gray-200 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <h4 class="text-sm font-semibold text-gray-900">{{ s.title|default:"Optimization suggestion" }}</h4>
+          {% with safety=s.safety_level|default:'conservative' %}
+          <span class="text-xs font-medium px-2 py-0.5 rounded
+            {% if safety == 'aggressive' %}bg-red-100 text-red-700
+            {% elif safety == 'moderate' %}bg-amber-100 text-amber-700
+            {% else %}bg-emerald-100 text-emerald-700{% endif %}">{{ safety|title }}</span>
+          {% endwith %}
+        </div>
+        {% if s.explanation %}<p class="mt-2 text-sm text-gray-700">{{ s.explanation }}</p>{% endif %}
+        {% if s.rewritten_query %}
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-gray-500">Suggested query</span>
+            <button class="text-xs text-indigo-600 hover:underline" onclick="copyToClipboard('rewrite-{{ forloop.counter }}', 'Rewritten query copied!')">📋 Copy</button>
+          </div>
+          <pre class="text-xs font-mono p-3 bg-gray-900 text-gray-100 rounded overflow-x-auto"><code id="rewrite-{{ forloop.counter }}">{{ s.rewritten_query }}</code></pre>
+        </div>
+        {% endif %}
+        {% if s.estimated_improvement %}<p class="mt-2 text-xs text-emerald-700"><strong>Estimated improvement:</strong> {{ s.estimated_improvement }}%</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 
-function showExportProgress(format) {
-    const progressEl = document.getElementById('exportProgress');
-    const progressText = document.getElementById('exportProgressText');
+  {% if optimization_result and optimization_result.optimizations_applied %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🚀</span><span>Optimization suggestions</span></h3>
+      <button onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" class="text-xs text-indigo-600 hover:underline">📋 Copy optimized</button>
+    </div>
+    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      <div class="rounded bg-gray-50 p-3 flex items-center gap-2"><span>🔧</span><span class="text-gray-500">Optimizations applied:</span><span class="ml-auto font-semibold text-gray-900">{{ optimization_result.optimizations_applied|length }}</span></div>
+      <div class="rounded bg-emerald-50 p-3 flex items-center gap-2"><span>📈</span><span class="text-gray-500">Estimated improvement:</span><span class="ml-auto font-semibold text-emerald-700">{{ optimization_result.improvement_estimate }}%</span></div>
+    </div>
 
-    if (progressEl && progressText) {
-        progressText.textContent = `Preparing ${format} export...`;
-        progressEl.classList.add('active');
-    }
+    <div class="mt-4 border-b border-gray-200 flex gap-1">
+      <button id="optimized-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-indigo-700 border-b-2 border-indigo-600 -mb-px" onclick="showOptimizationTab('optimized')">Optimized</button>
+      <button id="comparison-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent -mb-px" onclick="showOptimizationTab('comparison')">Side-by-side</button>
+      <button id="explanations-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent -mb-px" onclick="showOptimizationTab('explanations')">Explanations</button>
+    </div>
 
-    // Disable export buttons during export
-    const btns = document.querySelectorAll('.btn-export');
-    btns.forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
+    <div id="optimized-content" class="opt-tab-content mt-4">
+      <pre class="overflow-x-auto p-4 text-sm font-mono text-gray-100 bg-gray-900 rounded"><code id="optimized-query">{{ optimization_result.optimized_query }}</code></pre>
+    </div>
+
+    <div id="comparison-content" class="opt-tab-content mt-4 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Original</h4>
+          <pre class="overflow-x-auto p-3 text-xs font-mono text-gray-100 bg-gray-800 rounded"><code>{{ optimization_result.original_query }}</code></pre>
+        </div>
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Optimized</h4>
+          <pre class="overflow-x-auto p-3 text-xs font-mono text-gray-100 bg-gray-900 rounded ring-1 ring-emerald-500/40"><code>{{ optimization_result.optimized_query }}</code></pre>
+        </div>
+      </div>
+      <p class="mt-2 text-xs text-emerald-700">+{{ optimization_result.improvement_estimate }}% estimated improvement</p>
+    </div>
+
+    <div id="explanations-content" class="opt-tab-content mt-4 hidden space-y-4">
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">What was changed</h4>
+        <ul class="space-y-1.5 text-sm">
+          {% for opt in optimization_result.optimizations_applied %}<li class="flex gap-2"><span class="text-emerald-600 flex-shrink-0">✅</span><span class="text-gray-700">{{ opt }}</span></li>{% endfor %}
+        </ul>
+      </div>
+      {% if optimization_result.explanation %}
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">Detailed explanations</h4>
+        <ul class="space-y-1.5 text-sm">
+          {% for explanation in optimization_result.explanation %}<li class="flex gap-2"><span class="text-amber-500 flex-shrink-0">💡</span><span class="text-gray-700">{{ explanation }}</span></li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <p class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
+      <strong>⚠ Important:</strong> Always test optimized queries against a development environment before applying to production.
+    </p>
+  </section>
+  {% endif %}
+
+  {% if analysis.performance_notes %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📊</span><span>Performance notes</span></h3>
+    <p class="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{{ analysis.performance_notes }}</p>
+  </section>
+  {% endif %}
+
+  {% if user_history.database_type or user_history.database_version or user_history.use_case_notes %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📝</span><span>Query context</span></h3>
+    <dl class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      {% if user_history.database_type %}<div><dt class="text-gray-500">Database</dt><dd class="mt-0.5 font-medium text-gray-900">{{ user_history.database_type|title }}</dd></div>{% endif %}
+      {% if user_history.database_version %}<div><dt class="text-gray-500">Version</dt><dd class="mt-0.5 font-medium text-gray-900">{{ user_history.database_version }}</dd></div>{% endif %}
+    </dl>
+    {% if user_history.use_case_notes %}
+    <div class="mt-3"><dt class="text-sm text-gray-500">Use case notes</dt><dd class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ user_history.use_case_notes }}</dd></div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <div class="flex flex-wrap gap-2 pt-2">
+    <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Grade another query</a>
+    <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">View history</a>
+    <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">💬 Detailed feedback</a>
+    <button onclick="copyFullReport()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">📋 Copy full report</button>
+    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">🖨️ Print</button>
+  </div>
+</div>
+
+<script>
+  async function copyText(text, msg) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+      }
+      showToast(msg, 'success');
+    } catch (e) { console.error(e); showToast('Copy failed', 'error'); }
+  }
+
+  async function copyToClipboard(elementId, msg) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    await copyText((el.textContent || el.innerText).trim(), msg);
+  }
+
+  async function copyAllRecommendations() {
+    const list = document.getElementById('recommendations-list');
+    if (!list) return;
+    let s = "SQL Query Analysis Recommendations\n=====================================\n\n";
+    list.querySelectorAll('.recommendation-item').forEach((item, i) => {
+      const type = item.querySelector('.recommendation-type')?.textContent?.trim() || '';
+      const priority = item.querySelector('.priority-badge')?.textContent?.trim() || '';
+      const desc = item.querySelector('.recommendation-description')?.textContent?.trim() || '';
+      s += `${i + 1}. ${type}\n   Priority: ${priority}\n   ${desc}\n\n`;
     });
-}
+    s += `\nGenerated by QueryGrade - ${new Date().toLocaleString()}\n`;
+    await copyText(s, 'All recommendations copied');
+  }
 
-function hideExportProgress() {
-    setTimeout(() => {
-        const progressEl = document.getElementById('exportProgress');
-        if (progressEl) {
-            progressEl.classList.remove('active');
-        }
-
-        // Re-enable export buttons
-        const btns = document.querySelectorAll('.btn-export');
-        btns.forEach(btn => {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-        });
-    }, 500);
-}
-
-// Copy to clipboard functionality
-async function copyToClipboard(elementId, successMessage) {
-    try {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            throw new Error('Element not found');
-        }
-
-        const text = element.textContent || element.innerText;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(text);
-        } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification(successMessage);
-    } catch (err) {
-        console.error('Copy failed: ', err);
-        showNotification('Copy failed. Please try selecting and copying manually.', 'error');
-    }
-}
-
-// Copy all recommendations as a formatted summary
-async function copyAllRecommendations() {
-    try {
-        let summary = "Enhanced SQL Query Analysis Recommendations\n";
-        summary += "==========================================\n\n";
-
-        // Traditional recommendations
-        const recommendationsList = document.getElementById('recommendations-list');
-        if (recommendationsList) {
-            summary += "Standard Analysis Recommendations:\n";
-            summary += "---------------------------------\n";
-
-            const recommendations = recommendationsList.querySelectorAll('.recommendation-item');
-            recommendations.forEach((item, index) => {
-                const type = item.querySelector('.recommendation-type')?.textContent?.trim() || 'Unknown';
-                const priority = item.querySelector('.priority-badge')?.textContent?.trim() || 'Unknown';
-                const description = item.querySelector('.recommendation-description')?.textContent?.trim() || '';
-                const example = item.querySelector('.recommendation-example code')?.textContent?.trim();
-
-                summary += `${index + 1}. ${type}\n`;
-                summary += `   Priority: ${priority}\n`;
-                summary += `   Description: ${description}\n`;
-                if (example) {
-                    summary += `   Example: ${example}\n`;
-                }
-                summary += '\n';
-            });
-        }
-
-        // ML recommendations
-        const mlRecommendationsList = document.querySelector('.ml-recommendations-list');
-        if (mlRecommendationsList) {
-            summary += "\nAI-Enhanced Recommendations:\n";
-            summary += "----------------------------\n";
-
-            const mlRecommendations = mlRecommendationsList.querySelectorAll('.ml-recommendation-item');
-            mlRecommendations.forEach((item, index) => {
-                const type = item.querySelector('.ml-recommendation-type')?.textContent?.trim() || 'AI Recommendation';
-                const confidence = item.querySelector('.ml-confidence-badge')?.textContent?.trim() || 'Unknown';
-                const description = item.querySelector('.ml-recommendation-description')?.textContent?.trim() || '';
-                const impact = item.querySelector('.impact-estimate')?.textContent?.trim();
-
-                summary += `${index + 1}. ${type}\n`;
-                summary += `   ${confidence}\n`;
-                summary += `   Description: ${description}\n`;
-                if (impact) {
-                    summary += `   ${impact}\n`;
-                }
-                summary += '\n';
-            });
-        }
-
-        summary += `\nGenerated by QueryGrade Enhanced SQL Analyzer\n`;
-        summary += `Analysis Date: ${new Date().toLocaleString()}\n`;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(summary);
-        } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = summary;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification('All recommendations copied to clipboard!');
-    } catch (err) {
-        console.error('Copy all recommendations failed: ', err);
-        showNotification('Copy failed. Please try again.', 'error');
-    }
-}
-
-// Copy rewrite suggestions
-async function copyRewriteSuggestions() {
-    try {
-        let summary = "AI Query Rewrite Suggestions\n";
-        summary += "============================\n\n";
-
-        const suggestions = document.querySelectorAll('.rewrite-suggestion-item');
-        suggestions.forEach((item, index) => {
-            const title = item.querySelector('.rewrite-header h4')?.textContent?.trim() || 'Optimization Suggestion';
-            const safety = item.querySelector('.safety-badge')?.textContent?.trim() || 'Conservative';
-            const explanation = item.querySelector('.rewrite-explanation')?.textContent?.trim();
-            const query = item.querySelector('.rewritten-query code')?.textContent?.trim();
-            const improvement = item.querySelector('.improvement-estimate')?.textContent?.trim();
-
-            summary += `${index + 1}. ${title} (${safety})\n`;
-            if (explanation) {
-                summary += `   Explanation: ${explanation}\n`;
-            }
-            if (query) {
-                summary += `   Suggested Query:\n   ${query}\n`;
-            }
-            if (improvement) {
-                summary += `   ${improvement}\n`;
-            }
-            summary += '\n';
-        });
-
-        summary += `Generated by QueryGrade AI Query Rewriter\n`;
-        summary += `Analysis Date: ${new Date().toLocaleString()}\n`;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(summary);
-        } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = summary;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification('Rewrite suggestions copied to clipboard!');
-    } catch (err) {
-        console.error('Copy rewrite suggestions failed: ', err);
-        showNotification('Copy failed. Please try again.', 'error');
-    }
-}
-
-// Toggle copy format dropdown
-function toggleCopyDropdown() {
-    const menu = document.getElementById('copyDropdownMenu');
-    const btn = document.querySelector('.copy-dropdown-btn');
-
-    if (menu.style.display === 'none' || menu.style.display === '') {
-        menu.style.display = 'block';
-        btn.setAttribute('aria-expanded', 'true');
-    } else {
-        menu.style.display = 'none';
-        btn.setAttribute('aria-expanded', 'false');
-    }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function(event) {
-    const dropdown = document.querySelector('.copy-dropdown');
-    if (dropdown && !dropdown.contains(event.target)) {
-        const menu = document.getElementById('copyDropdownMenu');
-        const btn = document.querySelector('.copy-dropdown-btn');
-        if (menu) {
-            menu.style.display = 'none';
-        }
-        if (btn) {
-            btn.setAttribute('aria-expanded', 'false');
-        }
-    }
-});
-
-// Copy full analysis report in different formats
-async function copyFullReport(format = 'plain') {
-    try {
-        // Close the dropdown
-        const menu = document.getElementById('copyDropdownMenu');
-        const btn = document.querySelector('.copy-dropdown-btn');
-        if (menu) menu.style.display = 'none';
-        if (btn) btn.setAttribute('aria-expanded', 'false');
-
-        // Collect data
-        const data = {
-            gradeLetter: document.querySelector('.grade-letter')?.textContent?.trim(),
-            gradeScore: document.querySelector('.grade-score')?.textContent?.trim(),
-            gradeLabel: document.querySelector('.grade-label')?.textContent?.trim(),
-            semanticScore: document.querySelector('.insight-value')?.textContent?.trim(),
-            query: document.getElementById('analyzed-query')?.textContent?.trim(),
-            stats: Array.from(document.querySelectorAll('.stat-item')).map(stat => ({
-                label: stat.querySelector('.stat-label')?.textContent?.trim(),
-                value: stat.querySelector('.stat-value')?.textContent?.trim()
-            })),
-            personalizedFeedback: document.querySelector('.feedback-text')?.textContent?.trim(),
-            issues: Array.from(document.querySelectorAll('.issue-item')).map(issue => ({
-                type: issue.querySelector('.issue-type')?.textContent?.trim(),
-                severity: issue.querySelector('.severity-badge')?.textContent?.trim(),
-                description: issue.querySelector('.issue-description')?.textContent?.trim()
-            })),
-            recommendations: Array.from(document.querySelectorAll('.recommendation-item')).map(rec => ({
-                type: rec.querySelector('.recommendation-type')?.textContent?.trim(),
-                priority: rec.querySelector('.priority-badge')?.textContent?.trim(),
-                description: rec.querySelector('.recommendation-description')?.textContent?.trim()
-            })),
-            mlRecommendations: Array.from(document.querySelectorAll('.ml-recommendation-item')).map(rec => ({
-                type: rec.querySelector('.ml-recommendation-type')?.textContent?.trim(),
-                confidence: rec.querySelector('.ml-confidence-badge')?.textContent?.trim(),
-                description: rec.querySelector('.ml-recommendation-description')?.textContent?.trim()
-            })),
-            notes: document.querySelector('.notes-content')?.textContent?.trim(),
-            timestamp: new Date().toLocaleString()
-        };
-
-        let report;
-        let formatName;
-
-        switch (format) {
-            case 'markdown':
-                report = generateMarkdownReport(data);
-                formatName = 'Markdown';
-                break;
-            case 'json':
-                report = JSON.stringify({
-                    grade: data.gradeLetter,
-                    score: data.gradeScore,
-                    label: data.gradeLabel,
-                    semanticScore: data.semanticScore,
-                    query: data.query,
-                    statistics: data.stats,
-                    personalizedFeedback: data.personalizedFeedback,
-                    issues: data.issues,
-                    recommendations: data.recommendations,
-                    mlRecommendations: data.mlRecommendations,
-                    notes: data.notes,
-                    timestamp: data.timestamp
-                }, null, 2);
-                formatName = 'JSON';
-                break;
-            default: // plain
-                report = generatePlainTextReport(data);
-                formatName = 'plain text';
-        }
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(report);
-        } else {
-            const textArea = document.createElement('textarea');
-            textArea.value = report;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification(`Report copied as ${formatName}!`);
-    } catch (err) {
-        console.error('Copy full report failed: ', err);
-        showNotification('Copy failed. Please try again.', 'error');
-    }
-}
-
-function generatePlainTextReport(data) {
-    let report = "Enhanced SQL Query Analysis Report\n";
-    report += "==================================\n\n";
-
-    if (data.gradeLetter) {
-        report += `Overall Grade: ${data.gradeLetter} (${data.gradeScore}) - ${data.gradeLabel}\n\n`;
-    }
-
-    if (data.semanticScore) {
-        report += `AI Semantic Analysis: ${data.semanticScore}\n\n`;
-    }
-
-    if (data.query) {
-        report += "Analyzed Query:\n";
-        report += "---------------\n";
-        report += data.query + "\n\n";
-    }
-
-    if (data.stats.length > 0) {
-        report += "Query Statistics:\n";
-        report += "-----------------\n";
-        data.stats.forEach(stat => {
-            if (stat.label && stat.value) {
-                report += `${stat.label} ${stat.value}\n`;
-            }
-        });
-        report += "\n";
-    }
-
-    if (data.personalizedFeedback) {
-        report += "Personalized AI Feedback:\n";
-        report += "-------------------------\n";
-        report += data.personalizedFeedback + "\n\n";
-    }
-
-    if (data.issues.length > 0) {
-        report += "Issues Found:\n";
-        report += "-------------\n";
-        data.issues.forEach((issue, index) => {
-            report += `${index + 1}. ${issue.type} (${issue.severity})\n`;
-            report += `   ${issue.description}\n\n`;
-        });
-    }
-
-    if (data.recommendations.length > 0) {
-        report += "Standard Recommendations:\n";
-        report += "------------------------\n";
-        data.recommendations.forEach((rec, index) => {
-            report += `${index + 1}. ${rec.type} (${rec.priority})\n`;
-            report += `   ${rec.description}\n\n`;
-        });
-    }
-
-    if (data.mlRecommendations.length > 0) {
-        report += "AI-Enhanced Recommendations:\n";
-        report += "---------------------------\n";
-        data.mlRecommendations.forEach((rec, index) => {
-            report += `${index + 1}. ${rec.type} (${rec.confidence})\n`;
-            report += `   ${rec.description}\n\n`;
-        });
-    }
-
-    if (data.notes) {
-        report += "Performance Notes:\n";
-        report += "------------------\n";
-        report += data.notes + "\n\n";
-    }
-
-    report += `\nGenerated by QueryGrade Enhanced SQL Analyzer\n`;
-    report += `Analysis Date: ${data.timestamp}\n`;
-
-    return report;
-}
-
-function generateMarkdownReport(data) {
-    let md = "# Enhanced SQL Query Analysis Report\n\n";
-
-    if (data.gradeLetter) {
-        md += `**Overall Grade:** ${data.gradeLetter} (${data.gradeScore}) - ${data.gradeLabel}\n\n`;
-    }
-
-    if (data.semanticScore) {
-        md += `**AI Semantic Analysis:** ${data.semanticScore}\n\n`;
-    }
-
-    if (data.query) {
-        md += "## Analyzed Query\n\n";
-        md += "```sql\n" + data.query + "\n```\n\n";
-    }
-
-    if (data.stats.length > 0) {
-        md += "## Query Statistics\n\n";
-        data.stats.forEach(stat => {
-            if (stat.label && stat.value) {
-                md += `- **${stat.label}** ${stat.value}\n`;
-            }
-        });
-        md += "\n";
-    }
-
-    if (data.personalizedFeedback) {
-        md += "## Personalized AI Feedback\n\n";
-        md += data.personalizedFeedback + "\n\n";
-    }
-
-    if (data.issues.length > 0) {
-        md += "## Issues Found\n\n";
-        data.issues.forEach((issue, index) => {
-            md += `### ${index + 1}. ${issue.type}\n\n`;
-            md += `- **Severity:** ${issue.severity}\n`;
-            md += `- **Description:** ${issue.description}\n\n`;
-        });
-    }
-
-    if (data.recommendations.length > 0) {
-        md += "## Standard Recommendations\n\n";
-        data.recommendations.forEach((rec, index) => {
-            md += `### ${index + 1}. ${rec.type}\n\n`;
-            md += `- **Priority:** ${rec.priority}\n`;
-            md += `- **Description:** ${rec.description}\n\n`;
-        });
-    }
-
-    if (data.mlRecommendations.length > 0) {
-        md += "## AI-Enhanced Recommendations\n\n";
-        data.mlRecommendations.forEach((rec, index) => {
-            md += `### ${index + 1}. ${rec.type}\n\n`;
-            md += `- **Confidence:** ${rec.confidence}\n`;
-            md += `- **Description:** ${rec.description}\n\n`;
-        });
-    }
-
-    if (data.notes) {
-        md += "## Performance Notes\n\n";
-        md += data.notes + "\n\n";
-    }
-
-    md += `---\n\n*Generated by QueryGrade Enhanced SQL Analyzer*  \n`;
-    md += `*Analysis Date: ${data.timestamp}*\n`;
-
-    return md;
-}
-
-// Show optimization tab
-function showOptimizationTab(tabName) {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
+  async function copyRewriteSuggestions() {
+    let s = "AI Query Rewrite Suggestions\n============================\n\n";
+    document.querySelectorAll('[id^="rewrite-"]').forEach((el, i) => {
+      s += `${i + 1}. ${el.textContent.trim()}\n\n`;
     });
+    await copyText(s, 'Rewrite suggestions copied');
+  }
 
-    // Remove active class from all tab buttons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
+  async function copyFullReport() {
+    let r = "Enhanced SQL Query Analysis Report\n==================================\n\n";
+    r += `Overall Grade: {{ analysis.grade }} ({{ analysis.score|floatformat:1 }}/100)\n`;
+    {% if ml_analysis.has_ml_analysis %}r += `AI Semantic Score: {{ ml_analysis.semantic_score|floatformat:1 }}/100\n`;{% endif %}
+    r += '\n';
+    const q = document.getElementById('analyzed-query')?.textContent?.trim();
+    if (q) r += `Analyzed Query:\n---------------\n${q}\n\n`;
+    document.querySelectorAll('.issue-item').forEach((issue, i) => {
+      if (i === 0) r += "Issues Found:\n-------------\n";
+      const type = issue.querySelector('.issue-type')?.textContent?.trim();
+      const sev = issue.querySelector('.severity-badge')?.textContent?.trim();
+      const desc = issue.querySelector('.issue-description')?.textContent?.trim();
+      r += `${i + 1}. ${type} (${sev})\n   ${desc}\n\n`;
     });
-
-    // Show selected tab content
-    const selectedContent = document.getElementById(tabName + '-content');
-    if (selectedContent) {
-        selectedContent.classList.add('active');
-    }
-
-    // Add active class to selected tab button
-    const selectedButton = document.getElementById(tabName + '-tab');
-    if (selectedButton) {
-        selectedButton.classList.add('active');
-    }
-}
-
-// Toggle collapsible section
-function toggleSection(sectionName) {
-    const content = document.getElementById(sectionName + '-content');
-    const toggle = document.getElementById(sectionName + '-toggle');
-    const button = content.previousElementSibling;
-
-    if (content.style.display === 'none' || content.classList.contains('collapsed')) {
-        // Show section
-        content.style.display = 'block';
-        content.classList.remove('collapsed');
-        toggle.textContent = '▼';
-        button.setAttribute('aria-expanded', 'true');
-
-        // Save state to localStorage
-        localStorage.setItem('section-' + sectionName, 'expanded');
-    } else {
-        // Hide section
-        content.style.display = 'none';
-        content.classList.add('collapsed');
-        toggle.textContent = '▶';
-        button.setAttribute('aria-expanded', 'false');
-
-        // Save state to localStorage
-        localStorage.setItem('section-' + sectionName, 'collapsed');
-    }
-}
-
-// Restore section states from localStorage on page load
-function restoreSectionStates() {
-    const sections = ['performance', 'query', 'issues', 'recommendations', 'rewrite', 'optimization', 'notes', 'context'];
-
-    sections.forEach(sectionName => {
-        const state = localStorage.getItem('section-' + sectionName);
-        const content = document.getElementById(sectionName + '-content');
-        const toggle = document.getElementById(sectionName + '-toggle');
-        const button = content?.previousElementSibling;
-
-        if (content && toggle && button) {
-            if (state === 'collapsed') {
-                content.style.display = 'none';
-                content.classList.add('collapsed');
-                toggle.textContent = '▶';
-                button.setAttribute('aria-expanded', 'false');
-            } else if (state === 'expanded') {
-                content.style.display = 'block';
-                content.classList.remove('collapsed');
-                toggle.textContent = '▼';
-                button.setAttribute('aria-expanded', 'true');
-            }
-        }
+    document.querySelectorAll('.recommendation-item').forEach((item, i) => {
+      if (i === 0) r += "Recommendations:\n----------------\n";
+      const type = item.querySelector('.recommendation-type')?.textContent?.trim();
+      const priority = item.querySelector('.priority-badge')?.textContent?.trim();
+      const desc = item.querySelector('.recommendation-description')?.textContent?.trim();
+      r += `${i + 1}. ${type} (${priority})\n   ${desc}\n\n`;
     });
-}
+    r += `\nGenerated by QueryGrade - ${new Date().toLocaleString()}\n`;
+    await copyText(r, 'Full report copied');
+  }
 
-// Show notification
-function showNotification(message, type = 'success') {
-    // Remove existing notifications
-    document.querySelectorAll('.copy-notification').forEach(n => n.remove());
-
-    const notification = document.createElement('div');
-    notification.className = 'copy-notification';
-    notification.textContent = message;
-
-    if (type === 'error') {
-        notification.style.backgroundColor = '#dc3545';
+  function showOptimizationTab(tab) {
+    document.querySelectorAll('.opt-tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.opt-tab-btn').forEach(btn => {
+      btn.classList.remove('text-indigo-700', 'border-indigo-600');
+      btn.classList.add('text-gray-500', 'border-transparent');
+    });
+    document.getElementById(tab + '-content')?.classList.remove('hidden');
+    const btn = document.getElementById(tab + '-tab');
+    if (btn) {
+      btn.classList.remove('text-gray-500', 'border-transparent');
+      btn.classList.add('text-indigo-700', 'border-indigo-600');
     }
+  }
 
-    document.body.appendChild(notification);
+  function toggleDetailedFeedback() {
+    document.getElementById('detailedFeedbackForm')?.classList.toggle('hidden');
+  }
 
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Quick feedback submission
-async function submitQuickFeedback(isHelpful) {
-    const thumbsUpBtn = document.getElementById('thumbs-up');
-    const thumbsDownBtn = document.getElementById('thumbs-down');
-    const statusDiv = document.getElementById('feedback-status');
-
-    // Disable buttons to prevent double submission
-    thumbsUpBtn.disabled = true;
-    thumbsDownBtn.disabled = true;
-
+  async function submitQuickFeedback(isHelpful) {
+    const up = document.getElementById('thumbs-up');
+    const down = document.getElementById('thumbs-down');
+    const status = document.getElementById('feedback-status');
+    up.disabled = true; down.disabled = true;
     try {
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-        if (!csrfToken) {
-            // If no CSRF token found, try to get it from cookie
-            const cookies = document.cookie.split(';');
-            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrftoken='));
-            if (!csrfCookie) {
-                throw new Error('CSRF token not found');
-            }
-        }
-
-        const response = await fetch('{% url "quick_feedback" analysis.id %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({
-                'was_helpful': isHelpful
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Show success message
-            statusDiv.textContent = data.message || 'Thank you for your feedback!';
-            statusDiv.className = 'feedback-status success';
-            statusDiv.style.display = 'block';
-
-            // Update button states
-            if (isHelpful) {
-                thumbsUpBtn.classList.add('selected');
-                thumbsDownBtn.classList.remove('selected');
-            } else {
-                thumbsDownBtn.classList.add('selected');
-                thumbsUpBtn.classList.remove('selected');
-            }
-
-            // Keep buttons disabled after successful submission
-            thumbsUpBtn.disabled = true;
-            thumbsDownBtn.disabled = true;
-
-            // Show notification
-            showNotification('Enhanced feedback submitted successfully! 🎉');
-
-        } else {
-            throw new Error(data.error || 'Failed to submit feedback');
-        }
-
-    } catch (error) {
-        console.error('Error submitting feedback:', error);
-
-        // Show error message
-        statusDiv.textContent = 'Unable to submit feedback. Please try the detailed feedback form below.';
-        statusDiv.className = 'feedback-status error';
-        statusDiv.style.display = 'block';
-
-        // Re-enable buttons on error
-        thumbsUpBtn.disabled = false;
-        thumbsDownBtn.disabled = false;
-
-        // Show error notification
-        showNotification('Failed to submit feedback. Please try again.', 'error');
+      const res = await fetch('{% url "quick_feedback" analysis.id %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
+        body: JSON.stringify({was_helpful: isHelpful}),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      status.textContent = data.message || 'Thanks for your feedback!';
+      status.className = 'mt-3 text-sm text-emerald-700';
+      const chosen = isHelpful ? up : down;
+      const other = isHelpful ? down : up;
+      chosen.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+      other.classList.add('opacity-50');
+      showToast('Feedback submitted', 'success');
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'Could not submit. Use the detailed form below.';
+      status.className = 'mt-3 text-sm text-red-600';
+      up.disabled = false; down.disabled = false;
+      showToast('Submission failed', 'error');
     }
-}
+    status.classList.remove('hidden');
+  }
 
-// Toggle detailed feedback form
-function toggleDetailedFeedback() {
-    const form = document.getElementById('detailedFeedbackForm');
-    const btn = document.querySelector('.detailed-feedback-btn');
-
-    if (form.style.display === 'none' || form.style.display === '') {
-        form.style.display = 'block';
-        btn.setAttribute('aria-expanded', 'true');
-
-        // Scroll form into view
-        setTimeout(() => {
-            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-    } else {
-        form.style.display = 'none';
-        btn.setAttribute('aria-expanded', 'false');
-    }
-}
-
-// Submit detailed feedback form
-async function submitDetailedFeedback(event) {
+  async function submitDetailedFeedback(event) {
     event.preventDefault();
-
-    const form = event.target;
-    const statusDiv = document.getElementById('detailedFeedbackStatus');
-    const submitBtn = form.querySelector('.feedback-submit-btn');
-
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="btn-icon">⏳</span> Submitting...';
-
+    const fd = new FormData(document.getElementById('feedbackForm'));
     try {
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-        if (!csrfToken) {
-            const cookies = document.cookie.split(';');
-            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrftoken='));
-            if (!csrfCookie) {
-                throw new Error('CSRF token not found');
-            }
-        }
-
-        // Collect form data
-        const formData = new FormData(form);
-        const feedbackData = {
-            analysis_id: formData.get('analysis_id'),
-            accuracy_rating: parseInt(formData.get('accuracy')),
-            usefulness_rating: parseInt(formData.get('usefulness')),
-            clarity_rating: parseInt(formData.get('clarity')),
-            comments: formData.get('comments'),
-            most_helpful: formData.get('most_helpful'),
-            least_helpful: formData.get('least_helpful')
-        };
-
-        const response = await fetch('{% url "submit_feedback" analysis.id %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify(feedbackData)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Show success message
-            statusDiv.textContent = data.message || 'Thank you for your detailed feedback! Your input helps us improve.';
-            statusDiv.className = 'feedback-submission-status success';
-            statusDiv.style.display = 'block';
-
-            // Show notification
-            showNotification('Detailed feedback submitted successfully! 🎉');
-
-            // Reset form after 2 seconds
-            setTimeout(() => {
-                form.reset();
-                toggleDetailedFeedback();
-                statusDiv.style.display = 'none';
-            }, 2000);
-
-        } else {
-            throw new Error(data.error || 'Failed to submit feedback');
-        }
-
-    } catch (error) {
-        console.error('Error submitting detailed feedback:', error);
-
-        // Show error message
-        statusDiv.textContent = 'Unable to submit feedback. Please try again or contact support.';
-        statusDiv.className = 'feedback-submission-status error';
-        statusDiv.style.display = 'block';
-
-        // Show error notification
-        showNotification('Failed to submit feedback. Please try again.', 'error');
-
-        // Re-enable button
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span class="btn-icon">🚀</span> Submit Feedback';
+      const res = await fetch('{% url "submit_feedback" analysis.id %}', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrfToken()},
+        body: fd,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Detailed feedback submitted, thank you!', 'success');
+      toggleDetailedFeedback();
+    } catch (e) {
+      console.error(e);
+      showToast('Could not submit detailed feedback', 'error');
     }
-}
+  }
 
-// Toggle feedback impact visualization
-function toggleFeedbackImpact() {
-    const stats = document.getElementById('feedbackImpactStats');
-    const btn = document.querySelector('.impact-toggle-btn');
-
-    if (stats.style.display === 'none' || stats.style.display === '') {
-        stats.style.display = 'block';
-        btn.setAttribute('aria-expanded', 'true');
-
-        // Animate category progress bars
-        setTimeout(() => {
-            const bars = document.querySelectorAll('.category-fill');
-            bars.forEach(bar => {
-                const width = bar.getAttribute('data-width');
-                bar.style.width = width;
-            });
-        }, 100);
-
-        // Scroll into view
-        setTimeout(() => {
-            stats.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-    } else {
-        stats.style.display = 'none';
-        btn.setAttribute('aria-expanded', 'false');
-
-        // Reset progress bars
-        const bars = document.querySelectorAll('.category-fill');
-        bars.forEach(bar => {
-            bar.style.width = '0%';
-        });
-    }
-}
-
-// Performance indicators initialization
-document.addEventListener('DOMContentLoaded', function() {
-    // Restore collapsible section states
-    restoreSectionStates();
-
-    // Count issues by severity
+  document.addEventListener('DOMContentLoaded', () => {
     const issues = {{ analysis.issues_found|safe }};
-    const severityCounts = {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0
-    };
-
-    issues.forEach(issue => {
-        if (severityCounts.hasOwnProperty(issue.severity)) {
-            severityCounts[issue.severity]++;
-        }
+    const counts = {critical: 0, high: 0, medium: 0, low: 0};
+    issues.forEach(i => { if (counts.hasOwnProperty(i.severity)) counts[i.severity]++; });
+    ['critical', 'high', 'medium', 'low'].forEach(k => {
+      const el = document.getElementById(`${k}-count`);
+      if (el) el.textContent = counts[k];
     });
 
-    // Update severity count displays
-    const criticalElement = document.getElementById('critical-count');
-    const highElement = document.getElementById('high-count');
-    const mediumElement = document.getElementById('medium-count');
-    const lowElement = document.getElementById('low-count');
-
-    if (criticalElement) criticalElement.textContent = severityCounts.critical;
-    if (highElement) highElement.textContent = severityCounts.high;
-    if (mediumElement) mediumElement.textContent = severityCounts.medium;
-    if (lowElement) lowElement.textContent = severityCounts.low;
-
-    // Update severity count colors based on values
-    function updateSeverityCountColor(element, count, baseColor) {
-        if (element && count > 0) {
-            element.style.backgroundColor = baseColor;
-        } else if (element) {
-            element.style.backgroundColor = '#666';
-        }
-    }
-
-    updateSeverityCountColor(criticalElement, severityCounts.critical, '#dc3545');
-    updateSeverityCountColor(highElement, severityCounts.high, '#fd7e14');
-    updateSeverityCountColor(mediumElement, severityCounts.medium, '#ffc107');
-    updateSeverityCountColor(lowElement, severityCounts.low, '#17a2b8');
-
-    // Animate progress bars
     setTimeout(() => {
-        const progressBars = document.querySelectorAll('.progress-fill');
-        progressBars.forEach(bar => {
-            const width = bar.style.width;
-            bar.style.width = '0%';
-            setTimeout(() => {
-                bar.style.width = width;
-            }, 100);
-        });
-    }, 500);
+      document.querySelectorAll('.progress-fill').forEach(bar => {
+        const w = bar.style.width;
+        bar.style.width = '0%';
+        requestAnimationFrame(() => { bar.style.width = w; });
+      });
+    }, 100);
 
-    // Animate prediction bars
-    setTimeout(() => {
-        const predictionBars = document.querySelectorAll('.prediction-fill');
-        predictionBars.forEach(bar => {
-            const width = bar.style.width;
-            bar.style.width = '0%';
-            setTimeout(() => {
-                bar.style.width = width;
-            }, 100);
+    // Star rating: highlight stars when one is checked
+    document.querySelectorAll('.star-row').forEach(row => {
+      row.addEventListener('change', e => {
+        const value = parseInt(e.target.value);
+        row.querySelectorAll('input[type=radio]').forEach(r => {
+          const span = r.parentElement.querySelector('span');
+          if (parseInt(r.value) <= value) span.classList.replace('opacity-30', 'opacity-100');
+          else span.classList.replace('opacity-100', 'opacity-30');
         });
-    }, 750);
-});
+      });
+    });
+  });
 </script>
 {% endblock %}
