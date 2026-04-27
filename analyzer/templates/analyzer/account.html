@@ -1,350 +1,77 @@
 {% extends 'analyzer/base.html' %}
-{% load static %}
 
-{% block title %}QueryGrade - My Account{% endblock %}
+{% block title %}My account · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="account-container">
-    <div class="page-header">
-        <h1>My Account</h1>
-        <p class="subtitle">Manage your QueryGrade profile and settings</p>
+<div class="space-y-8">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">My account</h1>
+    <p class="mt-1 text-sm text-gray-500">Manage your QueryGrade profile and settings</p>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <section class="bg-white rounded-lg border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900">Profile</h2>
+      <dl class="mt-4 space-y-2 text-sm">
+        <div class="flex justify-between"><dt class="text-gray-500">Username</dt><dd class="text-gray-900 font-medium">{{ user.username }}</dd></div>
+        <div class="flex justify-between"><dt class="text-gray-500">Email</dt><dd class="text-gray-900">{{ user.email|default:"Not set" }}</dd></div>
+        <div class="flex justify-between"><dt class="text-gray-500">Member since</dt><dd class="text-gray-900">{{ user.date_joined|date:"F j, Y" }}</dd></div>
+        <div class="flex justify-between"><dt class="text-gray-500">Last login</dt><dd class="text-gray-900">{{ user.last_login|date:"F j, Y g:i A" }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="bg-white rounded-lg border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900">Activity</h2>
+      <div class="mt-4 grid grid-cols-2 gap-4">
+        <div class="text-center p-4 rounded-md bg-indigo-50">
+          <div class="text-2xl font-bold text-indigo-700">{{ query_count }}</div>
+          <div class="text-xs text-gray-600 mt-1">Queries analyzed</div>
+        </div>
+        <div class="text-center p-4 rounded-md bg-emerald-50">
+          <div class="text-2xl font-bold text-emerald-700">{{ feedback_count }}</div>
+          <div class="text-xs text-gray-600 mt-1">Feedback given</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900">Security</h2>
+    <a href="{% url 'password_change' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Change password</a>
+  </section>
+
+  <section class="bg-white rounded-lg border border-gray-200">
+    <header class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="text-lg font-semibold text-gray-900">Recent queries</h2>
+      <a href="{% url 'query_history' %}" class="text-sm text-indigo-600 hover:underline">View all →</a>
+    </header>
+    <div class="p-6">
+      {% if recent_queries %}
+      <ul class="divide-y divide-gray-100">
+        {% for history in recent_queries %}
+        <li class="py-3 flex items-center gap-4">
+          {% if history.analysis %}
+          <span class="inline-flex items-center justify-center h-9 w-9 rounded-full text-sm font-bold {% with g=history.analysis.grade|lower %}{% if g == 'a' %}bg-emerald-100 text-emerald-700{% elif g == 'b' %}bg-lime-100 text-lime-700{% elif g == 'c' %}bg-amber-100 text-amber-700{% elif g == 'd' %}bg-orange-100 text-orange-700{% else %}bg-red-100 text-red-700{% endif %}{% endwith %}">{{ history.analysis.grade }}</span>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-mono text-gray-800 truncate">{{ history.query.query_text|truncatechars:80 }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">
+              {% if history.analysis %}Score {{ history.analysis.score }}/100 · {% endif %}{{ history.submitted_at|timesince }} ago
+            </p>
+          </div>
+          {% if history.analysis %}
+          <a href="{% url 'grade_results' history.analysis.id %}" class="text-sm text-indigo-600 hover:underline">View</a>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-center py-8 text-sm text-gray-500">
+        <p>No queries analyzed yet.</p>
+        <a href="{% url 'grade_query' %}" class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Analyze your first query</a>
+      </div>
+      {% endif %}
     </div>
-
-    <div class="account-grid">
-        <!-- Profile Information -->
-        <div class="account-card">
-            <div class="card-header">
-                <h2>Profile Information</h2>
-            </div>
-            <div class="card-body">
-                <div class="info-row">
-                    <span class="info-label">Username:</span>
-                    <span class="info-value">{{ user.username }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">{{ user.email|default:"Not set" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Member since:</span>
-                    <span class="info-value">{{ user.date_joined|date:"F j, Y" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Last login:</span>
-                    <span class="info-value">{{ user.last_login|date:"F j, Y g:i A" }}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Account Statistics -->
-        <div class="account-card">
-            <div class="card-header">
-                <h2>Activity Statistics</h2>
-            </div>
-            <div class="card-body">
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-value">{{ query_count }}</div>
-                        <div class="stat-label">Queries Analyzed</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-icon">💬</div>
-                        <div class="stat-value">{{ feedback_count }}</div>
-                        <div class="stat-label">Feedback Given</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="account-card">
-            <div class="card-header">
-                <h2>Security Settings</h2>
-            </div>
-            <div class="card-body">
-                <a href="{% url 'password_change' %}" class="btn btn-secondary btn-block">
-                    <span class="btn-icon">🔒</span>
-                    Change Password
-                </a>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="account-card full-width">
-            <div class="card-header">
-                <h2>Recent Queries</h2>
-                <a href="{% url 'query_history' %}" class="view-all-link">View All →</a>
-            </div>
-            <div class="card-body">
-                {% if recent_queries %}
-                    <div class="queries-list">
-                        {% for history in recent_queries %}
-                            <div class="query-item">
-                                <div class="query-info">
-                                    {% if history.analysis %}
-                                    <div class="query-grade grade-{{ history.analysis.grade|lower }}">
-                                        {{ history.analysis.grade }}
-                                    </div>
-                                    {% endif %}
-                                    <div class="query-details">
-                                        <div class="query-snippet">{{ history.query.query_text|truncatechars:60 }}</div>
-                                        <div class="query-meta">
-                                            {% if history.analysis %}
-                                            <span>Score: {{ history.analysis.score }}/100</span>
-                                            <span>•</span>
-                                            {% endif %}
-                                            <span>{{ history.submitted_at|timesince }} ago</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% if history.analysis %}
-                                <a href="{% url 'grade_results' history.analysis.id %}" class="btn btn-sm btn-primary">
-                                    View Details
-                                </a>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <p>No queries analyzed yet</p>
-                        <a href="{% url 'grade_query' %}" class="btn btn-primary">Analyze Your First Query</a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+  </section>
 </div>
-
-<style>
-.account-container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 2rem;
-}
-
-.page-header {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.page-header h1 {
-    color: var(--text-white);
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.subtitle {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-}
-
-.account-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-}
-
-.account-card {
-    background-color: var(--bg-secondary);
-    border-radius: 12px;
-    border: 1px solid var(--border-primary);
-    box-shadow: 0 4px 8px var(--shadow-light);
-}
-
-.account-card.full-width {
-    grid-column: 1 / -1;
-}
-
-.card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-primary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.card-header h2 {
-    color: var(--text-white);
-    font-size: 1.4rem;
-    margin: 0;
-}
-
-.view-all-link {
-    color: var(--text-accent);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
-.view-all-link:hover {
-    color: var(--btn-primary-hover);
-}
-
-.card-body {
-    padding: 1.5rem;
-}
-
-.info-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-secondary);
-}
-
-.info-row:last-child {
-    border-bottom: none;
-}
-
-.info-label {
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.info-value {
-    color: var(--text-primary);
-}
-
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1.5rem;
-}
-
-.stat-item {
-    text-align: center;
-    padding: 1rem;
-    background-color: var(--bg-tertiary);
-    border-radius: 8px;
-}
-
-.stat-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--text-accent);
-    margin-bottom: 0.25rem;
-}
-
-.stat-label {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-.btn-block {
-    width: 100%;
-    display: block;
-    text-align: center;
-    padding: 1rem;
-}
-
-.queries-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.query-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background-color: var(--bg-tertiary);
-    border-radius: 8px;
-    border: 1px solid var(--border-secondary);
-}
-
-.query-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex: 1;
-}
-
-.query-grade {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-
-.grade-a { background-color: #10b981; color: white; }
-.grade-b { background-color: #3b82f6; color: white; }
-.grade-c { background-color: #f59e0b; color: white; }
-.grade-d { background-color: #ef4444; color: white; }
-.grade-f { background-color: #dc2626; color: white; }
-
-.query-details {
-    flex: 1;
-}
-
-.query-snippet {
-    color: var(--text-primary);
-    font-family: monospace;
-    margin-bottom: 0.25rem;
-}
-
-.query-meta {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-.query-meta span {
-    margin: 0 0.25rem;
-}
-
-.btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 2rem;
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-}
-
-@media (max-width: 768px) {
-    .account-container {
-        padding: 1rem;
-    }
-
-    .account-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .page-header h1 {
-        font-size: 2rem;
-    }
-
-    .query-item {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-    }
-
-    .query-info {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .btn-sm {
-        width: 100%;
-    }
-}
-</style>
 {% endblock %}

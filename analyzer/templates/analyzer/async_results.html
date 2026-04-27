@@ -1,110 +1,43 @@
 {% extends 'analyzer/base.html' %}
-{% load static %}
 
-{% block title %}Async Results - QueryGrade{% endblock %}
+{% block title %}Async results · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="results-header">
-        <h2>📊 Processing Results</h2>
-        <p class="text-secondary">Your background processing has completed successfully.</p>
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">📊 Processing results</h1>
+    <p class="mt-1 text-sm text-gray-500">Your background processing has completed.</p>
+  </header>
+
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    {% if results.status == 'success' %}
+    <div class="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800 mb-4">✓ Processing completed successfully</div>
+
+    {% if results.total_queries %}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="rounded-md border border-gray-100 p-4 text-center"><div class="text-2xl font-bold text-indigo-700">{{ results.total_queries }}</div><div class="text-xs text-gray-500 mt-1">Total queries</div></div>
+      {% if results.successful_analyses %}<div class="rounded-md border border-gray-100 p-4 text-center"><div class="text-2xl font-bold text-emerald-700">{{ results.successful_analyses }}</div><div class="text-xs text-gray-500 mt-1">Successful</div></div>{% endif %}
+      {% if results.failed_analyses %}<div class="rounded-md border border-gray-100 p-4 text-center"><div class="text-2xl font-bold text-red-700">{{ results.failed_analyses }}</div><div class="text-xs text-gray-500 mt-1">Failed</div></div>{% endif %}
     </div>
+    {% endif %}
 
-    <div class="card bg-secondary">
-        <div class="card-body">
-            <h4>Results Summary</h4>
+    <dl class="mt-4 space-y-1 text-sm">
+      {% if results.processing_time %}<div class="flex gap-2"><dt class="text-gray-500">Processing time:</dt><dd class="text-gray-900 font-medium">{{ results.processing_time|floatformat:2 }}s</dd></div>{% endif %}
+      {% if results.timestamp %}<div class="flex gap-2"><dt class="text-gray-500">Completed:</dt><dd class="text-gray-900 font-medium">{{ results.timestamp }}</dd></div>{% endif %}
+    </dl>
+    {% else %}
+    <div class="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">⚠ Processing failed: {{ results.error }}</div>
+    {% endif %}
 
-            {% if results.status == 'success' %}
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i>
-                    Processing completed successfully!
-                </div>
+    <details class="mt-4">
+      <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-900">Raw output</summary>
+      <pre class="mt-2 p-3 bg-gray-900 text-gray-100 rounded text-xs overflow-x-auto">{{ results|pprint }}</pre>
+    </details>
+  </div>
 
-                {% if results.total_queries %}
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h5>{{ results.total_queries }}</h5>
-                                <p>Total Queries</p>
-                            </div>
-                        </div>
-                        {% if results.successful_analyses %}
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h5>{{ results.successful_analyses }}</h5>
-                                <p>Successful</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if results.failed_analyses %}
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h5>{{ results.failed_analyses }}</h5>
-                                <p>Failed</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                {% endif %}
-
-                {% if results.processing_time %}
-                    <p><strong>Processing Time:</strong> {{ results.processing_time|floatformat:2 }} seconds</p>
-                {% endif %}
-
-                {% if results.timestamp %}
-                    <p><strong>Completed:</strong> {{ results.timestamp }}</p>
-                {% endif %}
-
-            {% else %}
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Processing failed: {{ results.error }}
-                </div>
-            {% endif %}
-
-            <pre class="mt-3 p-3 bg-dark text-light">{{ results|pprint }}</pre>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <a href="{% url 'index' %}" class="btn btn-primary">← Back to Home</a>
-        <a href="{% url 'query_history' %}" class="btn btn-info">View History</a>
-    </div>
+  <div class="flex gap-3">
+    <a href="{% url 'index' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">← Home</a>
+    <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">View history</a>
+  </div>
 </div>
-
-<style>
-.stat-card {
-    background: var(--bg-tertiary);
-    padding: 1.5rem;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 1rem;
-    border: 1px solid var(--border-primary);
-}
-
-.stat-card h5 {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--accent-blue);
-    margin-bottom: 0.5rem;
-}
-
-.stat-card p {
-    color: var(--text-secondary);
-    margin: 0;
-    font-weight: 500;
-}
-
-.results-header {
-    text-align: center;
-    margin-bottom: 2rem;
-    padding: 2rem 0;
-    border-bottom: 1px solid var(--border-primary);
-}
-
-.results-header h2 {
-    color: var(--text-white);
-    margin-bottom: 0.5rem;
-}
-</style>
 {% endblock %}

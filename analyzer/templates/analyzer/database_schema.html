@@ -3,117 +3,23 @@
 
 {% block title %}Database Schema Analysis - QueryGrade{% endblock %}
 
-{% block extra_css %}
-    <style>
-        .card {
-            border: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .table-card {
-            background: white;
-            border: 1px solid #e9ecef;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-            transition: box-shadow 0.3s ease;
-        }
-        .table-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .table-header {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-bottom: 1px solid #e9ecef;
-            border-radius: 0.5rem 0.5rem 0 0;
-        }
-        .table-content {
-            padding: 1rem;
-        }
-        .column-badge {
-            background-color: #e3f2fd;
-            color: #1976d2;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            margin-right: 0.5rem;
-            margin-bottom: 0.25rem;
-            display: inline-block;
-        }
-        .index-badge {
-            background-color: #f3e5f5;
-            color: #7b1fa2;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            margin-right: 0.5rem;
-            margin-bottom: 0.25rem;
-            display: inline-block;
-        }
-        .fk-badge {
-            background-color: #e8f5e8;
-            color: #388e3c;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            margin-right: 0.5rem;
-            margin-bottom: 0.25rem;
-            display: inline-block;
-        }
-        .recommendation {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        .issue {
-            background-color: #f8d7da;
-            border-left: 4px solid #dc3545;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        .performance-note {
-            background-color: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        .table-stats {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-        .action-buttons {
-            margin-top: 2rem;
-        }
-    </style>
-{% endblock %}
+
 
 {% block content %}
-<div class="container mt-4">
+<div class="max-w-7xl mx-auto px-4 mt-4">
     <!-- Database Overview -->
-    <div class="row">
+    <div class="flex flex-wrap gap-4">
         <div class="col-12">
-            <div class="stats-card">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
+            <div class="stats-bg-white rounded-lg border border-gray-200">
+                <div class="row items-center">
+                    <div class="md:flex-1">
                         <h4 class="mb-1">
                             <i class="fas fa-database me-2"></i>
                             {{ db_config.name }} ({{ db_config.engine|title }})
                         </h4>
                         <p class="mb-0">Connected to {{ db_config.host }}{% if db_config.port %}:{{ db_config.port }}{% endif %}</p>
                     </div>
-                    <div class="col-md-4 text-md-end">
+                    <div class="md:flex-1 text-md-end">
                         <div class="row text-center">
                             <div class="col-3">
                                 <h5 class="mb-0">{{ table_count }}</h5>
@@ -140,19 +46,19 @@
 
     <!-- Analysis Results -->
     {% if schema_analysis %}
-    <div class="row">
+    <div class="flex flex-wrap gap-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-4 py-3 border-b border-gray-100 font-semibold">
                     <h5 class="mb-0">
                         <i class="fas fa-chart-line me-2"></i>
                         Schema Analysis Results
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="p-4">
                     <!-- Issues -->
                     {% if schema_analysis.issues %}
-                        <h6><i class="fas fa-exclamation-triangle text-danger me-2"></i>Issues Found</h6>
+                        <h6><i class="fas fa-exclamation-triangle text-red-600 me-2"></i>Issues Found</h6>
                         {% for issue in schema_analysis.issues %}
                             <div class="issue">
                                 <i class="fas fa-times-circle me-2"></i>{{ issue }}
@@ -172,7 +78,7 @@
 
                     <!-- Recommendations -->
                     {% if schema_analysis.recommendations %}
-                        <h6><i class="fas fa-lightbulb text-warning me-2"></i>Recommendations</h6>
+                        <h6><i class="fas fa-lightbulb text-amber-600 me-2"></i>Recommendations</h6>
                         {% for recommendation in schema_analysis.recommendations %}
                             <div class="recommendation">
                                 <i class="fas fa-arrow-right me-2"></i>{{ recommendation }}
@@ -181,7 +87,7 @@
                     {% endif %}
 
                     {% if not schema_analysis.issues and not schema_analysis.performance_notes and not schema_analysis.recommendations %}
-                        <div class="alert alert-success">
+                        <div class="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
                             <i class="fas fa-check-circle me-2"></i>
                             <strong>Great schema!</strong> No significant issues found. Your database schema follows good practices.
                         </div>
@@ -193,58 +99,58 @@
     {% endif %}
 
     <!-- Tables Overview -->
-    <div class="row">
+    <div class="flex flex-wrap gap-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="bg-white rounded-lg border border-gray-200">
+                <div class="px-4 py-3 border-b border-gray-100 font-semibold flex justify-between items-center">
                     <h5 class="mb-0">
-                        <i class="fas fa-table me-2"></i>
+                        <i class="fas fa-min-w-full text-sm me-2"></i>
                         Database Tables ({{ table_count }})
                     </h5>
                     <div>
-                        <button class="btn btn-sm btn-outline-light" onclick="toggleAllTables()">
+                        <button class="btn text-xs px-2 py-1 btn-outline-light" onclick="toggleAllTables()">
                             <i class="fas fa-expand-arrows-alt me-1"></i>Toggle All
                         </button>
                     </div>
                 </div>
-                <div class="card-body">
-                    {% for table in tables %}
-                    <div class="table-card">
-                        <div class="table-header" data-bs-toggle="collapse" data-bs-target="#table-{{ forloop.counter }}" style="cursor: pointer;">
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
+                <div class="p-4">
+                    {% for min-w-full text-sm in tables %}
+                    <div class="min-w-full text-sm-bg-white rounded-lg border border-gray-200">
+                        <div class="min-w-full text-sm-header" data-bs-toggle="collapse" data-bs-target="#min-w-full text-sm-{{ forloop.counter }}" style="cursor: pointer;">
+                            <div class="row items-center">
+                                <div class="md:flex-1">
                                     <h6 class="mb-0">
-                                        <i class="fas fa-table me-2"></i>{{ table.name }}
+                                        <i class="fas fa-min-w-full text-sm me-2"></i>{{ min-w-full text-sm.name }}
                                     </h6>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="table-stats text-end">
+                                <div class="md:flex-1">
+                                    <div class="min-w-full text-sm-stats text-right">
                                         <span class="me-3">
-                                            <i class="fas fa-columns me-1"></i>{{ table.columns|length }} columns
+                                            <i class="fas fa-columns me-1"></i>{{ min-w-full text-sm.columns|length }} columns
                                         </span>
                                         <span class="me-3">
-                                            <i class="fas fa-search me-1"></i>{{ table.indexes|length }} indexes
+                                            <i class="fas fa-search me-1"></i>{{ min-w-full text-sm.indexes|length }} indexes
                                         </span>
-                                        {% if table.row_count %}
+                                        {% if min-w-full text-sm.row_count %}
                                             <span class="me-3">
-                                                <i class="fas fa-database me-1"></i>{{ table.row_count|floatformat:0 }} rows
+                                                <i class="fas fa-database me-1"></i>{{ min-w-full text-sm.row_count|floatformat:0 }} rows
                                             </span>
                                         {% endif %}
-                                        {% if table.size_mb %}
+                                        {% if min-w-full text-sm.size_mb %}
                                             <span>
-                                                <i class="fas fa-hdd me-1"></i>{{ table.size_mb }} MB
+                                                <i class="fas fa-hdd me-1"></i>{{ min-w-full text-sm.size_mb }} MB
                                             </span>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="collapse" id="table-{{ forloop.counter }}">
-                            <div class="table-content">
+                        <div class="collapse" id="min-w-full text-sm-{{ forloop.counter }}">
+                            <div class="min-w-full text-sm-content">
                                 <!-- Columns -->
                                 <div class="mb-3">
                                     <h6><i class="fas fa-columns me-2"></i>Columns</h6>
-                                    {% for column in table.columns %}
+                                    {% for column in min-w-full text-sm.columns %}
                                         <span class="column-badge">
                                             {{ column.name }}
                                             <small>({{ column.type }})</small>
@@ -254,10 +160,10 @@
                                 </div>
 
                                 <!-- Indexes -->
-                                {% if table.indexes %}
+                                {% if min-w-full text-sm.indexes %}
                                 <div class="mb-3">
                                     <h6><i class="fas fa-search me-2"></i>Indexes</h6>
-                                    {% for index in table.indexes %}
+                                    {% for index in min-w-full text-sm.indexes %}
                                         <span class="index-badge">
                                             {{ index.name }}
                                             <small>({{ index.columns|join:", " }})</small>
@@ -269,10 +175,10 @@
                                 {% endif %}
 
                                 <!-- Foreign Keys -->
-                                {% if table.foreign_keys %}
+                                {% if min-w-full text-sm.foreign_keys %}
                                 <div class="mb-3">
                                     <h6><i class="fas fa-link me-2"></i>Foreign Keys</h6>
-                                    {% for fk in table.foreign_keys %}
+                                    {% for fk in min-w-full text-sm.foreign_keys %}
                                         <span class="fk-badge">
                                             {{ fk.columns|join:", " }} → {{ fk.referenced_table }}.{{ fk.referenced_columns|join:", " }}
                                         </span>
@@ -283,7 +189,7 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="alert alert-info">
+                    <div class="rounded-md bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-800">
                         <i class="fas fa-info-circle me-2"></i>
                         No tables found in this database.
                     </div>
@@ -295,9 +201,9 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons">
-        <div class="row">
-            <div class="col-12 d-flex gap-2 justify-content-center">
-                <a href="{% url 'query_with_context' %}" class="btn btn-primary">
+        <div class="flex flex-wrap gap-4">
+            <div class="col-12 flex gap-2 justify-center">
+                <a href="{% url 'query_with_context' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
                     <i class="fas fa-search me-2"></i>
                     Analyze Query with Context
                 </a>
@@ -316,7 +222,7 @@
 
 <script>
     function toggleAllTables() {
-        const collapseElements = document.querySelectorAll('[id^="table-"]');
+        const collapseElements = document.querySelectorAll('[id^="min-w-full text-sm-"]');
         let anyExpanded = false;
 
         collapseElements.forEach(element => {

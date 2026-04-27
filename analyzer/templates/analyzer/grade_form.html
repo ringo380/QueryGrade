@@ -1,1044 +1,185 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
-{% block title %}QueryGrade - SQL Query Grader{% endblock %}
+{% block title %}Grade query · QueryGrade{% endblock %}
 
-{% block extra_css %}
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
+<style>
+  .CodeMirror { height: auto; min-height: 280px; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  .CodeMirror-fullscreen { z-index: 100; }
+</style>
 {% endblock %}
 
 {% block content %}
-
-
-.CodeMirror-fullscreen {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    height: 100vh !important;
-    width: 100vw !important;
-    z-index: 9999 !important;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #fff;
-}
-
-.required {
-    color: #ff4444;
-}
-
-.form-control {
-    width: 100%;
-    padding: 12px;
-    background-color: #1a1a1a;
-    border: 2px solid #444;
-    border-radius: 6px;
-    color: #e0e0e0;
-    font-size: 14px;
-    transition: border-color 0.3s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #007bff;
-}
-
-.form-row {
-    display: flex;
-    gap: 20px;
-}
-
-.half-width {
-    flex: 1;
-}
-
-.form-help {
-    font-size: 12px;
-    color: #888;
-    margin-top: 5px;
-}
-
-.form-errors .error-message {
-    color: #ff4444;
-    font-size: 14px;
-    margin-top: 5px;
-}
-
-.form-actions {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-top: 30px;
-}
-
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-primary {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #0056b3;
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: #545b62;
-}
-
-.examples-section {
-    margin-top: 40px;
-}
-
-.examples-section h3 {
-    color: #fff;
-    margin-bottom: 10px;
-    text-align: center;
-    font-size: 24px;
-}
-
-.examples-subtitle {
-    color: #b0b0b0;
-    text-align: center;
-    margin-bottom: 30px;
-    font-style: italic;
-}
-
-.example-categories {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-}
-
-.example-category {
-    background-color: #2a2a2a;
-    padding: 25px;
-    border-radius: 12px;
-    border-left: 4px solid transparent;
-}
-
-.example-category:nth-child(1) {
-    border-left-color: #28a745; /* Green for well-optimized */
-}
-
-.example-category:nth-child(2) {
-    border-left-color: #ffc107; /* Yellow for moderate issues */
-}
-
-.example-category:nth-child(3) {
-    border-left-color: #dc3545; /* Red for serious problems */
-}
-
-.example-category h4 {
-    color: #fff;
-    margin-bottom: 20px;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.example-queries {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-    gap: 15px;
-}
-
-.example-query {
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 2px solid transparent;
-}
-
-.example-query:hover {
-    background-color: #333;
-    border-color: #007bff;
-    transform: translateY(-2px);
-}
-
-.example-query h5 {
-    color: #007bff;
-    margin-bottom: 12px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.example-query pre {
-    background-color: #0f0f0f;
-    padding: 15px;
-    border-radius: 6px;
-    color: #e0e0e0;
-    font-size: 11px;
-    overflow-x: auto;
-    margin: 0;
-    line-height: 1.4;
-    border: 1px solid #333;
-}
-
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-    .grade-container {
-        padding: 10px;
-    }
-
-    .grade-header h1 {
-        font-size: 2rem;
-    }
-
-    .subtitle {
-        font-size: 1rem;
-    }
-
-    .grade-form-container {
-        padding: 20px;
-    }
-
-    .form-actions {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .editor-toolbar {
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    .toolbar-btn {
-        padding: 6px 10px;
-        font-size: 0.75rem;
-    }
-
-    .example-queries {
-        grid-template-columns: 1fr;
-    }
-
-    .example-category {
-        padding: 20px;
-    }
-
-    .loading-content {
-        padding: 2rem 1.5rem;
-        width: 95%;
-    }
-
-    .loading-title {
-        font-size: 1.4rem;
-    }
-
-    .loading-spinner {
-        width: 60px;
-        height: 60px;
-    }
-}
-
-/* Extra small mobile devices */
-@media (max-width: 428px) {
-    .grade-header h1 {
-        font-size: 1.5rem;
-    }
-
-    .subtitle {
-        font-size: 0.9rem;
-    }
-
-    .grade-form-container {
-        padding: 15px;
-    }
-
-    .form-group label {
-        font-size: 0.9rem;
-    }
-
-    .CodeMirror {
-        font-size: 12px;
-    }
-
-    .editor-toolbar {
-        padding: 8px;
-    }
-
-    .toolbar-btn {
-        padding: 5px 8px;
-        font-size: 0.7rem;
-    }
-
-    .example-item h4 {
-        font-size: 1rem;
-    }
-
-    .example-badge {
-        font-size: 0.65rem;
-        padding: 2px 6px;
-    }
-}
-
-.messages .alert {
-    padding: 12px 20px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-}
-
-.alert-error {
-    background-color: #d32f2f;
-    color: white;
-}
-
-.alert-success {
-    background-color: #388e3c;
-    color: white;
-}
-
-.alert-warning {
-    background-color: #f57c00;
-    color: white;
-}
-
-.alert-info {
-    background-color: #1976d2;
-    color: white;
-}
-
-/* Loading Overlay Styles */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    backdrop-filter: blur(5px);
-}
-
-.loading-content {
-    text-align: center;
-    background-color: #2a2a2a;
-    padding: 3rem;
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    max-width: 500px;
-    width: 90%;
-}
-
-.loading-spinner {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 2rem;
-    border: 6px solid #333;
-    border-top-color: #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loading-title {
-    color: #fff;
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-}
-
-.loading-message {
-    color: #b0b0b0;
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-}
-
-.loading-progress {
-    margin-top: 2rem;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 10px;
-    background-color: #1a1a1a;
-    border-radius: 5px;
-    overflow: hidden;
-    margin-bottom: 1rem;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #007bff, #0056b3);
-    border-radius: 5px;
-    transition: width 0.5s ease;
-    width: 0%;
-}
-
-.progress-text {
-    color: #888;
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-/* Help Banner Styles */
-.help-banner {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    padding: 20px;
-    margin: 20px 0;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    animation: slideDown 0.5s ease-out;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.help-content {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    color: white;
-}
-
-.help-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-}
-
-.help-text {
-    flex: 1;
-    line-height: 1.6;
-}
-
-.help-text strong {
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-.help-close {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.help-close:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* Tooltip Styles */
-.tooltip-wrapper {
-    position: relative;
-    display: inline-block;
-}
-
-.tooltip-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 50%;
-    font-size: 12px;
-    font-weight: bold;
-    cursor: help;
-    margin-left: 8px;
-    vertical-align: middle;
-}
-
-.tooltip-text {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    z-index: 1000;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    padding: 12px;
-    border-radius: 8px;
-    width: 280px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    transition: opacity 0.3s, visibility 0.3s;
-}
-
-.tooltip-text::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 8px;
-    border-style: solid;
-    border-color: #2a2a2a transparent transparent transparent;
-}
-
-.tooltip-wrapper:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Feature Highlights */
-.feature-highlight {
-    background-color: rgba(0, 123, 255, 0.1);
-    border-left: 4px solid #007bff;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 4px;
-}
-
-.feature-highlight h4 {
-    color: #007bff;
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1rem;
-}
-
-.feature-highlight ul {
-    margin: 0;
-    padding-left: 20px;
-}
-
-.feature-highlight li {
-    margin-bottom: 5px;
-    color: #e0e0e0;
-}
-
-/* Grading Criteria Section */
-.grading-criteria-section {
-    background-color: #2a2a2a;
-    border-radius: 12px;
-    margin-bottom: 30px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.criteria-toggle {
-    width: 100%;
-    background-color: #333;
-    border: none;
-    padding: 18px 25px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    color: #e0e0e0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    transition: background-color 0.3s;
-}
-
-.criteria-toggle:hover {
-    background-color: #3a3a3a;
-}
-
-.criteria-icon {
-    font-size: 1.5rem;
-}
-
-.toggle-arrow {
-    margin-left: auto;
-    transition: transform 0.3s;
-    font-size: 1.2rem;
-}
-
-.toggle-arrow.open {
-    transform: rotate(180deg);
-}
-
-.criteria-content {
-    padding: 25px;
-    animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        max-height: 0;
-    }
-    to {
-        opacity: 1;
-        max-height: 1000px;
-    }
-}
-
-.criteria-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-bottom: 25px;
-}
-
-.criteria-card {
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid #333;
-}
-
-.criteria-card h4 {
-    color: #007bff;
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.1rem;
-}
-
-.criteria-card ul {
-    margin: 0;
-    padding-left: 20px;
-    list-style-type: none;
-}
-
-.criteria-card li {
-    margin-bottom: 8px;
-    color: #b0b0b0;
-    position: relative;
-    padding-left: 15px;
-}
-
-.criteria-card li:before {
-    content: "→";
-    position: absolute;
-    left: 0;
-    color: #007bff;
-}
-
-.grade-scale {
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid #333;
-}
-
-.grade-scale h4 {
-    color: #fff;
-    margin-top: 0;
-    margin-bottom: 15px;
-}
-
-.scale-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.scale-item {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    display: inline-block;
-}
-
-.scale-item.grade-a {
-    background: linear-gradient(135deg, #4caf50, #45a049);
-    color: white;
-}
-
-.scale-item.grade-b {
-    background: linear-gradient(135deg, #2196f3, #1976d2);
-    color: white;
-}
-
-.scale-item.grade-c {
-    background: linear-gradient(135deg, #ff9800, #f57c00);
-    color: white;
-}
-
-.scale-item.grade-d {
-    background: linear-gradient(135deg, #ff5722, #d84315);
-    color: white;
-}
-
-.scale-item.grade-f {
-    background: linear-gradient(135deg, #f44336, #d32f2f);
-    color: white;
-}
-</style>
-</head>
-<body>
-    <nav>
-        <h1>QueryGrade</h1>
-    </nav>
-    <div class="container">
-<div class="grade-container">
-    <div class="grade-header">
-        <h1>SQL Query Grader</h1>
-        <p class="subtitle">Get instant feedback on your SQL queries with letter grades and detailed recommendations</p>
-
-        <!-- First-time User Help Banner -->
-        <div class="help-banner" id="helpBanner">
-            <div class="help-content">
-                <span class="help-icon">💡</span>
-                <div class="help-text">
-                    <strong>New here?</strong> Paste your SQL query below and click "Grade My Query" to get instant feedback with letter grades (A-F), performance insights, and optimization recommendations powered by ML.
-                </div>
-                <button class="help-close" onclick="dismissHelpBanner()" aria-label="Dismiss help banner">✕</button>
-            </div>
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">SQL Query Grader</h1>
+    <p class="mt-1 text-sm text-gray-500">Get instant feedback with letter grades (A–F) and optimization recommendations</p>
+  </header>
+
+  <div id="helpBanner" class="rounded-md bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-3">
+    <span class="text-xl">💡</span>
+    <div class="flex-1 text-sm text-indigo-900">
+      <strong>New here?</strong> Paste your SQL below and click <em>Grade my query</em> for letter grades, performance insights, and ML-powered recommendations.
+    </div>
+    <button type="button" onclick="dismissHelpBanner()" class="text-indigo-700 hover:text-indigo-900" aria-label="Dismiss">✕</button>
+  </div>
+
+  <details class="bg-white rounded-lg border border-gray-200">
+    <summary class="px-4 py-3 cursor-pointer flex items-center gap-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+      <span>📋</span><span>How are queries graded?</span>
+    </summary>
+    <div class="px-4 pb-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div class="rounded-md border border-gray-100 p-3">
+        <h4 class="font-semibold text-gray-900">🎯 Performance (40%)</h4>
+        <ul class="mt-2 list-disc pl-4 text-gray-600 text-xs space-y-0.5"><li>Index usage</li><li>JOIN efficiency</li><li>WHERE optimization</li><li>Execution patterns</li></ul>
+      </div>
+      <div class="rounded-md border border-gray-100 p-3">
+        <h4 class="font-semibold text-gray-900">⚡ Efficiency (30%)</h4>
+        <ul class="mt-2 list-disc pl-4 text-gray-600 text-xs space-y-0.5"><li>SELECT specificity</li><li>Subquery optimization</li><li>Aggregation efficiency</li><li>Data retrieval</li></ul>
+      </div>
+      <div class="rounded-md border border-gray-100 p-3">
+        <h4 class="font-semibold text-gray-900">✨ Best Practices (30%)</h4>
+        <ul class="mt-2 list-disc pl-4 text-gray-600 text-xs space-y-0.5"><li>Readability</li><li>Security</li><li>DB-specific tuning</li><li>Scalability</li></ul>
+      </div>
+      <div class="md:col-span-3 flex flex-wrap gap-2 text-xs pt-2">
+        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">A: 90–100 (Excellent)</span>
+        <span class="px-2 py-0.5 rounded bg-lime-100 text-lime-700">B: 80–89 (Good)</span>
+        <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-700">C: 70–79 (Average)</span>
+        <span class="px-2 py-0.5 rounded bg-orange-100 text-orange-700">D: 60–69 (Needs work)</span>
+        <span class="px-2 py-0.5 rounded bg-red-100 text-red-700">F: &lt;60 (Poor)</span>
+      </div>
+    </div>
+  </details>
+
+  <form method="post" id="gradeForm" class="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+    {% csrf_token %}
+
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <label for="{{ form.sql_query.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.sql_query.label }} <span class="text-red-600">*</span></label>
+        <div class="flex gap-2">
+          <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="showKeyboardShortcuts()">⌨️ Shortcuts</button>
+          <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="toggleFullscreen()">⛶ Fullscreen</button>
         </div>
+      </div>
+      {{ form.sql_query }}
+      {% if form.sql_query.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.sql_query.help_text }}</p>{% endif %}
+      {% if form.sql_query.errors %}{% for error in form.sql_query.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+      <div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+        <span>✨ Syntax highlighting</span><span>🔍 Auto-complete</span><span>📁 Code folding</span><span>🎯 Bracket matching</span>
+      </div>
     </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="{{ form.database_type.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.database_type.label }}</label>
+        <div class="mt-1">{{ form.database_type }}</div>
+        {% if form.database_type.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_type.help_text }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.database_version.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.database_version.label }}</label>
+        <div class="mt-1">{{ form.database_version }}</div>
+        {% if form.database_version.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_version.help_text }}</p>{% endif %}
+      </div>
+    </div>
 
-    <!-- Grading Criteria Info Section -->
-    <div class="grading-criteria-section">
-        <button type="button" class="criteria-toggle" onclick="toggleCriteria()">
-            <span class="criteria-icon">📋</span>
-            <span>How are queries graded?</span>
-            <span class="toggle-arrow" id="criteriaArrow">▼</span>
-        </button>
-        <div class="criteria-content" id="criteriaContent" style="display: none;">
-            <div class="criteria-grid">
-                <div class="criteria-card">
-                    <h4>🎯 Performance (40%)</h4>
-                    <ul>
-                        <li>Index usage and optimization</li>
-                        <li>JOIN efficiency</li>
-                        <li>WHERE clause optimization</li>
-                        <li>Query execution patterns</li>
-                    </ul>
-                </div>
-                <div class="criteria-card">
-                    <h4>⚡ Efficiency (30%)</h4>
-                    <ul>
-                        <li>SELECT clause specificity</li>
-                        <li>Subquery optimization</li>
-                        <li>Aggregation efficiency</li>
-                        <li>Data retrieval patterns</li>
-                    </ul>
-                </div>
-                <div class="criteria-card">
-                    <h4>✨ Best Practices (30%)</h4>
-                    <ul>
-                        <li>Readability and maintainability</li>
-                        <li>Security considerations</li>
-                        <li>Database-specific optimizations</li>
-                        <li>Scalability patterns</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="grade-scale">
-                <h4>📊 Grade Scale</h4>
-                <div class="scale-items">
-                    <span class="scale-item grade-a">A: 90-100 (Excellent)</span>
-                    <span class="scale-item grade-b">B: 80-89 (Good)</span>
-                    <span class="scale-item grade-c">C: 70-79 (Average)</span>
-                    <span class="scale-item grade-d">D: 60-69 (Needs Work)</span>
-                    <span class="scale-item grade-f">F: Below 60 (Poor)</span>
-                </div>
-            </div>
+    <div>
+      <label for="{{ form.use_case_notes.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.use_case_notes.label }}</label>
+      <div class="mt-1">{{ form.use_case_notes }}</div>
+      {% if form.use_case_notes.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.use_case_notes.help_text }}</p>{% endif %}
+    </div>
+
+    <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+      <button type="submit" id="submitBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+        <span id="btnIcon">📊</span><span id="btnText">Grade my query</span>
+      </button>
+      <button type="button" onclick="clearForm()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Clear</button>
+    </div>
+  </form>
+
+  <div id="loadingOverlay" class="fixed inset-0 z-40 hidden bg-gray-900/50 items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <h3 class="text-lg font-semibold text-gray-900">Analyzing your query</h3>
+      <p id="loadingMessage" class="mt-1 text-sm text-gray-600">Parsing SQL query...</p>
+      <div class="mt-4">
+        <div class="h-2 bg-gray-100 rounded overflow-hidden">
+          <div id="progressFill" class="h-full bg-indigo-600 transition-all" style="width:0%"></div>
         </div>
+        <p id="progressText" class="mt-1 text-xs text-gray-500">Step 1 of 3</p>
+      </div>
     </div>
+  </div>
 
-    <div class="grade-form-container">
-        <form method="post" class="grade-form">
-            {% csrf_token %}
+  <section class="bg-white rounded-lg border border-gray-200 p-6">
+    <h3 class="text-lg font-semibold text-gray-900">Example queries</h3>
+    <p class="mt-1 text-sm text-gray-500">Click any example to load it and see how the analyzer grades different patterns.</p>
 
-            <div class="form-group main-query-group">
-                <div class="sql-editor-header">
-                    <label for="{{ form.sql_query.id_for_label }}" class="form-label">
-                        {{ form.sql_query.label }}
-                        <span class="required">*</span>
-                    </label>
-                    <div class="editor-controls">
-                        <button type="button" class="btn-help" onclick="showKeyboardShortcuts()" title="Show keyboard shortcuts">
-                            <span class="help-icon">⌨️</span>
-                            Shortcuts
-                        </button>
-                        <button type="button" class="btn-help" onclick="toggleFullscreen()" title="Toggle fullscreen">
-                            <span class="help-icon">⛶</span>
-                            Fullscreen
-                        </button>
-                    </div>
-                </div>
-                {{ form.sql_query }}
-                {% if form.sql_query.help_text %}
-                    <div class="form-help">{{ form.sql_query.help_text }}</div>
-                {% endif %}
-                {% if form.sql_query.errors %}
-                    <div class="form-errors">
-                        {% for error in form.sql_query.errors %}
-                            <div class="error-message">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <div class="editor-features">
-                    <span class="feature-tag">✨ Syntax Highlighting</span>
-                    <span class="feature-tag">🔍 Auto-complete</span>
-                    <span class="feature-tag">📁 Code Folding</span>
-                    <span class="feature-tag">🎯 Bracket Matching</span>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group half-width">
-                    <label for="{{ form.database_type.id_for_label }}" class="form-label">
-                        {{ form.database_type.label }}
-                    </label>
-                    {{ form.database_type }}
-                    {% if form.database_type.help_text %}
-                        <div class="form-help">{{ form.database_type.help_text }}</div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group half-width">
-                    <label for="{{ form.database_version.id_for_label }}" class="form-label">
-                        {{ form.database_version.label }}
-                    </label>
-                    {{ form.database_version }}
-                    {% if form.database_version.help_text %}
-                        <div class="form-help">{{ form.database_version.help_text }}</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.use_case_notes.id_for_label }}" class="form-label">
-                    {{ form.use_case_notes.label }}
-                </label>
-                {{ form.use_case_notes }}
-                {% if form.use_case_notes.help_text %}
-                    <div class="form-help">{{ form.use_case_notes.help_text }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-grade" id="submitBtn">
-                    <span class="btn-icon" id="btnIcon">📊</span>
-                    <span id="btnText">Grade My Query</span>
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="clearForm()">
-                    Clear Form
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Loading Overlay with Skeleton Screens -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="loading-content skeleton-loading">
-            <h3 class="loading-title">Analyzing Your Query</h3>
-            <p class="loading-message" id="loadingMessage">Parsing SQL query...</p>
-            <div class="loading-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <p class="progress-text" id="progressText">Step 1 of 3</p>
-            </div>
-
-            <!-- Skeleton Preview of Results Page -->
-            <div class="skeleton-preview">
-                <!-- Skeleton Grade Display -->
-                <div class="skeleton-grade-display">
-                    <div class="skeleton skeleton-grade-circle"></div>
-                    <div class="skeleton-stats-grid">
-                        <div class="skeleton-stat-item">
-                            <div class="skeleton skeleton-text" style="width: 50%; margin-bottom: 6px;"></div>
-                            <div class="skeleton skeleton-title" style="width: 70%;"></div>
-                        </div>
-                        <div class="skeleton-stat-item">
-                            <div class="skeleton skeleton-text" style="width: 60%; margin-bottom: 6px;"></div>
-                            <div class="skeleton skeleton-title" style="width: 60%;"></div>
-                        </div>
-                        <div class="skeleton-stat-item">
-                            <div class="skeleton skeleton-text" style="width: 55%; margin-bottom: 6px;"></div>
-                            <div class="skeleton skeleton-title" style="width: 65%;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Skeleton Issues List -->
-                <div class="skeleton-section">
-                    <div class="skeleton skeleton-title" style="width: 40%; margin-bottom: 20px;"></div>
-                    <div class="skeleton-issue-item">
-                        <div class="skeleton skeleton-badge" style="margin-bottom: 10px;"></div>
-                        <div class="skeleton skeleton-text" style="width: 90%;"></div>
-                        <div class="skeleton skeleton-text" style="width: 85%;"></div>
-                    </div>
-                    <div class="skeleton-issue-item">
-                        <div class="skeleton skeleton-badge" style="margin-bottom: 10px;"></div>
-                        <div class="skeleton skeleton-text" style="width: 85%;"></div>
-                        <div class="skeleton skeleton-text" style="width: 80%;"></div>
-                    </div>
-                </div>
-
-                <!-- Skeleton Recommendations -->
-                <div class="skeleton-section">
-                    <div class="skeleton skeleton-title" style="width: 45%; margin-bottom: 20px;"></div>
-                    <div class="skeleton-recommendation-item">
-                        <div class="skeleton skeleton-badge" style="margin-bottom: 10px;"></div>
-                        <div class="skeleton skeleton-text" style="width: 95%;"></div>
-                        <div class="skeleton skeleton-text" style="width: 88%;"></div>
-                        <div class="skeleton skeleton-text" style="width: 75%;"></div>
-                    </div>
-                    <div class="skeleton-recommendation-item">
-                        <div class="skeleton skeleton-badge" style="margin-bottom: 10px;"></div>
-                        <div class="skeleton skeleton-text" style="width: 92%;"></div>
-                        <div class="skeleton skeleton-text" style="width: 87%;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="examples-section">
-        <h3>Example Queries - Test Different Performance Patterns</h3>
-        <p class="examples-subtitle">Click any example to load it into the form and see how our analyzer grades different SQL patterns</p>
-
-        <div class="example-categories">
-            <div class="example-category">
-                <h4>🟢 Well-Optimized Queries (Grade: A-B)</h4>
-                <div class="example-queries">
-                    <div class="example-query" onclick="loadExample('optimized-join')">
-                        <h5>Efficient JOIN with Proper Indexing</h5>
-                        <pre>SELECT u.name, u.email, COUNT(o.id) as order_count
-FROM users u
-LEFT JOIN orders o ON u.id = o.user_id
-WHERE u.created_at >= '2023-01-01'
-  AND u.status = 'active'
+    <div class="mt-4 space-y-6">
+      <div>
+        <h4 class="text-sm font-semibold text-emerald-700">🟢 Well-optimized (A–B)</h4>
+        <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button type="button" onclick="loadExample('optimized-join')" class="text-left p-3 rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30">
+            <p class="text-sm font-medium text-gray-900">Efficient JOIN with proper indexing</p>
+            <pre class="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded overflow-x-auto"><code>SELECT u.name, u.email, COUNT(o.id) as order_count
+FROM users u LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at >= '2023-01-01' AND u.status = 'active'
 GROUP BY u.id, u.name, u.email
-HAVING COUNT(o.id) > 0
-ORDER BY order_count DESC
-LIMIT 100;</pre>
-                    </div>
-
-                    <div class="example-query" onclick="loadExample('union-all-good')">
-                        <h5>Proper UNION ALL Usage</h5>
-                        <pre>SELECT name, email FROM active_users
-WHERE created_at >= '2024-01-01'
+HAVING COUNT(o.id) > 0 ORDER BY order_count DESC LIMIT 100;</code></pre>
+          </button>
+          <button type="button" onclick="loadExample('union-all-good')" class="text-left p-3 rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30">
+            <p class="text-sm font-medium text-gray-900">Proper UNION ALL usage</p>
+            <pre class="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded overflow-x-auto"><code>SELECT name, email FROM active_users WHERE created_at >= '2024-01-01'
 UNION ALL
-SELECT name, email FROM inactive_users
-WHERE last_login >= '2023-01-01'
-ORDER BY name;</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="example-category">
-                <h4>🟡 Moderate Issues (Grade: C-D)</h4>
-                <div class="example-queries">
-                    <div class="example-query" onclick="loadExample('union-without-all')">
-                        <h5>UNION Without ALL (Performance Issue)</h5>
-                        <pre>SELECT product_name, category FROM products
-WHERE price > 100
-UNION
-SELECT product_name, category FROM archived_products
-WHERE archived_date > '2023-01-01'
-ORDER BY product_name;</pre>
-                    </div>
-
-                    <div class="example-query" onclick="loadExample('function-in-where')">
-                        <h5>Functions in WHERE Clause</h5>
-                        <pre>SELECT * FROM users
-WHERE UPPER(email) LIKE '%@GMAIL.COM'
-  AND YEAR(created_at) = 2024
-  AND LENGTH(name) > 5
-ORDER BY created_at DESC;</pre>
-                    </div>
-
-                    <div class="example-query" onclick="loadExample('having-misuse')">
-                        <h5>Misused HAVING Clause</h5>
-                        <pre>SELECT department, COUNT(*) as emp_count
-FROM employees
-GROUP BY department
-HAVING department = 'Sales'
-  AND emp_count > 10
-ORDER BY emp_count DESC;</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="example-category">
-                <h4>🔴 Serious Problems (Grade: D-F)</h4>
-                <div class="example-queries">
-                    <div class="example-query" onclick="loadExample('correlated-subquery')">
-                        <h5>Slow Correlated Subquery</h5>
-                        <pre>SELECT u.name, u.email,
-  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count,
-  (SELECT MAX(o.total) FROM orders o WHERE o.user_id = u.id) as max_order
-FROM users u
-WHERE u.status = 'active';</pre>
-                    </div>
-
-                    <div class="example-query" onclick="loadExample('cartesian-product')">
-                        <h5>Dangerous Cartesian Product</h5>
-                        <pre>SELECT *
-FROM users u, orders o, products p
-WHERE u.created_at > '2024-01-01'
-  AND o.total > 100;</pre>
-                    </div>
-
-                    <div class="example-query" onclick="loadExample('multiple-issues')">
-                        <h5>Query with Multiple Issues</h5>
-                        <pre>SELECT DISTINCT *
-FROM users u
-WHERE UPPER(u.email) LIKE '%@%'
-  AND u.id NOT IN (
-    SELECT user_id FROM orders
-    WHERE user_id IS NOT NULL
-  )
-ORDER BY SUBSTRING(u.name, 1, 5);</pre>
-                    </div>
-                </div>
-            </div>
+SELECT name, email FROM inactive_users WHERE last_login >= '2023-01-01'
+ORDER BY name;</code></pre>
+          </button>
         </div>
+      </div>
+
+      <div>
+        <h4 class="text-sm font-semibold text-amber-700">🟡 Moderate issues (C–D)</h4>
+        <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button type="button" onclick="loadExample('union-without-all')" class="text-left p-3 rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30">
+            <p class="text-sm font-medium text-gray-900">UNION without ALL</p>
+            <pre class="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded overflow-x-auto"><code>SELECT product_name, category FROM products WHERE price > 100
+UNION
+SELECT product_name, category FROM archived_products WHERE archived_date > '2023-01-01'
+ORDER BY product_name;</code></pre>
+          </button>
+          <button type="button" onclick="loadExample('function-in-where')" class="text-left p-3 rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30">
+            <p class="text-sm font-medium text-gray-900">Functions in WHERE</p>
+            <pre class="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded overflow-x-auto"><code>SELECT * FROM users
+WHERE UPPER(email) LIKE '%@GMAIL.COM' AND YEAR(created_at) = 2024
+ORDER BY created_at DESC;</code></pre>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-sm font-semibold text-red-700">🔴 Serious problems (D–F)</h4>
+        <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button type="button" onclick="loadExample('correlated-subquery')" class="text-left p-3 rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30">
+            <p class="text-sm font-medium text-gray-900">Slow correlated subquery</p>
+            <pre class="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded overflow-x-auto"><code>SELECT u.name, u.email,
+  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count
+FROM users u WHERE u.status = 'active';</code></pre>
+          </button>
+          <button type="button" onclick="loadExample('cartesian-product')" class="text-left p-3 rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30">
+            <p class="text-sm font-medium text-gray-900">Dangerous cartesian product</p>
+            <pre class="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded overflow-x-auto"><code>SELECT * FROM users u, orders o, products p
+WHERE u.created_at > '2024-01-01' AND o.total > 100;</code></pre>
+          </button>
+        </div>
+      </div>
     </div>
+  </section>
 </div>
 
-    </div>
-<!-- CodeMirror JavaScript -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
@@ -1048,285 +189,116 @@ ORDER BY SUBSTRING(u.name, 1, 5);</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
 
 <script>
 let sqlEditor = null;
 
-// Initialize CodeMirror SQL editor
-document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.getElementById('{{ form.sql_query.id_for_label }}');
-    if (textarea) {
-        // Create CodeMirror instance
-        sqlEditor = CodeMirror.fromTextArea(textarea, {
-            mode: 'text/x-sql',
-            theme: 'material-darker',
-            lineNumbers: true,
-            indentUnit: 2,
-            smartIndent: true,
-            lineWrapping: true,
-            autoCloseBrackets: true,
-            matchBrackets: true,
-            showCursorWhenSelecting: true,
-            foldGutter: true,
-            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-            extraKeys: {
-                "Ctrl-Space": "autocomplete",
-                "Cmd-Space": "autocomplete",
-                "Ctrl-/": "toggleComment",
-                "Cmd-/": "toggleComment",
-                "F11": function(cm) {
-                    cm.setOption("fullScreen", !cm.getOption("fullScreen"));
-                },
-                "Esc": function(cm) {
-                    if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
-                }
-            },
-            hintOptions: {
-                tables: {
-                    users: ["id", "name", "email", "created_at", "status", "last_login"],
-                    orders: ["id", "user_id", "total", "status", "created_at", "shipped_at"],
-                    products: ["id", "name", "price", "category", "in_stock", "description"],
-                    customers: ["id", "name", "email", "phone", "address", "registration_date"],
-                    employees: ["id", "name", "department", "salary", "hire_date", "manager_id"],
-                    categories: ["id", "name", "description", "parent_id"]
-                }
-            },
-            placeholder: `Paste your SQL query here...
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.getElementById('{{ form.sql_query.id_for_label }}');
+  if (ta) {
+    sqlEditor = CodeMirror.fromTextArea(ta, {
+      mode: 'text/x-sql', theme: 'material-darker', lineNumbers: true,
+      indentUnit: 2, smartIndent: true, lineWrapping: true,
+      autoCloseBrackets: true, matchBrackets: true,
+      foldGutter: true, gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+      extraKeys: {
+        "Ctrl-Space": "autocomplete", "Cmd-Space": "autocomplete",
+        "Ctrl-/": "toggleComment", "Cmd-/": "toggleComment",
+        "F11": cm => cm.setOption("fullScreen", !cm.getOption("fullScreen")),
+        "Esc": cm => { if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false); }
+      },
+      hintOptions: {
+        tables: {
+          users: ["id","name","email","created_at","status","last_login"],
+          orders: ["id","user_id","total","status","created_at","shipped_at"],
+          products: ["id","name","price","category","in_stock","description"],
+        }
+      }
+    });
+    sqlEditor.on("inputRead", (cm, e) => {
+      if (e.text[0].match(/\w/) || e.text[0] === '.') cm.showHint();
+    });
+    sqlEditor.on('change', () => sqlEditor.save());
+  }
 
-Example:
-SELECT u.name, u.email, COUNT(o.id) as order_count
-FROM users u
-LEFT JOIN orders o ON u.id = o.user_id
-WHERE u.created_at >= '2023-01-01'
-GROUP BY u.id, u.name, u.email
-ORDER BY order_count DESC;`
-        });
-
-        // Set editor height
-        sqlEditor.setSize(null, 'auto');
-        sqlEditor.setOption("minHeight", 300);
-
-        // Enable auto-completion
-        sqlEditor.on("inputRead", function(cm, event) {
-            if (event.text[0].match(/\w/) || event.text[0] === '.') {
-                cm.showHint();
-            }
-        });
-
-        // Sync with form submission
-        sqlEditor.on('change', function() {
-            sqlEditor.save(); // Save to original textarea
-        });
-
-        // Custom styling for better integration
-        setTimeout(function() {
-            const editorElement = sqlEditor.getWrapperElement();
-            editorElement.style.border = '2px solid #444';
-            editorElement.style.borderRadius = '6px';
-            editorElement.style.fontSize = '14px';
-            editorElement.style.fontFamily = 'Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace';
-        }, 100);
-    }
+  if (localStorage.getItem('querygrade_help_dismissed') === 'true') {
+    const b = document.getElementById('helpBanner');
+    if (b) b.style.display = 'none';
+  }
 });
+
+function dismissHelpBanner() {
+  document.getElementById('helpBanner').style.display = 'none';
+  localStorage.setItem('querygrade_help_dismissed', 'true');
+}
 
 function clearForm() {
-    if (sqlEditor) {
-        sqlEditor.setValue('');
-    }
-    document.getElementById('{{ form.database_type.id_for_label }}').selectedIndex = 0;
-    document.getElementById('{{ form.database_version.id_for_label }}').value = '';
-    document.getElementById('{{ form.use_case_notes.id_for_label }}').value = '';
+  if (sqlEditor) sqlEditor.setValue('');
+  const dt = document.getElementById('{{ form.database_type.id_for_label }}');
+  const dv = document.getElementById('{{ form.database_version.id_for_label }}');
+  const un = document.getElementById('{{ form.use_case_notes.id_for_label }}');
+  if (dt) dt.selectedIndex = 0;
+  if (dv) dv.value = '';
+  if (un) un.value = '';
 }
 
-function loadExample(exampleType) {
-    const examples = {
-        // Well-Optimized Queries (Grade: A-B)
-        'optimized-join': `SELECT u.name, u.email, COUNT(o.id) as order_count
-FROM users u
-LEFT JOIN orders o ON u.id = o.user_id
-WHERE u.created_at >= '2023-01-01'
-  AND u.status = 'active'
-GROUP BY u.id, u.name, u.email
-HAVING COUNT(o.id) > 0
-ORDER BY order_count DESC
-LIMIT 100;`,
+const EXAMPLES = {
+  'optimized-join': `SELECT u.name, u.email, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE u.created_at >= '2023-01-01'\n  AND u.status = 'active'\nGROUP BY u.id, u.name, u.email\nHAVING COUNT(o.id) > 0\nORDER BY order_count DESC\nLIMIT 100;`,
+  'union-all-good': `SELECT name, email FROM active_users\nWHERE created_at >= '2024-01-01'\nUNION ALL\nSELECT name, email FROM inactive_users\nWHERE last_login >= '2023-01-01'\nORDER BY name;`,
+  'union-without-all': `SELECT product_name, category FROM products\nWHERE price > 100\nUNION\nSELECT product_name, category FROM archived_products\nWHERE archived_date > '2023-01-01'\nORDER BY product_name;`,
+  'function-in-where': `SELECT * FROM users\nWHERE UPPER(email) LIKE '%@GMAIL.COM'\n  AND YEAR(created_at) = 2024\n  AND LENGTH(name) > 5\nORDER BY created_at DESC;`,
+  'having-misuse': `SELECT department, COUNT(*) as emp_count\nFROM employees\nGROUP BY department\nHAVING department = 'Sales'\n  AND emp_count > 10\nORDER BY emp_count DESC;`,
+  'correlated-subquery': `SELECT u.name, u.email,\n  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count\nFROM users u\nWHERE u.status = 'active';`,
+  'cartesian-product': `SELECT *\nFROM users u, orders o, products p\nWHERE u.created_at > '2024-01-01'\n  AND o.total > 100;`,
+  'multiple-issues': `SELECT DISTINCT *\nFROM users u\nWHERE UPPER(u.email) LIKE '%@%'\n  AND u.id NOT IN (\n    SELECT user_id FROM orders WHERE user_id IS NOT NULL\n  )\nORDER BY SUBSTRING(u.name, 1, 5);`,
+};
 
-        'union-all-good': `SELECT name, email FROM active_users
-WHERE created_at >= '2024-01-01'
-UNION ALL
-SELECT name, email FROM inactive_users
-WHERE last_login >= '2023-01-01'
-ORDER BY name;`,
-
-        // Moderate Issues (Grade: C-D)
-        'union-without-all': `SELECT product_name, category FROM products
-WHERE price > 100
-UNION
-SELECT product_name, category FROM archived_products
-WHERE archived_date > '2023-01-01'
-ORDER BY product_name;`,
-
-        'function-in-where': `SELECT * FROM users
-WHERE UPPER(email) LIKE '%@GMAIL.COM'
-  AND YEAR(created_at) = 2024
-  AND LENGTH(name) > 5
-ORDER BY created_at DESC;`,
-
-        'having-misuse': `SELECT department, COUNT(*) as emp_count
-FROM employees
-GROUP BY department
-HAVING department = 'Sales'
-  AND emp_count > 10
-ORDER BY emp_count DESC;`,
-
-        // Serious Problems (Grade: D-F)
-        'correlated-subquery': `SELECT u.name, u.email,
-  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as order_count,
-  (SELECT MAX(o.total) FROM orders o WHERE o.user_id = u.id) as max_order
-FROM users u
-WHERE u.status = 'active';`,
-
-        'cartesian-product': `SELECT *
-FROM users u, orders o, products p
-WHERE u.created_at > '2024-01-01'
-  AND o.total > 100;`,
-
-        'multiple-issues': `SELECT DISTINCT *
-FROM users u
-WHERE UPPER(u.email) LIKE '%@%'
-  AND u.id NOT IN (
-    SELECT user_id FROM orders
-    WHERE user_id IS NOT NULL
-  )
-ORDER BY SUBSTRING(u.name, 1, 5);`
-    };
-
-    if (examples[exampleType] && sqlEditor) {
-        sqlEditor.setValue(examples[exampleType]);
-        sqlEditor.focus();
-    }
+function loadExample(key) {
+  if (EXAMPLES[key] && sqlEditor) {
+    sqlEditor.setValue(EXAMPLES[key]);
+    sqlEditor.focus();
+  }
 }
 
-// Add keyboard shortcuts info
 function showKeyboardShortcuts() {
-    const shortcuts = `
-Keyboard Shortcuts for SQL Editor:
-
-• Ctrl/Cmd + Space: Auto-complete
-• Ctrl/Cmd + /: Toggle comments
-• F11: Full screen mode
-• Esc: Exit full screen
-• Tab: Indent selection
-• Shift + Tab: Unindent selection
-• Ctrl/Cmd + A: Select all
-• Ctrl/Cmd + Z: Undo
-• Ctrl/Cmd + Y: Redo
-`;
-    alert(shortcuts);
+  alert('Keyboard Shortcuts:\n\n' +
+    '• Ctrl/Cmd + Space  Auto-complete\n' +
+    '• Ctrl/Cmd + /      Toggle comments\n' +
+    '• F11               Fullscreen\n' +
+    '• Esc               Exit fullscreen\n' +
+    '• Tab / Shift+Tab   (Un)indent\n');
 }
 
-// Toggle fullscreen mode
 function toggleFullscreen() {
-    if (sqlEditor) {
-        const isFullScreen = sqlEditor.getOption("fullScreen");
-        sqlEditor.setOption("fullScreen", !isFullScreen);
-        if (!isFullScreen) {
-            sqlEditor.focus();
-        }
-    }
+  if (sqlEditor) sqlEditor.setOption("fullScreen", !sqlEditor.getOption("fullScreen"));
 }
 
-// Toggle grading criteria section
-function toggleCriteria() {
-    const content = document.getElementById('criteriaContent');
-    const arrow = document.getElementById('criteriaArrow');
-
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-        arrow.classList.add('open');
-    } else {
-        content.style.display = 'none';
-        arrow.classList.remove('open');
-    }
-}
-
-// Help banner management
-function dismissHelpBanner() {
-    const banner = document.getElementById('helpBanner');
-    banner.style.animation = 'slideUp 0.3s ease-out';
-    setTimeout(() => {
-        banner.style.display = 'none';
-    }, 300);
-    localStorage.setItem('querygrade_help_dismissed', 'true');
-}
-
-// Check if user has seen the help banner before
-document.addEventListener('DOMContentLoaded', function() {
-    const helpDismissed = localStorage.getItem('querygrade_help_dismissed');
-    if (helpDismissed === 'true') {
-        document.getElementById('helpBanner').style.display = 'none';
-    }
-});
-
-// Add CSS for slideUp animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideUp {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Form submission handler with loading overlay
-document.querySelector('.grade-form').addEventListener('submit', function(e) {
-    // Validate form before showing loading
-    if (sqlEditor && sqlEditor.getValue().trim() === '') {
-        alert('Please enter a SQL query to analyze.');
-        e.preventDefault();
-        return;
-    }
-
-    // Show loading overlay
-    showLoadingOverlay();
+document.getElementById('gradeForm').addEventListener('submit', e => {
+  if (sqlEditor && sqlEditor.getValue().trim() === '') {
+    e.preventDefault();
+    showToast('Please enter a SQL query.', 'error');
+    return;
+  }
+  showLoadingOverlay();
 });
 
 function showLoadingOverlay() {
-    const overlay = document.getElementById('loadingOverlay');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    const loadingMessage = document.getElementById('loadingMessage');
-
-    overlay.style.display = 'flex';
-
-    // Simulate progress steps
-    const steps = [
-        { progress: 33, text: 'Step 1 of 3', message: 'Parsing SQL query...' },
-        { progress: 66, text: 'Step 2 of 3', message: 'Running ML analysis...' },
-        { progress: 100, text: 'Step 3 of 3', message: 'Generating recommendations...' }
-    ];
-
-    let currentStep = 0;
-    progressFill.style.width = '0%';
-
-    const interval = setInterval(() => {
-        if (currentStep < steps.length) {
-            const step = steps[currentStep];
-            progressFill.style.width = step.progress + '%';
-            progressText.textContent = step.text;
-            loadingMessage.textContent = step.message;
-            currentStep++;
-        } else {
-            clearInterval(interval);
-        }
-    }, 800);
+  const overlay = document.getElementById('loadingOverlay');
+  const fill = document.getElementById('progressFill');
+  const txt = document.getElementById('progressText');
+  const msg = document.getElementById('loadingMessage');
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  const steps = [
+    {p: 33, t: 'Step 1 of 3', m: 'Parsing SQL query...'},
+    {p: 66, t: 'Step 2 of 3', m: 'Running ML analysis...'},
+    {p: 100, t: 'Step 3 of 3', m: 'Generating recommendations...'},
+  ];
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < steps.length) { fill.style.width = steps[i].p + '%'; txt.textContent = steps[i].t; msg.textContent = steps[i].m; i++; }
+    else clearInterval(iv);
+  }, 800);
 }
 </script>
 {% endblock %}

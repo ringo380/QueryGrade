@@ -1,128 +1,104 @@
 {% extends 'analyzer/base.html' %}
-{% load static %}
 
-{% block title %}QueryGrade - Analysis Results{% endblock %}
+{% block title %}Anomaly results · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="results-container">
-    <div class="results-header">
-        <h1>🔍 Anomalies Detected</h1>
-        <p class="results-subtitle">Machine learning analysis has identified the following query anomalies in your log file</p>
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">🔍 Anomalies detected</h1>
+    <p class="mt-1 text-sm text-gray-500">ML analysis identified the following query anomalies in your log file</p>
+  </header>
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-gray-900">{{ page_obj.paginator.count }}</div>
+      <div class="text-xs text-gray-500 mt-1">Total anomalies</div>
     </div>
-
-    <div class="results-summary">
-        <div class="summary-stat">
-            <span class="stat-number">{{ page_obj.paginator.count }}</span>
-            <span class="stat-label">Total Anomalies</span>
-        </div>
-        <div class="summary-stat">
-            <span class="stat-number">{{ page_obj.paginator.num_pages }}</span>
-            <span class="stat-label">Pages</span>
-        </div>
-        <div class="summary-stat">
-            <span class="stat-number">{{ page_obj.number }}</span>
-            <span class="stat-label">Current Page</span>
-        </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-gray-900">{{ page_obj.paginator.num_pages }}</div>
+      <div class="text-xs text-gray-500 mt-1">Pages</div>
     </div>
-
-    <div class="results-table-container">
-        <table class="results-table">
-            <thead>
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Query</th>
-                    <th>Anomaly Score</th>
-                    <th>Severity</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for anomaly in page_obj %}
-                    <tr class="anomaly-row" data-score="{{ anomaly.anomaly_score }}">
-                        <td class="timestamp-cell">
-                            <span class="timestamp">{{ anomaly.timestamp|date:"M d, Y" }}</span>
-                            <span class="time">{{ anomaly.timestamp|time:"H:i:s" }}</span>
-                        </td>
-                        <td class="query-cell">
-                            <div class="query-preview">{{ anomaly.query|truncatechars:100 }}</div>
-                            {% if anomaly.query|length > 100 %}
-                                <button class="btn btn-sm show-full-query" onclick="toggleFullQuery(this)">Show Full Query</button>
-                                <div class="full-query" style="display: none;">{{ anomaly.query }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="score-cell">
-                            <span class="anomaly-score">{{ anomaly.anomaly_score|floatformat:3 }}</span>
-                        </td>
-                        <td class="severity-cell">
-                            {% if anomaly.anomaly_score > 0.8 %}
-                                <span class="severity-badge high">🔴 High</span>
-                            {% elif anomaly.anomaly_score > 0.6 %}
-                                <span class="severity-badge medium">🟡 Medium</span>
-                            {% else %}
-                                <span class="severity-badge low">🟢 Low</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="4" class="no-results">
-                            <div class="no-results-content">
-                                <span class="no-results-icon">✅</span>
-                                <h3>No Anomalies Detected</h3>
-                                <p>Your queries appear to be performing normally based on our analysis.</p>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-gray-900">{{ page_obj.number }}</div>
+      <div class="text-xs text-gray-500 mt-1">Current page</div>
     </div>
+  </div>
 
-    {% if page_obj.paginator.num_pages > 1 %}
-        <div class="pagination-container">
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                    <a href="?page=1" class="pagination-link first">« First</a>
-                    <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link prev">‹ Previous</a>
-                {% endif %}
+  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-2 font-medium text-gray-700">Timestamp</th>
+          <th class="text-left px-4 py-2 font-medium text-gray-700">Query</th>
+          <th class="text-left px-4 py-2 font-medium text-gray-700">Score</th>
+          <th class="text-left px-4 py-2 font-medium text-gray-700">Severity</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for anomaly in page_obj %}
+        <tr>
+          <td class="px-4 py-3 align-top text-gray-700">
+            <div>{{ anomaly.timestamp|date:"M d, Y" }}</div>
+            <div class="text-xs text-gray-500">{{ anomaly.timestamp|time:"H:i:s" }}</div>
+          </td>
+          <td class="px-4 py-3 align-top">
+            <div class="font-mono text-xs text-gray-800 query-preview">{{ anomaly.query|truncatechars:100 }}</div>
+            {% if anomaly.query|length > 100 %}
+            <button class="mt-1 text-xs text-indigo-600 hover:underline" onclick="toggleFullQuery(this)">Show full query</button>
+            <div class="hidden full-query mt-1 font-mono text-xs text-gray-800 whitespace-pre-wrap">{{ anomaly.query }}</div>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 align-top font-mono text-xs">{{ anomaly.anomaly_score|floatformat:3 }}</td>
+          <td class="px-4 py-3 align-top">
+            {% if anomaly.anomaly_score > 0.8 %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">🔴 High</span>
+            {% elif anomaly.anomaly_score > 0.6 %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">🟡 Medium</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">🟢 Low</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="px-4 py-12 text-center">
+            <div class="text-3xl">✅</div>
+            <h3 class="mt-2 text-base font-semibold text-gray-900">No anomalies detected</h3>
+            <p class="text-sm text-gray-500">Your queries appear to be performing normally.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-                <span class="pagination-info">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="pagination-link next">Next ›</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}" class="pagination-link last">Last »</a>
-                {% endif %}
-            </div>
-        </div>
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-center gap-2 text-sm">
+    {% if page_obj.has_previous %}
+    <a href="?page=1" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">« First</a>
+    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">‹ Prev</a>
     {% endif %}
+    <span class="text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">Next ›</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">Last »</a>
+    {% endif %}
+  </div>
+  {% endif %}
 
-    <div class="results-actions">
-        <a href="{% url 'index' %}" class="btn btn-secondary">
-            <span class="btn-icon">📁</span>
-            Analyze Another File
-        </a>
-        <a href="{% url 'grade_query' %}" class="btn btn-primary">
-            <span class="btn-icon">📊</span>
-            Grade Individual Query
-        </a>
-    </div>
+  <div class="flex flex-wrap gap-3">
+    <a href="{% url 'index' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Analyze another file</a>
+    <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Grade individual query</a>
+  </div>
 </div>
 
 <script>
-function toggleFullQuery(button) {
-    const fullQuery = button.nextElementSibling;
-    const preview = button.parentElement.querySelector('.query-preview');
-
-    if (fullQuery.style.display === 'none') {
-        fullQuery.style.display = 'block';
-        preview.style.display = 'none';
-        button.textContent = 'Show Preview';
-    } else {
-        fullQuery.style.display = 'none';
-        preview.style.display = 'block';
-        button.textContent = 'Show Full Query';
-    }
+function toggleFullQuery(btn) {
+  const full = btn.nextElementSibling;
+  const preview = btn.parentElement.querySelector('.query-preview');
+  full.classList.toggle('hidden');
+  preview.classList.toggle('hidden');
+  btn.textContent = full.classList.contains('hidden') ? 'Show full query' : 'Show preview';
 }
 </script>
 {% endblock %}

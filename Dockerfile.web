@@ -1,0 +1,28 @@
+# Slim web image for Railway. ML deps live in Dockerfile.worker.
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# System deps for psycopg2 and runtime networking
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install slim deps first to maximize layer cache reuse
+COPY requirements-prod.txt .
+RUN pip install -r requirements-prod.txt
+
+# Copy app source
+COPY . .
+
+# migrate + collectstatic happen at deploy-time (railway.toml startCommand),
+# not build-time, because the prod DB doesn't exist yet at build.
+EXPOSE 8000
+CMD ["gunicorn", "querygrade.wsgi", "--bind", "0.0.0.0:8000", "--log-file", "-"]

@@ -1,0 +1,13 @@
+# Full deps for the Railway worker service (Celery + ML training/ensemble).
+# Includes everything from requirements-prod.txt plus the heavy ML stack.
+
+-r requirements-prod.txt
+
+# Heavy ML frameworks — only loaded by analyzer/ml/ensemble and analyzer/ml/training
+matplotlib>=3.4.0
+tensorflow>=2.10.0
+torch>=1.13.0
+transformers>=4.25.0
+sentence-transformers>=2.2.0
+xgboost>=1.7.0
+lightgbm>=3.3.0

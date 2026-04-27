@@ -21,11 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Run migrations
-RUN python manage.py migrate
-
-# Start server
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "querygrade.wsgi"]
+# NOTE: local dev image only. Production uses Dockerfile.web + Dockerfile.worker.
+# migrate + collectstatic moved into CMD so build-time doesn't require a DB.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 querygrade.wsgi"]

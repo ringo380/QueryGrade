@@ -1,150 +1,120 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
+{% block title %}Dashboard · QueryGrade{% endblock %}
+
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-header">
-        <h1>QueryGrade</h1>
-        <p class="subtitle">Comprehensive SQL query analysis and database optimization platform</p>
-
-        {% if user.is_authenticated %}
-            <p class="welcome-message">Welcome back, {{ user.username }}!</p>
-        {% endif %}
-    </div>
-
-    <div class="features-grid">
-        <!-- Primary Feature: Query Grading -->
-        <div class="feature-card primary-feature">
-            <div class="feature-icon">🎯</div>
-            <h2>SQL Query Grader</h2>
-            <p class="feature-description">
-                Get instant feedback on individual SQL queries. Paste your query and receive a letter grade (A-F)
-                with detailed recommendations for improvement.
-            </p>
-            <div class="feature-highlights">
-                <span class="highlight">✓ Letter Grades (A-F)</span>
-                <span class="highlight">✓ Performance Analysis</span>
-                <span class="highlight">✓ Improvement Tips</span>
-                <span class="highlight">✓ Query History</span>
-            </div>
-            <a href="{% url 'grade_query' %}" class="btn btn-primary btn-large">
-                <span class="btn-icon">📊</span>
-                Grade My Query
-            </a>
-        </div>
-
-        <!-- Log Analysis Feature -->
-        <div class="feature-card">
-            <div class="feature-icon">📈</div>
-            <h2>Log File Analysis</h2>
-            <p class="feature-description">
-                Upload MySQL slow query logs or general query logs to identify problematic queries
-                using machine learning-based anomaly detection.
-            </p>
-            <div class="feature-highlights">
-                <span class="highlight">✓ Slow Query Logs</span>
-                <span class="highlight">✓ General Query Logs</span>
-                <span class="highlight">✓ ML Anomaly Detection</span>
-                <span class="highlight">✓ Performance Insights</span>
-            </div>
-
-            {% if form %}
-                <div class="upload-form-container">
-                    <form method="post" enctype="multipart/form-data" id="uploadForm">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label for="{{ form.log_type.id_for_label }}">{{ form.log_type.label }}</label>
-                            {{ form.log_type }}
-                        </div>
-                        <div class="form-group">
-                            <label for="{{ form.log_file.id_for_label }}">{{ form.log_file.label }}</label>
-                            {{ form.log_file }}
-                        </div>
-                        <button type="submit" class="btn btn-secondary">
-                            <span class="btn-icon">📁</span>
-                            Analyze Log File
-                        </button>
-                    </form>
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Query History -->
-        <div class="feature-card">
-            <div class="feature-icon">📚</div>
-            <h2>Query History</h2>
-            <p class="feature-description">
-                Review your previously analyzed queries, track your improvement over time,
-                and revisit past analysis results.
-            </p>
-            <div class="feature-highlights">
-                <span class="highlight">✓ Analysis History</span>
-                <span class="highlight">✓ Performance Tracking</span>
-                <span class="highlight">✓ Query Comparison</span>
-                <span class="highlight">✓ Export Results</span>
-            </div>
-            <a href="{% url 'query_history' %}" class="btn btn-secondary">
-                <span class="btn-icon">📋</span>
-                View History
-            </a>
-        </div>
-    </div>
-
-    <!-- Recent Activity (if user is authenticated) -->
+<div class="space-y-8">
+  <header>
+    <h1 class="text-3xl font-bold text-gray-900">QueryGrade</h1>
+    <p class="mt-1 text-gray-600">SQL query analysis and database optimization platform</p>
     {% if user.is_authenticated %}
-        <div class="recent-activity">
-            <h3>Quick Actions</h3>
-            <div class="quick-actions">
-                <a href="{% url 'grade_query' %}" class="quick-action-btn">
-                    <span class="action-icon">⚡</span>
-                    Quick Grade
-                </a>
-                <a href="{% url 'query_history' %}" class="quick-action-btn">
-                    <span class="action-icon">🕒</span>
-                    Recent Queries
-                </a>
-                <a href="{% url 'logout' %}" class="quick-action-btn logout-btn">
-                    <span class="action-icon">🚪</span>
-                    Logout
-                </a>
-            </div>
-        </div>
-    {% else %}
-        <div class="auth-section">
-            <p>Please <a href="{% url 'login' %}">log in</a> or <a href="{% url 'register' %}">create an account</a> to start analyzing your queries.</p>
-        </div>
+    <p class="mt-2 text-sm text-gray-500">Welcome back, <span class="font-medium text-gray-700">{{ user.username }}</span>.</p>
     {% endif %}
+  </header>
 
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <a href="{% url 'grade_query' %}" class="block bg-white rounded-lg border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-sm transition lg:col-span-2 ring-1 ring-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
+      <div class="text-2xl mb-2">🎯</div>
+      <h2 class="text-xl font-semibold text-gray-900">SQL Query Grader</h2>
+      <p class="mt-2 text-sm text-gray-600">Paste a query and get a letter grade (A–F) with specific optimization recommendations.</p>
+      <ul class="mt-4 grid grid-cols-2 gap-1 text-xs text-gray-500">
+        <li>✓ Letter grades (A–F)</li>
+        <li>✓ Performance analysis</li>
+        <li>✓ Improvement tips</li>
+        <li>✓ Query history</li>
+      </ul>
+      <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-700">Grade my query →</span>
+    </a>
+
+    <a href="{% url 'batch_analysis' %}" class="block bg-white rounded-lg border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-sm transition">
+      <div class="text-2xl mb-2">📈</div>
+      <h2 class="text-xl font-semibold text-gray-900">Log File Analysis</h2>
+      <p class="mt-2 text-sm text-gray-600">Upload MySQL slow or general query logs and surface anomalies via ML.</p>
+      <ul class="mt-4 space-y-1 text-xs text-gray-500">
+        <li>✓ Slow query logs</li>
+        <li>✓ General query logs</li>
+        <li>✓ ML anomaly detection</li>
+      </ul>
+      <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-700">Open batch →</span>
+    </a>
+  </section>
+
+  {% if user.is_authenticated %}
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <a href="{% url 'grade_query' %}" class="bg-white rounded-lg border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm transition flex items-center gap-3">
+      <span class="text-2xl">⚡</span>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Quick Grade</p>
+        <p class="text-xs text-gray-500">Paste & grade</p>
+      </div>
+    </a>
+    <a href="{% url 'query_history' %}" class="bg-white rounded-lg border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm transition flex items-center gap-3">
+      <span class="text-2xl">🕒</span>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Recent Queries</p>
+        <p class="text-xs text-gray-500">Browse history</p>
+      </div>
+    </a>
+    <a href="{% url 'database_analyze' %}" class="bg-white rounded-lg border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm transition flex items-center gap-3">
+      <span class="text-2xl">🗄️</span>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Database Analysis</p>
+        <p class="text-xs text-gray-500">Schema-aware</p>
+      </div>
+    </a>
+    <a href="{% url 'query_compare' %}" class="bg-white rounded-lg border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm transition flex items-center gap-3">
+      <span class="text-2xl">🔀</span>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Compare Queries</p>
+        <p class="text-xs text-gray-500">Side-by-side</p>
+      </div>
+    </a>
+  </section>
+
+  {% if form %}
+  <section class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900">Quick Log Upload</h2>
+    <p class="mt-1 text-sm text-gray-500">Upload a MySQL slow or general query log for ML anomaly detection.</p>
+    <form method="post" enctype="multipart/form-data" id="uploadForm" class="mt-4 space-y-4">
+      {% csrf_token %}
+      <div>
+        <label for="{{ form.log_type.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.log_type.label }}</label>
+        <div class="mt-1">{{ form.log_type }}</div>
+      </div>
+      <div>
+        <label for="{{ form.log_file.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.log_file.label }}</label>
+        <div class="mt-1">{{ form.log_file }}</div>
+      </div>
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700">
+        Analyze Log File
+      </button>
+    </form>
+  </section>
+  {% endif %}
+  {% else %}
+  <section class="bg-white rounded-lg border border-gray-200 p-6 text-center">
+    <p class="text-gray-700">Please <a class="text-indigo-600 font-medium hover:underline" href="{% url 'login' %}">log in</a> or <a class="text-indigo-600 font-medium hover:underline" href="{% url 'register' %}">create an account</a> to start analyzing queries.</p>
+  </section>
+  {% endif %}
 </div>
 
 <script>
 if (document.getElementById('uploadForm')) {
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-        const fileInput = document.querySelector('input[name="log_file"]');
-        const file = fileInput.files[0];
-
-        if (!file) {
-            alert('Please select a file to upload.');
-            event.preventDefault();
-            return;
-        }
-
-        const validExtensions = ['.log'];
-        const validMimeTypes = ['text/plain'];
-
-        if (!validExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
-            alert('Unsupported file extension. Please upload a .log file.');
-            event.preventDefault();
-            return;
-        }
-
-        if (!validMimeTypes.includes(file.type)) {
-            alert('Unsupported file type. Please ensure the file is a plain text log file.');
-            event.preventDefault();
-            return;
-        }
-    });
+  document.getElementById('uploadForm').addEventListener('submit', function(event) {
+    const fileInput = document.querySelector('input[name="log_file"]');
+    const file = fileInput && fileInput.files[0];
+    if (!file) {
+      event.preventDefault();
+      showToast('Please select a file to upload.', 'error');
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.log')) {
+      event.preventDefault();
+      showToast('Unsupported extension. Use .log', 'error');
+      return;
+    }
+  });
 }
 </script>
-
 {% endblock %}

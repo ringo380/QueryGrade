@@ -14,7 +14,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-CHANGE-ME-IN-PRODUCTI
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,querygrade.com,querygrade.net,.up.railway.app',
+    cast=Csv(),
+)
 
 # Application definition
 
@@ -83,7 +87,7 @@ DATABASES = {
             # PostgreSQL connection pooling and performance settings
             'sslmode': 'prefer',
             'connect_timeout': 10,
-            'options': '-c default_transaction_isolation=read_committed'
+            # Postgres default isolation is already 'read committed' — no need to override.
         },
         "CONN_MAX_AGE": 600,  # Connection pooling - 10 minutes
         "CONN_HEALTH_CHECKS": True,
@@ -360,7 +364,11 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_USE_SESSIONS = True
 CSRF_COOKIE_AGE = 3600  # 1 hour
-CSRF_TRUSTED_ORIGINS = []  # Add trusted origins for production
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://querygrade.com,https://querygrade.net,https://querygrade-production.up.railway.app',
+    cast=Csv(),
+)
 CSRF_FAILURE_VIEW = 'analyzer.views.csrf_failure'
 
 # Enhanced XSS Protection Settings
@@ -425,6 +433,11 @@ CELERY_WORKER_MAX_MEMORY_PER_CHILD = 200000  # 200MB
 
 
 # Logging for Security Events
+# Ensure log dir exists so the file handler doesn't crash Django setup at import time.
+# In ephemeral container envs (Railway/etc) the dir may not exist.
+_LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(_LOG_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -446,14 +459,19 @@ LOGGING = {
     'handlers': {
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
+        },
+        'console_debug_only': {
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
         'file': {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'security.log'),
+            'filename': os.path.join(_LOG_DIR, 'security.log'),
             'maxBytes': 1024*1024*5,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -465,7 +483,7 @@ LOGGING = {
             'propagate': True,
         },
         'django.security': {
-            'handlers': ['file'],
+            'handlers': ['file', 'console'],
             'level': 'WARNING',
             'propagate': False,
         },
