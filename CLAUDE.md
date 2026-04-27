@@ -259,6 +259,18 @@ ML_RETRAIN_THRESHOLD_DAYS = 7          # Retraining frequency
 ML_PERFORMANCE_THRESHOLD = 0.7         # Min accuracy threshold
 ```
 
+## Deployment (Railway)
+
+- Live at `querygrade.com` / `querygrade.net`. Auto-deploy on push to `main` via the GitHub-connected Railway service.
+- `railway.toml`: `preDeployCommand` runs in a separate container, so `collectstatic` MUST be in `startCommand` — its filesystem doesn't carry over to the runtime container.
+- Wrap startCommand in `sh -c '...'` — Railway exec's directly, so `$PORT` won't expand otherwise.
+- `set -e` fails in startCommand (`set: executable not found`). Use `&&` chaining instead.
+- Postgres `default_transaction_isolation=read_committed` needs no override; the server default is already correct.
+- `BASE_DIR/logs/` must be `mkdir -p`'d at settings import time — Railway containers have no `logs/` dir, RotatingFileHandler crashes Django setup otherwise.
+- Manual deploy: `railway up --service querygrade --detach` (uploads local working tree, bypasses GitHub).
+- `railway add -d postgres` needs a TTY: `script -q /dev/null railway add -d postgres`.
+- Slim/worker split: `requirements-prod.txt` (web, no tensorflow/torch/transformers) + `requirements-worker.txt` (full ML). ML imports gated to `analyzer/ml/ensemble/multi_model.py`.
+
 ## Key Dependencies
 
 ### Core Framework
@@ -511,3 +523,18 @@ class SecurityAnalyzer(BaseAnalyzer):
                 'message': 'Potential SQL injection detected'
             })
 ```
+
+## UI Patterns (Tailwind, post-#14)
+
+- All templates extend `'analyzer/base.html'` (NOT `'base.html'`). Loads Tailwind CDN + Inter font.
+- `getCsrfToken()` and `showToast(msg, type)` are global helpers from `base.html` — use these in new JS rather than rolling your own.
+- Form widgets get input classes auto-applied via `base.html` `DOMContentLoaded` hook; no need to add Tailwind classes manually to Django form output.
+- Grade pill convention: A=emerald, B=lime, C=amber, D=orange, F=red (`bg-{color}-100 text-{color}-700`). See `account.html` and `grade_results.html` for the canonical pattern.
+- URL prefix: `analyzer/urls.py` is mounted at root in `querygrade/urls.py`. Fetch from `/ml/api/...` NOT `/analyzer/ml/api/...`.
+
+## View context conventions (gotchas)
+
+- `grade_results`, `compare_results`, `batch_results`: result objects expose `result.analysis.grade` / `.issues_found` / `.recommendations` (NOT `result.grade` / `.issues` / `.suggestions`).
+- `compare_results` / `batch_results`: `result.query_text` (string) and `result.query` (Query model instance) — not interchangeable.
+- `feedback_analytics`: stats wrapped in a `statistics` dict (`statistics.total_feedback`, `statistics.avg_accuracy`, etc.).
+- `ml_dashboard`: requires `is_staff_or_superuser`; API endpoints under `/ml/api/*` are decorated with `@cache_page(60 * 5)` — bust by deploying or stripping cache.
