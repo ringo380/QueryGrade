@@ -1,211 +1,125 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
-{% block title %}Feedback Analytics - QueryGrade{% endblock %}
+{% block title %}Feedback analytics · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 mt-4">
-    <div class="flex flex-wrap gap-4">
-        <div class="col-12">
-            <!-- Header -->
-            <div class="analytics-header mb-4">
-                <h2>📊 Feedback Analytics</h2>
-                <p class="text-gray-500">User feedback insights and analytics dashboard.</p>
-            </div>
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">📊 Feedback analytics</h1>
+    <p class="mt-1 text-sm text-gray-500">User feedback insights and ratings.</p>
+  </header>
 
-            {% if total_feedback > 0 %}
-                <!-- Statistics Cards -->
-                <div class="row mb-4">
-                    <div class="md:flex-1">
-                        <div class="bg-white rounded-lg border border-gray-200 stats-bg-white rounded-lg border border-gray-200">
-                            <div class="p-4 text-center">
-                                <h3 class="font-semibold text-gray-900 text-indigo-600">{{ total_feedback }}</h3>
-                                <p class="bg-white rounded-lg border border-gray-200-text">Total Feedback</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="bg-white rounded-lg border border-gray-200 stats-bg-white rounded-lg border border-gray-200">
-                            <div class="p-4 text-center">
-                                <h3 class="font-semibold text-gray-900 text-emerald-600">{{ avg_accuracy }}</h3>
-                                <p class="bg-white rounded-lg border border-gray-200-text">Avg Accuracy</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="bg-white rounded-lg border border-gray-200 stats-bg-white rounded-lg border border-gray-200">
-                            <div class="p-4 text-center">
-                                <h3 class="font-semibold text-gray-900 text-info">{{ avg_usefulness }}</h3>
-                                <p class="bg-white rounded-lg border border-gray-200-text">Avg Usefulness</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="bg-white rounded-lg border border-gray-200 stats-bg-white rounded-lg border border-gray-200">
-                            <div class="p-4 text-center">
-                                <h3 class="font-semibold text-gray-900 text-amber-600">{{ avg_clarity }}</h3>
-                                <p class="bg-white rounded-lg border border-gray-200-text">Avg Clarity</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recommendation Rate -->
-                <div class="row mb-4">
-                    <div class="md:flex-1">
-                        <div class="bg-white rounded-lg border border-gray-200">
-                            <div class="px-4 py-3 border-b border-gray-100 font-semibold">
-                                <h5>Recommendation Rate</h5>
-                            </div>
-                            <div class="p-4">
-                                <div class="recommendation-meter">
-                                    <div class="progress mb-3" style="height: 25px;">
-                                        <div class="progress-bar bg-success"
-                                             role="progressbar"
-                                             style="width: {{ recommend_percentage }}%"
-                                             aria-valuenow="{{ recommend_percentage }}"
-                                             aria-valuemin="0"
-                                             aria-valuemax="100">
-                                            {{ recommend_percentage }}%
-                                        </div>
-                                    </div>
-                                    <p class="text-gray-500">Percentage of users who would recommend QueryGrade</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="bg-white rounded-lg border border-gray-200">
-                            <div class="px-4 py-3 border-b border-gray-100 font-semibold">
-                                <h5>Rating Distribution</h5>
-                            </div>
-                            <div class="p-4">
-                                <div class="rating-summary">
-                                    <div class="flex justify-between mb-2">
-                                        <span>Accuracy:</span>
-                                        <span class="rating-stars">
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= avg_accuracy %}
-                                                    <span class="star filled">★</span>
-                                                {% else %}
-                                                    <span class="star">☆</span>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between mb-2">
-                                        <span>Usefulness:</span>
-                                        <span class="rating-stars">
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= avg_usefulness %}
-                                                    <span class="star filled">★</span>
-                                                {% else %}
-                                                    <span class="star">☆</span>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span>Clarity:</span>
-                                        <span class="rating-stars">
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= avg_clarity %}
-                                                    <span class="star filled">★</span>
-                                                {% else %}
-                                                    <span class="star">☆</span>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Feedback -->
-                <div class="flex flex-wrap gap-4">
-                    <div class="col-12">
-                        <div class="bg-white rounded-lg border border-gray-200">
-                            <div class="px-4 py-3 border-b border-gray-100 font-semibold">
-                                <h5>Recent Feedback</h5>
-                            </div>
-                            <div class="p-4">
-                                {% if recent_feedback %}
-                                    <div class="min-w-full text-sm-responsive">
-                                        <min-w-full text-sm class="min-w-full text-sm min-w-full text-sm-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>User</th>
-                                                    <th>Accuracy</th>
-                                                    <th>Usefulness</th>
-                                                    <th>Clarity</th>
-                                                    <th>Recommends</th>
-                                                    <th>Suggestions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for feedback in recent_feedback %}
-                                                <tr>
-                                                    <td>{{ feedback.created_at|date:"M d, Y" }}</td>
-                                                    <td>{{ feedback.user_history.user.username }}</td>
-                                                    <td>
-                                                        <span class="badge bg-gray-100">{{ feedback.accuracy_rating }}/5</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-gray-100">{{ feedback.usefulness_rating }}/5</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-gray-100">{{ feedback.clarity_rating }}/5</span>
-                                                    </td>
-                                                    <td>
-                                                        {% if feedback.would_recommend %}
-                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Yes</span>
-                                                        {% elif feedback.would_recommend == False %}
-                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">No</span>
-                                                        {% else %}
-                                                            <span class="badge bg-gray-100">N/A</span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td>
-                                                        {% if feedback.suggestions %}
-                                                            <span class="text-truncate" style="max-width: 200px; display: inline-block;"
-                                                                  title="{{ feedback.suggestions }}">
-                                                                {{ feedback.suggestions|truncatechars:50 }}
-                                                            </span>
-                                                        {% else %}
-                                                            <span class="text-gray-500">No suggestions</span>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </min-w-full text-sm>
-                                    </div>
-                                {% else %}
-                                    <p class="text-gray-500">No recent feedback available.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            {% else %}
-                <!-- No Data State -->
-                <div class="text-center py-5">
-                    <div class="bg-white rounded-lg border border-gray-200">
-                        <div class="p-4">
-                            <h4 class="text-gray-500">{{ message }}</h4>
-                            <p class="text-gray-500">Feedback will appear here once users start providing ratings.</p>
-                            <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Get Started with Query Grading</a>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-        </div>
+  {% if statistics.total_feedback > 0 %}
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5 text-center">
+      <div class="text-3xl font-bold text-indigo-700">{{ statistics.total_feedback }}</div>
+      <div class="mt-1 text-xs text-gray-500">Total feedback</div>
     </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5 text-center">
+      <div class="text-3xl font-bold text-emerald-700">{{ statistics.avg_accuracy|floatformat:1 }}<span class="text-base text-gray-400">/5</span></div>
+      <div class="mt-1 text-xs text-gray-500">Avg accuracy</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5 text-center">
+      <div class="text-3xl font-bold text-sky-700">{{ statistics.avg_usefulness|floatformat:1 }}<span class="text-base text-gray-400">/5</span></div>
+      <div class="mt-1 text-xs text-gray-500">Avg usefulness</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5 text-center">
+      <div class="text-3xl font-bold text-amber-700">{{ statistics.avg_clarity|floatformat:1 }}<span class="text-base text-gray-400">/5</span></div>
+      <div class="mt-1 text-xs text-gray-500">Avg clarity</div>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">🎯 Accuracy</h3>
+      <div class="mt-2 flex gap-1">
+        {% for n in "12345" %}
+        <span class="text-xl {% if forloop.counter <= statistics.avg_accuracy %}opacity-100{% else %}opacity-30{% endif %}">⭐</span>
+        {% endfor %}
+      </div>
+      <p class="mt-2 text-xs text-gray-500">Avg {{ statistics.avg_accuracy|floatformat:2 }} / 5</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">💡 Usefulness</h3>
+      <div class="mt-2 flex gap-1">
+        {% for n in "12345" %}
+        <span class="text-xl {% if forloop.counter <= statistics.avg_usefulness %}opacity-100{% else %}opacity-30{% endif %}">⭐</span>
+        {% endfor %}
+      </div>
+      <p class="mt-2 text-xs text-gray-500">Avg {{ statistics.avg_usefulness|floatformat:2 }} / 5</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">📖 Clarity</h3>
+      <div class="mt-2 flex gap-1">
+        {% for n in "12345" %}
+        <span class="text-xl {% if forloop.counter <= statistics.avg_clarity %}opacity-100{% else %}opacity-30{% endif %}">⭐</span>
+        {% endfor %}
+      </div>
+      <p class="mt-2 text-xs text-gray-500">Avg {{ statistics.avg_clarity|floatformat:2 }} / 5</p>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900">👍 Recommend rate</h3>
+      <span class="text-sm font-medium text-emerald-700">
+        {{ statistics.would_recommend_count }} / {{ statistics.total_feedback }}
+        ({% widthratio statistics.would_recommend_count statistics.total_feedback 100 %}%)
+      </span>
+    </div>
+    <div class="mt-3 h-3 bg-gray-100 rounded overflow-hidden">
+      <div class="h-full bg-emerald-500" style="width: {% widthratio statistics.would_recommend_count statistics.total_feedback 100 %}%"></div>
+    </div>
+  </section>
+
+  {% if recent_feedback %}
+  <section class="bg-white rounded-lg border border-gray-200">
+    <header class="px-5 py-3 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900">Recent feedback</h3>
+    </header>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">User</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Accuracy</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Usefulness</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Clarity</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Recommend</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Suggestions</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">When</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for feedback in recent_feedback %}
+          <tr>
+            <td class="px-4 py-2 font-medium text-gray-900">{{ feedback.user_history.user.username }}</td>
+            <td class="px-4 py-2 text-amber-600">{% for _ in "12345" %}{% if forloop.counter <= feedback.accuracy_rating %}★{% else %}<span class="opacity-30">★</span>{% endif %}{% endfor %}</td>
+            <td class="px-4 py-2 text-amber-600">{% for _ in "12345" %}{% if forloop.counter <= feedback.usefulness_rating %}★{% else %}<span class="opacity-30">★</span>{% endif %}{% endfor %}</td>
+            <td class="px-4 py-2 text-amber-600">{% for _ in "12345" %}{% if forloop.counter <= feedback.clarity_rating %}★{% else %}<span class="opacity-30">★</span>{% endif %}{% endfor %}</td>
+            <td class="px-4 py-2">
+              {% if feedback.would_recommend %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Yes</span>
+              {% elif feedback.would_recommend == False %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">No</span>
+              {% else %}<span class="text-gray-400 text-xs">—</span>{% endif %}
+            </td>
+            <td class="px-4 py-2 text-gray-700 text-xs max-w-xs truncate">{{ feedback.suggestions|default:"—"|truncatechars:80 }}</td>
+            <td class="px-4 py-2 text-xs text-gray-500">{{ feedback.created_at|timesince }} ago</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% else %}
+  <section class="bg-white rounded-lg border border-gray-200 p-10 text-center">
+    <div class="text-4xl mb-3">📊</div>
+    <h2 class="text-lg font-semibold text-gray-900">No feedback yet</h2>
+    <p class="mt-2 text-sm text-gray-500">Feedback analytics will populate as users rate their analyses.</p>
+    <a href="{% url 'grade_query' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Grade a query</a>
+  </section>
+  {% endif %}
 </div>
-
-
 {% endblock %}
