@@ -1,907 +1,530 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
+{% block title %}Query history · QueryGrade{% endblock %}
+
 {% block content %}
-<div class="history-container">
-    <div class="history-header">
-        <h1>Query History</h1>
-        <p class="subtitle">View your previously analyzed queries and their grades</p>
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">Query history</h1>
+    <p class="mt-1 text-sm text-gray-500">View your previously analyzed queries and their grades.</p>
+  </header>
+
+  <form style="display:none">{% csrf_token %}</form>
+
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <input type="text" id="searchInput" placeholder="🔍 Search queries by SQL text..." onkeyup="filterQueries()"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+      <div class="flex flex-wrap gap-2 items-center">
+        <select id="gradeFilter" onchange="filterQueries()" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <option value="">All grades</option>
+          <option value="A">A — Excellent</option>
+          <option value="B">B — Good</option>
+          <option value="C">C — Average</option>
+          <option value="D">D — Poor</option>
+          <option value="F">F — Failing</option>
+        </select>
+        <select id="databaseFilter" onchange="filterQueries()" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <option value="">All databases</option>
+          <option value="mysql">MySQL</option>
+          <option value="postgresql">PostgreSQL</option>
+          <option value="sqlite">SQLite</option>
+          <option value="oracle">Oracle</option>
+          <option value="sqlserver">SQL Server</option>
+        </select>
+        <select id="dateFilter" onchange="filterQueries()" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+          <option value="">All time</option>
+          <option value="today">Today</option>
+          <option value="week">Last 7 days</option>
+          <option value="month">Last 30 days</option>
+          <option value="quarter">Last 90 days</option>
+        </select>
+        <button onclick="resetFilters()" class="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">🔄 Reset</button>
+      </div>
     </div>
+    <p class="mt-3 text-xs text-gray-500"><span id="resultsCount">{{ page_obj.paginator.count }}</span> queries shown</p>
+  </section>
 
-    <!-- Search and Filter Section -->
-    <div class="filter-section">
-        <div class="search-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search queries by SQL text or min-w-full text-sm names..." onkeyup="filterQueries()">
-        </div>
-
-        <div class="filter-controls">
-            <div class="filter-group">
-                <label for="gradeFilter">Grade:</label>
-                <select id="gradeFilter" class="filter-select" onchange="filterQueries()">
-                    <option value="">All Grades</option>
-                    <option value="A">A - Excellent</option>
-                    <option value="B">B - Good</option>
-                    <option value="C">C - Average</option>
-                    <option value="D">D - Poor</option>
-                    <option value="F">F - Failing</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="databaseFilter">Database:</label>
-                <select id="databaseFilter" class="filter-select" onchange="filterQueries()">
-                    <option value="">All Databases</option>
-                    <option value="mysql">MySQL</option>
-                    <option value="postgresql">PostgreSQL</option>
-                    <option value="sqlite">SQLite</option>
-                    <option value="oracle">Oracle</option>
-                    <option value="sqlserver">SQL Server</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="dateFilter">Date Range:</label>
-                <select id="dateFilter" class="filter-select" onchange="filterQueries()">
-                    <option value="">All Time</option>
-                    <option value="today">Today</option>
-                    <option value="week">Last 7 Days</option>
-                    <option value="month">Last 30 Days</option>
-                    <option value="quarter">Last 90 Days</option>
-                </select>
-            </div>
-
-            <button class="filter-reset-btn" onclick="resetFilters()">
-                <span>🔄</span>
-                Reset Filters
-            </button>
-        </div>
-
-        <div class="filter-stats" id="filterStats">
-            <span id="resultsCount">{{ page_obj.paginator.count }}</span> queries found
-        </div>
+  {% if page_obj %}
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+      <span class="text-2xl">📈</span>
+      <div class="min-w-0 flex-1">
+        <p id="avgGrade" class="text-sm font-semibold text-gray-900 truncate">Calculating...</p>
+        <p class="text-xs text-gray-500">Average grade</p>
+        <p id="gradeTrend" class="text-xs mt-0.5"></p>
+      </div>
     </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+      <span class="text-2xl">🎯</span>
+      <div class="min-w-0 flex-1">
+        <p id="totalQueries" class="text-sm font-semibold text-gray-900">{{ page_obj.paginator.count }}</p>
+        <p class="text-xs text-gray-500">Total analyzed</p>
+        <p class="text-xs mt-0.5 text-gray-400">Keep learning</p>
+      </div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+      <span class="text-2xl">⚡</span>
+      <div class="min-w-0 flex-1">
+        <p id="topIssue" class="text-sm font-semibold text-gray-900 truncate">Loading...</p>
+        <p class="text-xs text-gray-500">Most common issue</p>
+        <p id="issueAction" class="text-xs mt-0.5 text-gray-400"></p>
+      </div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+      <span class="text-2xl">🏆</span>
+      <div class="min-w-0 flex-1">
+        <p id="improvement" class="text-sm font-semibold text-gray-900">Analyzing...</p>
+        <p class="text-xs text-gray-500">Improvement rate</p>
+        <p id="improvementText" class="text-xs mt-0.5 text-gray-400"></p>
+      </div>
+    </div>
+  </section>
 
-    {% if page_obj %}
-        <!-- Enhanced Stats with Insights -->
-        <div class="insights-banner">
-            <h3 class="insights-title">📊 Your Query Performance Insights</h3>
-            <div class="insights-grid">
-                <div class="insight-bg-white rounded-lg border border-gray-200">
-                    <div class="insight-icon">📈</div>
-                    <div class="insight-content">
-                        <div class="insight-value" id="avgGrade">Calculating...</div>
-                        <div class="insight-label">Average Grade</div>
-                        <div class="insight-trend" id="gradeTrend"></div>
-                    </div>
-                </div>
-                <div class="insight-bg-white rounded-lg border border-gray-200">
-                    <div class="insight-icon">🎯</div>
-                    <div class="insight-content">
-                        <div class="insight-value" id="totalQueries">{{ page_obj.paginator.count }}</div>
-                        <div class="insight-label">Total Analyzed</div>
-                        <div class="insight-subtext">Keep learning!</div>
-                    </div>
-                </div>
-                <div class="insight-bg-white rounded-lg border border-gray-200">
-                    <div class="insight-icon">⚡</div>
-                    <div class="insight-content">
-                        <div class="insight-value" id="topIssue">Loading...</div>
-                        <div class="insight-label">Most Common Issue</div>
-                        <div class="insight-action" id="issueAction"></div>
-                    </div>
-                </div>
-                <div class="insight-bg-white rounded-lg border border-gray-200">
-                    <div class="insight-icon">🏆</div>
-                    <div class="insight-content">
-                        <div class="insight-value" id="improvement">Analyzing...</div>
-                        <div class="insight-label">Improvement Rate</div>
-                        <div class="insight-subtext" id="improvementText"></div>
-                    </div>
-                </div>
+  <div id="bulkActionsBar" class="hidden sticky top-2 z-30 bg-indigo-600 text-white rounded-lg shadow-lg px-4 py-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 text-sm">
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="rounded text-indigo-600 focus:ring-indigo-300">
+          <span>Select all visible</span>
+        </label>
+        <span class="opacity-70">|</span>
+        <span><span id="bulkSelectionCount">0</span> selected</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="compareBtn" onclick="compareSelected()" disabled class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-indigo-700 text-sm font-medium rounded hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span class="btn-icon">📊</span><span>Compare</span>
+        </button>
+        <button id="exportBtn" onclick="exportSelected()" disabled class="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-indigo-700 text-sm font-medium rounded hover:bg-indigo-50 disabled:opacity-50">
+          <span class="btn-icon">📥</span><span>Export</span>
+        </button>
+        <button id="deleteBtn" onclick="deleteSelected()" disabled class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 disabled:opacity-50">
+          <span class="btn-icon">🗑️</span><span>Delete</span>
+        </button>
+        <button onclick="clearSelection()" class="inline-flex items-center gap-1 px-3 py-1.5 bg-transparent border border-white/30 text-white text-sm font-medium rounded hover:bg-white/10">
+          <span class="btn-icon">✖</span><span>Clear</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <section class="space-y-3">
+    {% for history in page_obj %}
+    <article class="history-item bg-white rounded-lg border border-gray-200 p-5 hover:border-indigo-300 transition" data-query-id="{{ history.id }}">
+      <div class="flex items-start gap-3">
+        <input type="checkbox" id="compare-{{ history.id }}" class="compare-checkbox mt-1 rounded text-indigo-600 focus:ring-indigo-500" value="{{ history.id }}" onchange="updateComparisonBar()" aria-label="Select query">
+
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3 text-sm">
+              <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium text-xs">{{ history.query.query_type }}</span>
+              <span class="query-date text-xs text-gray-500">{{ history.submitted_at|date:"M d, Y H:i" }}</span>
             </div>
+            <div class="flex items-center gap-2">
+              {% if history.query.analysis %}
+              {% with g=history.query.analysis.grade|lower %}
+              <span class="grade-badge-small inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold
+                {% if g == 'a' %}bg-emerald-100 text-emerald-700
+                {% elif g == 'b' %}bg-lime-100 text-lime-700
+                {% elif g == 'c' %}bg-amber-100 text-amber-700
+                {% elif g == 'd' %}bg-orange-100 text-orange-700
+                {% else %}bg-red-100 text-red-700{% endif %}">{{ history.query.analysis.grade }}</span>
+              {% endwith %}
+              <span class="grade-score-small text-xs text-gray-600">{{ history.query.analysis.score|floatformat:1 }}/100</span>
+              {% else %}
+              <span class="text-xs text-gray-400 italic">No analysis</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <pre class="query-preview mt-3 p-3 bg-gray-900 text-gray-100 rounded text-xs font-mono overflow-x-auto"><code>{{ history.query.sql_text|truncatechars:200 }}</code></pre>
+
+          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+            <span><span class="text-gray-400">Tables:</span> <span class="font-medium text-gray-700">{{ history.query.table_count }}</span></span>
+            <span><span class="text-gray-400">Joins:</span> <span class="font-medium text-gray-700">{{ history.query.join_count }}</span></span>
+            <span><span class="text-gray-400">Complexity:</span> <span class="font-medium text-gray-700">{{ history.query.estimated_complexity }}/100</span></span>
+            {% if history.database_type %}
+            <span class="metadata-database"><span class="text-gray-400">Database:</span> <span class="metadata-value font-medium text-gray-700">{{ history.database_type|title }}</span></span>
+            {% endif %}
+          </div>
+
+          {% if history.query.analysis %}
+          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs">
+            {% if history.query.analysis.issues_found %}
+            <div>
+              <strong class="text-gray-700">Issues ({{ history.query.analysis.issues_found|length }}):</strong>
+              {% for issue in history.query.analysis.issues_found|slice:":2" %}
+              <span class="issue-tag inline-flex items-center px-2 py-0.5 rounded ml-1
+                {% if issue.severity == 'critical' %}bg-red-100 text-red-700
+                {% elif issue.severity == 'high' %}bg-orange-100 text-orange-700
+                {% elif issue.severity == 'medium' %}bg-amber-100 text-amber-700
+                {% else %}bg-sky-100 text-sky-700{% endif %}">{{ issue.type|title }}</span>
+              {% endfor %}
+              {% if history.query.analysis.issues_found|length > 2 %}<span class="text-gray-400 ml-1">+{{ history.query.analysis.issues_found|length|add:"-2" }} more</span>{% endif %}
+            </div>
+            {% endif %}
+            {% if history.query.analysis.recommendations %}
+            <div>
+              <strong class="text-gray-700">Recs ({{ history.query.analysis.recommendations|length }}):</strong>
+              {% for rec in history.query.analysis.recommendations|slice:":2" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded ml-1
+                {% if rec.priority == 'critical' %}bg-red-100 text-red-700
+                {% elif rec.priority == 'high' %}bg-orange-100 text-orange-700
+                {% elif rec.priority == 'medium' %}bg-amber-100 text-amber-700
+                {% else %}bg-indigo-100 text-indigo-700{% endif %}">{{ rec.type|title }}</span>
+              {% endfor %}
+              {% if history.query.analysis.recommendations|length > 2 %}<span class="text-gray-400 ml-1">+{{ history.query.analysis.recommendations|length|add:"-2" }} more</span>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <div class="mt-4 flex flex-wrap gap-2 text-xs">
+            {% if history.query.analysis %}
+            <a href="{% url 'grade_results' history.query.analysis.id %}" class="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">View full analysis</a>
+            {% endif %}
+            <button onclick="copyQuery({{ history.id }})" class="inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 text-gray-700 rounded hover:bg-gray-50">📋 Copy</button>
+            <button onclick="reanalyzeQuery({{ history.id }})" class="inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 text-gray-700 rounded hover:bg-gray-50">🔁 Re-analyze</button>
+          </div>
+
+          <textarea id="query-{{ history.id }}" class="hidden">{{ history.query.sql_text }}</textarea>
         </div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
 
-        <div class="history-stats">
-            <div class="stat-bg-white rounded-lg border border-gray-200">
-                <div class="stat-number">{{ page_obj.paginator.count }}</div>
-                <div class="stat-label">Total Queries</div>
-            </div>
-            <div class="stat-bg-white rounded-lg border border-gray-200">
-                <div class="stat-number">
-                    {% widthratio page_obj.object_list|length 1 page_obj.paginator.count as avg %}
-                    {{ avg|default:"0" }}%
-                </div>
-                <div class="stat-label">Recent Activity</div>
-            </div>
-        </div>
-
-        <!-- Bulk Actions Bar (sticky) -->
-        <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none;">
-            <div class="bulk-actions-content">
-                <div class="bulk-actions-info">
-                    <div class="selection-controls">
-                        <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" onchange="toggleSelectAll()" aria-label="Select all visible queries">
-                        <label for="selectAllCheckbox" class="select-all-label">
-                            <span class="select-all-icon">☑️</span>
-                            <span class="select-all-text">Select All</span>
-                        </label>
-                    </div>
-                    <div class="selection-count">
-                        <span class="count-icon">✓</span>
-                        <span id="bulkSelectionCount">0</span> selected
-                    </div>
-                </div>
-                <div class="bulk-actions-buttons">
-                    <button onclick="compareSelected()" class="btn btn-action btn-compare" id="compareBtn" disabled aria-label="Compare selected queries">
-                        <span class="btn-icon">📊</span>
-                        Compare
-                    </button>
-                    <button onclick="exportSelected()" class="btn btn-action btn-export" id="exportBtn" disabled aria-label="Export selected queries">
-                        <span class="btn-icon">📥</span>
-                        Export
-                    </button>
-                    <button onclick="deleteSelected()" class="btn btn-action btn-delete" id="deleteBtn" disabled aria-label="Delete selected queries">
-                        <span class="btn-icon">🗑️</span>
-                        Delete
-                    </button>
-                    <button onclick="clearSelection()" class="btn btn-action btn-clear">
-                        <span class="btn-icon">✖️</span>
-                        Clear
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Query Comparison Bar (sticky) -->
-        <div id="comparisonBar" class="comparison-bar" style="display: none;">
-            <div class="comparison-content">
-                <div class="comparison-info">
-                    <span class="comparison-icon">⚖️</span>
-                    <span id="comparisonCount">0</span> queries selected for comparison
-                </div>
-                <div class="comparison-actions">
-                    <button onclick="compareSelected()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700" id="compareBtn2" disabled>
-                        <span class="btn-icon">📊</span>
-                        Compare Queries
-                    </button>
-                    <button onclick="clearSelection()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
-                        Clear Selection
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="history-list">
-            {% for history in page_obj %}
-                <div class="history-item" data-query-id="{{ history.id }}">
-                    <div class="history-header-row">
-                        <div class="comparison-checkbox">
-                            <input type="checkbox"
-                                   id="compare-{{ history.id }}"
-                                   class="compare-checkbox"
-                                   value="{{ history.id }}"
-                                   onchange="updateComparisonBar()"
-                                   aria-label="Select query for comparison">
-                            <label for="compare-{{ history.id }}" class="checkbox-label">
-                                <span class="checkbox-icon">⚖️</span>
-                            </label>
-                        </div>
-                        <div class="query-info">
-                            <span class="query-type">{{ history.query.query_type }}</span>
-                            <span class="query-date">{{ history.submitted_at|date:"M d, Y H:i" }}</span>
-                        </div>
-                        <div class="grade-info">
-                            {% if history.query.analysis %}
-                                <div class="grade-badge-small grade-{{ history.query.analysis.grade|lower }}">
-                                    {{ history.query.analysis.grade }}
-                                </div>
-                                <span class="grade-score-small">{{ history.query.analysis.score|floatformat:1 }}/100</span>
-                            {% else %}
-                                <span class="no-analysis">No analysis</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="query-preview">
-                        <pre><code>{{ history.query.sql_text|truncatechars:200 }}</code></pre>
-                    </div>
-
-                    <div class="query-metadata">
-                        <div class="metadata-grid">
-                            <div class="metadata-item">
-                                <span class="metadata-label">Tables:</span>
-                                <span class="metadata-value">{{ history.query.table_count }}</span>
-                            </div>
-                            <div class="metadata-item">
-                                <span class="metadata-label">Joins:</span>
-                                <span class="metadata-value">{{ history.query.join_count }}</span>
-                            </div>
-                            <div class="metadata-item">
-                                <span class="metadata-label">Complexity:</span>
-                                <span class="metadata-value">{{ history.query.estimated_complexity }}/100</span>
-                            </div>
-                            {% if history.database_type %}
-                                <div class="metadata-item">
-                                    <span class="metadata-label">Database:</span>
-                                    <span class="metadata-value">{{ history.database_type|title }}</span>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    {% if history.query.analysis %}
-                        <div class="analysis-preview">
-                            {% if history.query.analysis.issues_found %}
-                                <div class="preview-section">
-                                    <strong>Issues Found ({{ history.query.analysis.issues_found|length }}):</strong>
-                                    {% for issue in history.query.analysis.issues_found|slice:":2" %}
-                                        <span class="issue-tag severity-{{ issue.severity }}">{{ issue.type|title }}</span>
-                                    {% endfor %}
-                                    {% if history.query.analysis.issues_found|length > 2 %}
-                                        <span class="more-indicator">+{{ history.query.analysis.issues_found|length|add:"-2" }} more</span>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-
-                            {% if history.query.analysis.recommendations %}
-                                <div class="preview-section">
-                                    <strong>Recommendations ({{ history.query.analysis.recommendations|length }}):</strong>
-                                    {% for rec in history.query.analysis.recommendations|slice:":2" %}
-                                        <span class="recommendation-tag priority-{{ rec.priority }}">{{ rec.type|title }}</span>
-                                    {% endfor %}
-                                    {% if history.query.analysis.recommendations|length > 2 %}
-                                        <span class="more-indicator">+{{ history.query.analysis.recommendations|length|add:"-2" }} more</span>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-
-                    <div class="history-actions">
-                        {% if history.query.analysis %}
-                            <a href="{% url 'grade_results' history.query.analysis.id %}" class="btn text-xs px-2 py-1 btn-primary">
-                                View Full Analysis
-                            </a>
-                        {% endif %}
-                        <button onclick="copyQuery({{ history.id }})" class="btn text-xs px-2 py-1 btn-secondary">
-                            Copy Query
-                        </button>
-                        <button onclick="reanalyzeQuery({{ history.id }})" class="btn text-xs px-2 py-1 btn-outline">
-                            Re-analyze
-                        </button>
-                    </div>
-
-                    <textarea id="query-{{ history.id }}" style="display: none;">{{ history.query.sql_text }}</textarea>
-                </div>
-            {% endfor %}
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination-wrapper">
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                    <a href="?page=1" class="page-link">&laquo; First</a>
-                    <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
-                {% endif %}
-
-                <span class="page-info">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    ({{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} queries)
-                </span>
-
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last &raquo;</a>
-                {% endif %}
-            </div>
-        </div>
-
-    {% else %}
-        <div class="empty-state">
-            <div class="empty-illustration">
-                <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Database cylinder -->
-                    <ellipse cx="100" cy="80" rx="50" ry="15" fill="#4d9fff" opacity="0.2"/>
-                    <rect x="50" y="80" width="100" height="60" fill="#4d9fff" opacity="0.2"/>
-                    <ellipse cx="100" cy="140" rx="50" ry="15" fill="#4d9fff" opacity="0.3"/>
-
-                    <!-- Magnifying glass -->
-                    <circle cx="140" cy="140" r="25" stroke="#64b5f6" stroke-width="4" fill="none"/>
-                    <line x1="158" y1="158" x2="175" y2="175" stroke="#64b5f6" stroke-width="4" stroke-linecap="round"/>
-
-                    <!-- Sparkles -->
-                    <path d="M 30 40 L 32 48 L 40 50 L 32 52 L 30 60 L 28 52 L 20 50 L 28 48 Z" fill="#ffb74d" opacity="0.8"/>
-                    <path d="M 170 30 L 171 35 L 176 36 L 171 37 L 170 42 L 169 37 L 164 36 L 169 35 Z" fill="#ffb74d" opacity="0.8"/>
-                    <path d="M 60 160 L 61 163 L 64 164 L 61 165 L 60 168 L 59 165 L 56 164 L 59 163 Z" fill="#ffb74d" opacity="0.6"/>
-                </svg>
-            </div>
-            <h2 class="empty-title">No Query History Yet</h2>
-            <p class="empty-description">Your SQL query analysis journey starts here! Grade your first query to get instant feedback on performance, best practices, and optimization opportunities.</p>
-
-            <div class="empty-features">
-                <div class="empty-feature">
-                    <span class="feature-icon">🎯</span>
-                    <span class="feature-text">Get instant A-F grades</span>
-                </div>
-                <div class="empty-feature">
-                    <span class="feature-icon">🤖</span>
-                    <span class="feature-text">AI-powered insights</span>
-                </div>
-                <div class="empty-feature">
-                    <span class="feature-icon">💡</span>
-                    <span class="feature-text">Smart recommendations</span>
-                </div>
-            </div>
-
-            <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 btn-large">
-                <span class="btn-icon">🚀</span>
-                Grade Your First Query
-            </a>
-
-            <p class="empty-hint">Or explore <a href="{% url 'grade_query' %}#examples" class="text-link">example queries</a> to see how it works</p>
-        </div>
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex flex-wrap items-center justify-center gap-2 text-sm pt-2">
+    {% if page_obj.has_previous %}
+    <a href="?page=1" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">« First</a>
+    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">‹ Prev</a>
     {% endif %}
+    <span class="text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">Next ›</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50">Last »</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <section class="bg-white rounded-lg border border-gray-200 p-10 text-center">
+    <svg class="mx-auto" width="120" height="120" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="100" cy="80" rx="50" ry="15" fill="#6366f1" opacity="0.2"/>
+      <rect x="50" y="80" width="100" height="60" fill="#6366f1" opacity="0.2"/>
+      <ellipse cx="100" cy="140" rx="50" ry="15" fill="#6366f1" opacity="0.3"/>
+      <circle cx="140" cy="140" r="25" stroke="#6366f1" stroke-width="4" fill="none"/>
+      <line x1="158" y1="158" x2="175" y2="175" stroke="#6366f1" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+    <h2 class="mt-4 text-xl font-bold text-gray-900">No query history yet</h2>
+    <p class="mt-2 text-sm text-gray-500 max-w-md mx-auto">Your SQL analysis journey starts here. Grade your first query for instant feedback on performance, best practices, and optimization.</p>
+
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-600">
+      <span class="inline-flex items-center gap-1">🎯 Letter grades A–F</span>
+      <span class="inline-flex items-center gap-1">🤖 AI-powered insights</span>
+      <span class="inline-flex items-center gap-1">💡 Smart recommendations</span>
+    </div>
+
+    <a href="{% url 'grade_query' %}" class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">🚀 Grade your first query</a>
+    <p class="mt-3 text-xs text-gray-400">Or explore <a href="{% url 'grade_query' %}" class="text-indigo-600 hover:underline">example queries</a> to see how it works.</p>
+  </section>
+  {% endif %}
 </div>
 
 <script>
-// Bulk Actions Feature
 function updateBulkActionsBar() {
-    const checkboxes = document.querySelectorAll('.compare-checkbox:checked');
-    const count = checkboxes.length;
-    const bulkBar = document.getElementById('bulkActionsBar');
-    const countSpan = document.getElementById('bulkSelectionCount');
-    const compareBtn = document.getElementById('compareBtn');
-    const exportBtn = document.getElementById('exportBtn');
-    const deleteBtn = document.getElementById('deleteBtn');
+  const checked = document.querySelectorAll('.compare-checkbox:checked');
+  const count = checked.length;
+  const bar = document.getElementById('bulkActionsBar');
+  const countEl = document.getElementById('bulkSelectionCount');
+  const compareBtn = document.getElementById('compareBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
 
-    // Update selection count
-    countSpan.textContent = count;
-
-    // Show/hide bulk actions bar
-    if (count > 0) {
-        bulkBar.style.display = 'block';
-
-        // Enable/disable action buttons based on selection
-        compareBtn.disabled = count < 2 || count > 3;
-        exportBtn.disabled = false;
-        deleteBtn.disabled = false;
-
-        // Update compare button text
-        if (count === 1) {
-            compareBtn.innerHTML = '<span class="btn-icon">📊</span> Select 1-2 more';
-        } else if (count > 3) {
-            compareBtn.innerHTML = '<span class="btn-icon">📊</span> Max 3 for compare';
-        } else {
-            compareBtn.innerHTML = '<span class="btn-icon">📊</span> Compare';
-        }
-
-        // Highlight selected items
-        document.querySelectorAll('.history-item').forEach(item => {
-            const checkbox = item.querySelector('.compare-checkbox');
-            if (checkbox && checkbox.checked) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
-    } else {
-        bulkBar.style.display = 'none';
-        document.querySelectorAll('.history-item').forEach(item => {
-            item.classList.remove('selected');
-        });
-    }
-
-    // Update select all checkbox state
-    updateSelectAllCheckbox();
+  countEl.textContent = count;
+  if (count > 0) {
+    bar.classList.remove('hidden');
+    compareBtn.disabled = count < 2 || count > 3;
+    exportBtn.disabled = false;
+    deleteBtn.disabled = false;
+    const compareLabel = compareBtn.querySelector('span:last-child');
+    compareLabel.textContent = count === 1 ? 'Select 1–2 more' : count > 3 ? 'Max 3 to compare' : 'Compare';
+    document.querySelectorAll('.history-item').forEach(item => {
+      const cb = item.querySelector('.compare-checkbox');
+      item.classList.toggle('ring-2', cb && cb.checked);
+      item.classList.toggle('ring-indigo-400', cb && cb.checked);
+    });
+  } else {
+    bar.classList.add('hidden');
+    document.querySelectorAll('.history-item').forEach(item => item.classList.remove('ring-2', 'ring-indigo-400'));
+  }
+  updateSelectAllCheckbox();
 }
 
 function updateSelectAllCheckbox() {
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const visibleCheckboxes = Array.from(document.querySelectorAll('.history-item'))
-        .filter(item => item.style.display !== 'none')
-        .map(item => item.querySelector('.compare-checkbox'))
-        .filter(cb => cb !== null);
-
-    const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
-
-    if (checkedCount === 0) {
-        selectAllCheckbox.checked = false;
-        selectAllCheckbox.indeterminate = false;
-    } else if (checkedCount === visibleCheckboxes.length) {
-        selectAllCheckbox.checked = true;
-        selectAllCheckbox.indeterminate = false;
-    } else {
-        selectAllCheckbox.checked = false;
-        selectAllCheckbox.indeterminate = true;
-    }
+  const selectAll = document.getElementById('selectAllCheckbox');
+  if (!selectAll) return;
+  const visible = Array.from(document.querySelectorAll('.history-item'))
+    .filter(item => item.style.display !== 'none')
+    .map(item => item.querySelector('.compare-checkbox'))
+    .filter(Boolean);
+  const checked = visible.filter(cb => cb.checked).length;
+  if (checked === 0) { selectAll.checked = false; selectAll.indeterminate = false; }
+  else if (checked === visible.length) { selectAll.checked = true; selectAll.indeterminate = false; }
+  else { selectAll.checked = false; selectAll.indeterminate = true; }
 }
 
 function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const visibleCheckboxes = Array.from(document.querySelectorAll('.history-item'))
-        .filter(item => item.style.display !== 'none')
-        .map(item => item.querySelector('.compare-checkbox'))
-        .filter(cb => cb !== null);
+  const selectAll = document.getElementById('selectAllCheckbox');
+  Array.from(document.querySelectorAll('.history-item'))
+    .filter(item => item.style.display !== 'none')
+    .map(item => item.querySelector('.compare-checkbox'))
+    .filter(Boolean)
+    .forEach(cb => cb.checked = selectAll.checked);
+  updateBulkActionsBar();
+}
 
-    visibleCheckboxes.forEach(cb => {
-        cb.checked = selectAllCheckbox.checked;
-    });
+function updateComparisonBar() { updateBulkActionsBar(); }
 
-    updateBulkActionsBar();
+function clearSelection() {
+  document.querySelectorAll('.compare-checkbox').forEach(cb => cb.checked = false);
+  updateBulkActionsBar();
 }
 
 function compareSelected() {
-    const checkboxes = document.querySelectorAll('.compare-checkbox:checked');
-    const queryIds = Array.from(checkboxes).map(cb => cb.value);
-
-    if (queryIds.length < 2 || queryIds.length > 3) {
-        alert('Please select 2-3 queries to compare');
-        return;
-    }
-
-    // Build URL with query IDs
-    const params = new URLSearchParams();
-    queryIds.forEach((id, index) => {
-        params.append(`query${index + 1}`, id);
-    });
-
-    window.location.href = '{% url "query_compare" %}?' + params.toString();
+  const ids = Array.from(document.querySelectorAll('.compare-checkbox:checked')).map(cb => cb.value);
+  if (ids.length < 2 || ids.length > 3) { showToast('Select 2–3 queries to compare', 'error'); return; }
+  const params = new URLSearchParams();
+  ids.forEach((id, i) => params.append(`query${i + 1}`, id));
+  window.location.href = '{% url "query_compare" %}?' + params.toString();
 }
 
 async function exportSelected() {
-    const checkboxes = document.querySelectorAll('.compare-checkbox:checked');
-    const queryIds = Array.from(checkboxes).map(cb => cb.value);
+  const ids = Array.from(document.querySelectorAll('.compare-checkbox:checked')).map(cb => cb.value);
+  if (!ids.length) { showToast('Select at least one query', 'error'); return; }
+  const format = prompt('Export format:\n  1. JSON\n  2. CSV\n  3. Markdown\n\nEnter 1, 2, or 3:');
+  const fmt = format === '1' ? 'json' : format === '2' ? 'csv' : format === '3' ? 'markdown' : null;
+  if (!fmt) return;
 
-    if (queryIds.length === 0) {
-        alert('Please select at least one query to export');
-        return;
-    }
-
-    // Show export options modal
-    const format = await showExportFormatDialog();
-    if (!format) return;
-
-    // Collect query data
-    const queries = [];
-    queryIds.forEach(id => {
-        const item = document.querySelector(`.history-item[data-query-id="${id}"]`);
-        if (item) {
-            const queryText = document.getElementById(`query-${id}`).value;
-            const grade = item.querySelector('.grade-badge-small')?.textContent.trim() || 'N/A';
-            const score = item.querySelector('.grade-score-small')?.textContent.trim() || 'N/A';
-            const date = item.querySelector('.query-date')?.textContent.trim() || '';
-
-            queries.push({ id, queryText, grade, score, date });
-        }
-    });
-
-    // Export based on format
-    if (format === 'json') {
-        exportAsJSON(queries);
-    } else if (format === 'csv') {
-        exportAsCSV(queries);
-    } else if (format === 'markdown') {
-        exportAsMarkdown(queries);
-    }
-}
-
-function showExportFormatDialog() {
-    return new Promise((resolve) => {
-        const format = prompt(
-            'Choose export format:\n\n1. JSON (machine-readable)\n2. CSV (spreadsheet)\n3. Markdown (documentation)\n\nEnter 1, 2, or 3:'
-        );
-
-        if (format === '1') resolve('json');
-        else if (format === '2') resolve('csv');
-        else if (format === '3') resolve('markdown');
-        else resolve(null);
-    });
+  const queries = ids.map(id => {
+    const item = document.querySelector(`.history-item[data-query-id="${id}"]`);
+    return {
+      id,
+      queryText: document.getElementById(`query-${id}`)?.value || '',
+      grade: item?.querySelector('.grade-badge-small')?.textContent.trim() || 'N/A',
+      score: item?.querySelector('.grade-score-small')?.textContent.trim() || 'N/A',
+      date: item?.querySelector('.query-date')?.textContent.trim() || '',
+    };
+  });
+  if (fmt === 'json') exportAsJSON(queries);
+  else if (fmt === 'csv') exportAsCSV(queries);
+  else exportAsMarkdown(queries);
 }
 
 function exportAsJSON(queries) {
-    const data = JSON.stringify({ queries, exported_at: new Date().toISOString() }, null, 2);
-    downloadFile(data, `queries_export_${Date.now()}.json`, 'application/json');
-    showNotification('Queries exported as JSON!');
+  downloadFile(JSON.stringify({queries, exported_at: new Date().toISOString()}, null, 2), `queries_export_${Date.now()}.json`, 'application/json');
+  showToast('Exported as JSON');
 }
-
 function exportAsCSV(queries) {
-    let csv = 'ID,Query,Grade,Score,Date\n';
-    queries.forEach(q => {
-        const escapedQuery = '"' + q.queryText.replace(/"/g, '""') + '"';
-        csv += `${q.id},${escapedQuery},${q.grade},${q.score},"${q.date}"\n`;
-    });
-    downloadFile(csv, `queries_export_${Date.now()}.csv`, 'text/csv');
-    showNotification('Queries exported as CSV!');
+  let csv = 'ID,Query,Grade,Score,Date\n';
+  queries.forEach(q => { csv += `${q.id},"${q.queryText.replace(/"/g, '""')}",${q.grade},${q.score},"${q.date}"\n`; });
+  downloadFile(csv, `queries_export_${Date.now()}.csv`, 'text/csv');
+  showToast('Exported as CSV');
 }
-
 function exportAsMarkdown(queries) {
-    let md = `# Exported Queries\n\n`;
-    md += `**Exported:** ${new Date().toLocaleString()}\n`;
-    md += `**Total Queries:** ${queries.length}\n\n---\n\n`;
-
-    queries.forEach((q, index) => {
-        md += `## Query ${index + 1}\n\n`;
-        md += `- **Grade:** ${q.grade}\n`;
-        md += `- **Score:** ${q.score}\n`;
-        md += `- **Date:** ${q.date}\n\n`;
-        md += `\`\`\`sql\n${q.queryText}\n\`\`\`\n\n---\n\n`;
-    });
-
-    downloadFile(md, `queries_export_${Date.now()}.md`, 'text/markdown');
-    showNotification('Queries exported as Markdown!');
+  let md = `# Exported Queries\n\n**Exported:** ${new Date().toLocaleString()}\n**Total:** ${queries.length}\n\n---\n\n`;
+  queries.forEach((q, i) => {
+    md += `## Query ${i + 1}\n\n- **Grade:** ${q.grade}\n- **Score:** ${q.score}\n- **Date:** ${q.date}\n\n\`\`\`sql\n${q.queryText}\n\`\`\`\n\n---\n\n`;
+  });
+  downloadFile(md, `queries_export_${Date.now()}.md`, 'text/markdown');
+  showToast('Exported as Markdown');
 }
-
 function downloadFile(content, filename, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const blob = new Blob([content], {type: mimeType});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function deleteSelected() {
-    const checkboxes = document.querySelectorAll('.compare-checkbox:checked');
-    const queryIds = Array.from(checkboxes).map(cb => cb.value);
+  const ids = Array.from(document.querySelectorAll('.compare-checkbox:checked')).map(cb => cb.value);
+  if (!ids.length) { showToast('Select at least one query', 'error'); return; }
+  if (!confirm(`Delete ${ids.length} ${ids.length === 1 ? 'query' : 'queries'}? This cannot be undone.`)) return;
 
-    if (queryIds.length === 0) {
-        alert('Please select at least one query to delete');
-        return;
-    }
+  const btn = document.getElementById('deleteBtn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="btn-icon">⏳</span><span>Deleting...</span>';
+  btn.disabled = true;
 
-    // Confirm deletion
-    const confirmed = confirm(
-        `Are you sure you want to delete ${queryIds.length} ` +
-        `${queryIds.length === 1 ? 'query' : 'queries'}?\n\n` +
-        `This action cannot be undone.`
-    );
+  try {
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCsrfToken();
+    const res = await fetch('/api/query-history/delete/', {
+      method: 'DELETE',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify({query_ids: ids}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed');
 
-    if (!confirmed) return;
-
-    // Show loading state
-    const deleteBtn = document.getElementById('deleteBtn');
-    const originalHTML = deleteBtn.innerHTML;
-    deleteBtn.innerHTML = '<span class="btn-icon">⏳</span> Deleting...';
-    deleteBtn.disabled = true;
-
-    try {
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
-        }
-
-        // Call API to delete queries
-        const response = await fetch('/api/query-history/delete/', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({ query_ids: queryIds })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Delete failed');
-        }
-
-        // Animate removal of deleted items
-        queryIds.forEach(id => {
-            const item = document.querySelector(`.history-item[data-query-id="${id}"]`);
-            if (item) {
-                item.style.opacity = '0';
-                item.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    item.remove();
-                }, 300);
-            }
-        });
-
-        // Clear selection and show success message
-        setTimeout(() => {
-            clearSelection();
-            showNotification(data.message || `Successfully deleted ${queryIds.length} ${queryIds.length === 1 ? 'query' : 'queries'}`);
-
-            // Reload page if no queries remain
-            const remainingQueries = document.querySelectorAll('.history-item').length;
-            if (remainingQueries === 0) {
-                setTimeout(() => window.location.reload(), 1000);
-            }
-        }, 400);
-
-    } catch (error) {
-        console.error('Delete error:', error);
-        showNotification(error.message || 'Failed to delete queries. Please try again.', 'error');
-        deleteBtn.innerHTML = originalHTML;
-        deleteBtn.disabled = false;
-    }
-}
-
-function clearSelection() {
-    document.querySelectorAll('.compare-checkbox').forEach(cb => cb.checked = false);
-    updateBulkActionsBar();
-}
-
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 16px 24px;
-        background: ${type === 'error' ? '#f44336' : '#4caf50'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-        font-weight: 600;
-    `;
-
-    document.body.appendChild(notification);
-
+    ids.forEach(id => {
+      const item = document.querySelector(`.history-item[data-query-id="${id}"]`);
+      if (item) {
+        item.style.transition = 'all 0.3s';
+        item.style.opacity = '0';
+        item.style.transform = 'scale(0.95)';
+        setTimeout(() => item.remove(), 300);
+      }
+    });
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Update comparison bar (legacy function)
-function updateComparisonBar() {
-    updateBulkActionsBar();
+      clearSelection();
+      showToast(data.message || `Deleted ${ids.length} ${ids.length === 1 ? 'query' : 'queries'}`);
+      if (!document.querySelectorAll('.history-item').length) setTimeout(() => location.reload(), 800);
+    }, 350);
+  } catch (e) {
+    console.error(e);
+    showToast(e.message || 'Delete failed', 'error');
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
 }
 
 function copyQuery(historyId) {
-    const textarea = document.getElementById('query-' + historyId);
-    textarea.select();
+  const ta = document.getElementById('query-' + historyId);
+  if (!ta) return;
+  const text = ta.value;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => showToast('Query copied'));
+  } else {
+    ta.classList.remove('hidden');
+    ta.select();
     document.execCommand('copy');
-
-    // Show feedback
-    const button = event.target;
-    const originalText = button.textContent;
-    button.textContent = 'Copied!';
-    button.style.backgroundColor = '#28a745';
-
-    setTimeout(() => {
-        button.textContent = originalText;
-        button.style.backgroundColor = '';
-    }, 2000);
+    ta.classList.add('hidden');
+    showToast('Query copied');
+  }
 }
 
 function reanalyzeQuery(historyId) {
-    const textarea = document.getElementById('query-' + historyId);
-    const queryText = textarea.value;
-
-    // Create a form and submit it to the grade endpoint
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{% url "grade_query" %}';
-
-    // Add CSRF token
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (csrfToken) {
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = csrfToken.value;
-        form.appendChild(csrfInput);
-    }
-
-    // Add query text
-    const queryInput = document.createElement('textarea');
-    queryInput.name = 'sql_query';
-    queryInput.value = queryText;
-    queryInput.style.display = 'none';
-    form.appendChild(queryInput);
-
-    document.body.appendChild(form);
-    form.submit();
+  const ta = document.getElementById('query-' + historyId);
+  if (!ta) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{% url "grade_query" %}';
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrf) {
+    const i = document.createElement('input');
+    i.type = 'hidden'; i.name = 'csrfmiddlewaretoken'; i.value = csrf.value;
+    form.appendChild(i);
+  }
+  const q = document.createElement('textarea');
+  q.name = 'sql_query'; q.value = ta.value; q.style.display = 'none';
+  form.appendChild(q);
+  document.body.appendChild(form);
+  form.submit();
 }
 
-// Filter and search functionality
 function filterQueries() {
-    const searchText = document.getElementById('searchInput').value.toLowerCase();
-    const gradeFilter = document.getElementById('gradeFilter').value;
-    const databaseFilter = document.getElementById('databaseFilter').value.toLowerCase();
-    const dateFilter = document.getElementById('dateFilter').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const gradeFilter = document.getElementById('gradeFilter').value;
+  const dbFilter = document.getElementById('databaseFilter').value.toLowerCase();
+  const dateFilter = document.getElementById('dateFilter').value;
 
-    const historyItems = document.querySelectorAll('.history-item');
-    let visibleCount = 0;
-
-    historyItems.forEach(item => {
-        let showItem = true;
-
-        // Search filter
-        if (searchText) {
-            const queryText = item.querySelector('.query-preview code').textContent.toLowerCase();
-            if (!queryText.includes(searchText)) {
-                showItem = false;
-            }
-        }
-
-        // Grade filter
-        if (gradeFilter) {
-            const gradeBadge = item.querySelector('.grade-badge-small');
-            if (gradeBadge) {
-                const grade = gradeBadge.textContent.trim();
-                if (grade !== gradeFilter) {
-                    showItem = false;
-                }
-            }
-        }
-
-        // Database filter
-        if (databaseFilter) {
-            const databaseSpan = item.querySelector('.metadata-item .metadata-value');
-            if (databaseSpan) {
-                const database = databaseSpan.textContent.toLowerCase();
-                if (!database.includes(databaseFilter)) {
-                    showItem = false;
-                }
-            }
-        }
-
-        // Date filter
-        if (dateFilter) {
-            const dateSpan = item.querySelector('.query-date');
-            if (dateSpan) {
-                const itemDate = new Date(dateSpan.textContent);
-                const now = new Date();
-                const daysDiff = (now - itemDate) / (1000 * 60 * 60 * 24);
-
-                switch(dateFilter) {
-                    case 'today':
-                        if (daysDiff > 1) showItem = false;
-                        break;
-                    case 'week':
-                        if (daysDiff > 7) showItem = false;
-                        break;
-                    case 'month':
-                        if (daysDiff > 30) showItem = false;
-                        break;
-                    case 'quarter':
-                        if (daysDiff > 90) showItem = false;
-                        break;
-                }
-            }
-        }
-
-        // Show/hide item
-        if (showItem) {
-            item.style.display = 'block';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
-    });
-
-    // Update results count
-    document.getElementById('resultsCount').textContent = visibleCount;
+  let visible = 0;
+  document.querySelectorAll('.history-item').forEach(item => {
+    let show = true;
+    if (search) {
+      const code = item.querySelector('.query-preview code')?.textContent.toLowerCase() || '';
+      if (!code.includes(search)) show = false;
+    }
+    if (show && gradeFilter) {
+      const grade = item.querySelector('.grade-badge-small')?.textContent.trim();
+      if (grade !== gradeFilter) show = false;
+    }
+    if (show && dbFilter) {
+      const dbCell = item.querySelector('.metadata-database .metadata-value')?.textContent.toLowerCase() || '';
+      if (!dbCell.includes(dbFilter)) show = false;
+    }
+    if (show && dateFilter) {
+      const dateText = item.querySelector('.query-date')?.textContent.trim() || '';
+      const itemDate = new Date(dateText);
+      if (!isNaN(itemDate.getTime())) {
+        const days = (Date.now() - itemDate.getTime()) / 86400000;
+        if (dateFilter === 'today' && days > 1) show = false;
+        else if (dateFilter === 'week' && days > 7) show = false;
+        else if (dateFilter === 'month' && days > 30) show = false;
+        else if (dateFilter === 'quarter' && days > 90) show = false;
+      }
+    }
+    item.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('resultsCount').textContent = visible;
 }
 
 function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('gradeFilter').value = '';
-    document.getElementById('databaseFilter').value = '';
-    document.getElementById('dateFilter').value = '';
-    filterQueries();
+  ['searchInput', 'gradeFilter', 'databaseFilter', 'dateFilter'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  filterQueries();
 }
 
-// Calculate and display insights
 function calculateInsights() {
-    const historyItems = document.querySelectorAll('.history-item');
-    let grades = [];
-    let issues = {};
-    let scores = [];
-
-    historyItems.forEach(item => {
-        // Collect grades
-        const gradeBadge = item.querySelector('.grade-badge-small');
-        if (gradeBadge) {
-            grades.push(gradeBadge.textContent.trim());
-        }
-
-        // Collect scores
-        const scoreElement = item.querySelector('.grade-score-small');
-        if (scoreElement) {
-            const scoreText = scoreElement.textContent.trim();
-            const score = parseFloat(scoreText.split('/')[0]);
-            if (!isNaN(score)) {
-                scores.push(score);
-            }
-        }
-
-        // Collect issues
-        const issueTags = item.querySelectorAll('.issue-tag');
-        issueTags.forEach(tag => {
-            const issueType = tag.textContent.trim();
-            issues[issueType] = (issues[issueType] || 0) + 1;
-        });
+  const items = document.querySelectorAll('.history-item');
+  const scores = [], issues = {};
+  items.forEach(item => {
+    const se = item.querySelector('.grade-score-small');
+    if (se) {
+      const v = parseFloat(se.textContent.split('/')[0]);
+      if (!isNaN(v)) scores.push(v);
+    }
+    item.querySelectorAll('.issue-tag').forEach(t => {
+      const k = t.textContent.trim();
+      issues[k] = (issues[k] || 0) + 1;
     });
+  });
 
-    // Calculate average grade
-    const gradeValues = { 'A': 95, 'B': 85, 'C': 75, 'D': 65, 'F': 50 };
-    const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    const avgGradeText = avgScore >= 90 ? 'A' : avgScore >= 80 ? 'B' : avgScore >= 70 ? 'C' : avgScore >= 60 ? 'D' : 'F';
-    document.getElementById('avgGrade').textContent = avgGradeText + ' (' + avgScore.toFixed(1) + ')';
+  const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  const avgGrade = avg >= 90 ? 'A' : avg >= 80 ? 'B' : avg >= 70 ? 'C' : avg >= 60 ? 'D' : 'F';
+  document.getElementById('avgGrade').textContent = scores.length ? `${avgGrade} (${avg.toFixed(1)})` : '—';
 
-    // Calculate trend
-    const recentScores = scores.slice(-5);
-    const olderScores = scores.slice(0, Math.max(1, scores.length - 5));
-    if (recentScores.length > 0 && olderScores.length > 0) {
-        const recentAvg = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
-        const olderAvg = olderScores.reduce((a, b) => a + b, 0) / olderScores.length;
-        const improvement = recentAvg - olderAvg;
+  const trendEl = document.getElementById('gradeTrend');
+  if (scores.length >= 2) {
+    const recent = scores.slice(-5), older = scores.slice(0, Math.max(1, scores.length - 5));
+    const ra = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const oa = older.reduce((a, b) => a + b, 0) / older.length;
+    const diff = ra - oa;
+    if (diff > 5) { trendEl.textContent = `↗ Improving +${diff.toFixed(1)}`; trendEl.className = 'text-xs mt-0.5 text-emerald-600'; }
+    else if (diff < -5) { trendEl.textContent = `↘ Declining ${diff.toFixed(1)}`; trendEl.className = 'text-xs mt-0.5 text-red-600'; }
+    else { trendEl.textContent = '→ Stable'; trendEl.className = 'text-xs mt-0.5 text-gray-500'; }
+  } else {
+    trendEl.textContent = '';
+  }
 
-        if (improvement > 5) {
-            document.getElementById('gradeTrend').textContent = '↗️ Improving (+' + improvement.toFixed(1) + ')';
-            document.getElementById('gradeTrend').style.color = '#4caf50';
-        } else if (improvement < -5) {
-            document.getElementById('gradeTrend').textContent = '↘️ Declining (' + improvement.toFixed(1) + ')';
-            document.getElementById('gradeTrend').style.color = '#f44336';
-        } else {
-            document.getElementById('gradeTrend').textContent = '→ Stable';
-            document.getElementById('gradeTrend').style.color = 'rgba(255, 255, 255, 0.8)';
-        }
-    } else {
-        document.getElementById('gradeTrend').textContent = 'Not enough data';
-    }
+  let topIssue = null, topCount = 0;
+  for (const [k, v] of Object.entries(issues)) if (v > topCount) { topIssue = k; topCount = v; }
+  document.getElementById('topIssue').textContent = topIssue || 'No issues!';
+  document.getElementById('issueAction').textContent = topIssue ? `In ${topCount} ${topCount === 1 ? 'query' : 'queries'}` : 'Great job!';
 
-    // Find most common issue
-    let topIssue = null;
-    let topIssueCount = 0;
-    for (const [issue, count] of Object.entries(issues)) {
-        if (count > topIssueCount) {
-            topIssue = issue;
-            topIssueCount = count;
-        }
-    }
-
-    if (topIssue) {
-        document.getElementById('topIssue').textContent = topIssue;
-        document.getElementById('issueAction').textContent = 'Found in ' + topIssueCount + ' queries';
-    } else {
-        document.getElementById('topIssue').textContent = 'No issues!';
-        document.getElementById('issueAction').textContent = 'Great job!';
-    }
-
-    // Calculate improvement rate
-    if (scores.length >= 2) {
-        const firstHalf = scores.slice(0, Math.floor(scores.length / 2));
-        const secondHalf = scores.slice(Math.floor(scores.length / 2));
-
-        const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-        const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-        const improvementRate = ((secondAvg - firstAvg) / firstAvg * 100);
-
-        if (improvementRate > 0) {
-            document.getElementById('improvement').textContent = '+' + improvementRate.toFixed(1) + '%';
-            document.getElementById('improvementText').textContent = 'You\'re getting better!';
-        } else if (improvementRate < 0) {
-            document.getElementById('improvement').textContent = improvementRate.toFixed(1) + '%';
-            document.getElementById('improvementText').textContent = 'Room for improvement';
-        } else {
-            document.getElementById('improvement').textContent = 'Stable';
-            document.getElementById('improvementText').textContent = 'Consistent performance';
-        }
-    } else {
-        document.getElementById('improvement').textContent = 'N/A';
-        document.getElementById('improvementText').textContent = 'Need more data';
-    }
+  const impEl = document.getElementById('improvement');
+  const impText = document.getElementById('improvementText');
+  if (scores.length >= 2) {
+    const fh = scores.slice(0, Math.floor(scores.length / 2));
+    const sh = scores.slice(Math.floor(scores.length / 2));
+    const fa = fh.reduce((a, b) => a + b, 0) / fh.length;
+    const sa = sh.reduce((a, b) => a + b, 0) / sh.length;
+    const rate = ((sa - fa) / fa * 100);
+    if (rate > 0) { impEl.textContent = `+${rate.toFixed(1)}%`; impText.textContent = "You're getting better!"; }
+    else if (rate < 0) { impEl.textContent = `${rate.toFixed(1)}%`; impText.textContent = 'Room for improvement'; }
+    else { impEl.textContent = 'Stable'; impText.textContent = 'Consistent performance'; }
+  } else {
+    impEl.textContent = 'N/A';
+    impText.textContent = 'Need more data';
+  }
 }
 
-// Calculate insights on page load
-document.addEventListener('DOMContentLoaded', function() {
-    calculateInsights();
-});
+document.addEventListener('DOMContentLoaded', calculateInsights);
 </script>
-
-
 {% endblock %}
