@@ -1,244 +1,83 @@
+{% extends 'analyzer/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QueryGrade - Batch Query Analysis</title>
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
 
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+{% block title %}Batch analysis · QueryGrade{% endblock %}
 
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">📦 Batch query analysis</h1>
+    <p class="mt-1 text-sm text-gray-500">Submit multiple SQL queries at once for batch grading. Separate queries with semicolons or blank lines.</p>
+  </header>
 
-</head>
-<body>
-    <nav>
-        <h1>QueryGrade</h1>
-    </nav>
-    <div class="max-w-7xl mx-auto px-4">
+  <section class="bg-white rounded-lg border border-gray-200 p-6">
+    <form method="post" class="space-y-5">
+      {% csrf_token %}
 
-<div class="batch-container">
-    <div class="batch-header">
-        <h1>📊 Batch Query Analysis</h1>
-        <p class="subtitle">Analyze multiple SQL queries at once to identify patterns, common issues, and optimization opportunities</p>
+      <div>
+        <label for="{{ form.queries_text.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.queries_text.label }} <span class="text-red-600">*</span></label>
+        <div class="mt-1">{{ form.queries_text }}</div>
+        {% if form.queries_text.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.queries_text.help_text }}</p>{% endif %}
+        {% if form.queries_text.errors %}<p class="mt-1 text-xs text-red-600">{{ form.queries_text.errors|join:", " }}</p>{% endif %}
+      </div>
 
-        <div class="navigation-tabs">
-            <a href="{% url 'grade_query' %}" class="tab-link">Grade Query</a>
-            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
-            <a href="{% url 'query_compare' %}" class="tab-link">Compare Queries</a>
-            <a href="{% url 'batch_analysis' %}" class="tab-link active">Batch Analysis</a>
-            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="{{ form.database_type.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.database_type.label }}</label>
+          <div class="mt-1">{{ form.database_type }}</div>
+          {% if form.database_type.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_type.help_text }}</p>{% endif %}
         </div>
-    </div>
-
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
+        <div>
+          <label for="{{ form.database_version.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.database_version.label }}</label>
+          <div class="mt-1">{{ form.database_version }}</div>
+          {% if form.database_version.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_version.help_text }}</p>{% endif %}
         </div>
-    {% endif %}
+      </div>
 
-    <div class="feature-info">
-        <h4>🚀 Batch Analysis Features</h4>
-        <ul>
-            <li>Analyze up to 20 SQL queries simultaneously</li>
-            <li>Generate comprehensive statistics and grade distribution</li>
-            <li>Identify common issues across multiple queries</li>
-            <li>Compare performance and find best/worst performing queries</li>
-            <li>Export detailed results for documentation and reporting</li>
-        </ul>
-    </div>
+      <div>
+        <label for="{{ form.analysis_notes.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.analysis_notes.label }}</label>
+        <div class="mt-1">{{ form.analysis_notes }}</div>
+        {% if form.analysis_notes.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.analysis_notes.help_text }}</p>{% endif %}
+      </div>
 
-    <div class="batch-form-container">
-        <form method="post" class="batch-form">
-            {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">{{ form.non_field_errors|join:", " }}</div>
+      {% endif %}
 
-            <!-- SQL Queries Section -->
-            <div class="form-section">
-                <h3>📝 SQL Queries</h3>
+      <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+          📊 Analyze batch
+        </button>
+        <button type="button" onclick="loadExample()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">📋 Load example</button>
+        <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Single query →</a>
+      </div>
+    </form>
+  </section>
 
-                <div class="mb-4">
-                    <label for="{{ form.queries_text.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                        {{ form.queries_text.label }} <span class="required">*</span>
-                    </label>
-                    {{ form.queries_text }}
-                    <div class="form-help">{{ form.queries_text.help_text }}</div>
-                </div>
-            </div>
-
-            <!-- Configuration Section -->
-            <div class="form-section">
-                <h3>⚙️ Analysis Configuration</h3>
-
-                <div class="form-row">
-                    <div class="half-width">
-                        <div class="mb-4">
-                            <label for="{{ form.database_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                {{ form.database_type.label }}
-                            </label>
-                            {{ form.database_type }}
-                            <div class="form-help">{{ form.database_type.help_text }}</div>
-                        </div>
-                    </div>
-
-                    <div class="half-width">
-                        <div class="mb-4">
-                            <label for="{{ form.database_version.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                {{ form.database_version.label }}
-                            </label>
-                            {{ form.database_version }}
-                            <div class="form-help">{{ form.database_version.help_text }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label for="{{ form.analysis_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                        {{ form.analysis_notes.label }}
-                    </label>
-                    {{ form.analysis_notes }}
-                    <div class="form-help">{{ form.analysis_notes.help_text }}</div>
-                </div>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                    <span>📊</span>
-                    Analyze Batch
-                </button>
-                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50" onclick="clearForm()">
-                    Clear All
-                </button>
-            </div>
-        </form>
-    </div>
+  <section class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 text-sm text-indigo-900">
+    <p class="font-semibold">💡 Tip</p>
+    <p class="mt-1 text-indigo-800">Each query gets a separate grade and analysis. Use semicolons (<code class="font-mono bg-white px-1 rounded">;</code>) or blank lines to separate queries. The summary will rank them and surface common issues.</p>
+  </section>
 </div>
 
-    </div>
-
-<!-- CodeMirror JavaScript -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-
 <script>
-let sqlEditor;
+function loadExample() {
+  const ta = document.getElementById('{{ form.queries_text.id_for_label }}');
+  if (!ta) return;
+  ta.value = `-- Query 1: SELECT *
+SELECT * FROM users WHERE active = 1;
 
-// Initialize CodeMirror SQL editor
-document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.querySelector('textarea.sql-editor');
+-- Query 2: Optimized version
+SELECT id, name, email FROM users WHERE active = 1 LIMIT 100;
 
-    if (textarea) {
-        // Create CodeMirror instance
-        sqlEditor = CodeMirror.fromTextArea(textarea, {
-            mode: 'text/x-sql',
-            theme: 'material-darker',
-            lineNumbers: true,
-            indentUnit: 2,
-            smartIndent: true,
-            lineWrapping: true,
-            autoCloseBrackets: true,
-            matchBrackets: true,
-            showCursorWhenSelecting: true,
-            extraKeys: {
-                "Ctrl-Space": "autocomplete",
-                "Cmd-Space": "autocomplete",
-                "F11": function(cm) {
-                    cm.setOption("fullScreen", !cm.getOption("fullScreen"));
-                },
-                "Esc": function(cm) {
-                    if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
-                }
-            },
-            hintOptions: {
-                tables: {
-                    users: ["id", "name", "email", "created_at", "status", "last_login"],
-                    orders: ["id", "user_id", "total", "status", "created_at", "shipped_at"],
-                    products: ["id", "name", "price", "category", "in_stock", "description"],
-                    customers: ["id", "name", "email", "phone", "address", "registration_date"],
-                    employees: ["id", "name", "department", "salary", "hire_date", "manager_id"],
-                    categories: ["id", "name", "description", "parent_id"]
-                }
-            }
-        });
-
-        // Set editor height
-        sqlEditor.setSize(null, 400);
-
-        // Enable auto-completion
-        sqlEditor.on("inputRead", function(cm, event) {
-            if (event.text[0].match(/\w/) || event.text[0] === '.') {
-                cm.showHint();
-            }
-        });
-
-        // Sync with form submission
-        sqlEditor.on('change', function() {
-            sqlEditor.save(); // Save to original textarea
-        });
-    }
-});
-
-function clearForm() {
-    // Clear CodeMirror editor
-    if (sqlEditor) {
-        sqlEditor.setValue('');
-    }
-
-    // Clear regular form fields
-    document.querySelectorAll('input[type="text"], textarea:not(.sql-editor), select').forEach(field => {
-        field.value = '';
-        if (field.selectedIndex !== undefined) {
-            field.selectedIndex = 0;
-        }
-    });
-}
-
-// Load example queries for testing
-function loadBatchExample() {
-    if (sqlEditor) {
-        const exampleQueries = `SELECT * FROM users WHERE active = 1;
-
-SELECT COUNT(*) FROM orders WHERE status = 'pending';
-
-SELECT u.name, u.email, COUNT(o.id) as order_count
+-- Query 3: With proper joins
+SELECT u.id, u.name, COUNT(o.id) AS order_count
 FROM users u
 LEFT JOIN orders o ON u.id = o.user_id
-WHERE u.created_at >= '2023-01-01'
-GROUP BY u.id, u.name, u.email
+WHERE u.active = 1
+GROUP BY u.id, u.name
 ORDER BY order_count DESC
-LIMIT 10;
-
-SELECT p.name, p.price, c.name as category
-FROM products p
-JOIN categories c ON p.category_id = c.id
-WHERE p.in_stock > 0;
-
-SELECT AVG(total) as avg_order_value
-FROM orders
-WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY);`;
-
-        sqlEditor.setValue(exampleQueries);
-
-        // Set analysis notes
-        const notesTextarea = document.querySelector('textarea[id*="analysis_notes"]');
-        if (notesTextarea) {
-            notesTextarea.value = 'Sample batch analysis including basic selects, aggregations, joins, and analytics queries for testing purposes.';
-        }
-    }
+LIMIT 50;`;
 }
-
-// Add example button functionality
-console.log('Use loadBatchExample() to load example queries for batch analysis');
 </script>
-
-</body>
-</html>
+{% endblock %}
