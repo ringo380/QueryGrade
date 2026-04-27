@@ -1,0 +1,29 @@
+# Slim production deps for the Railway web service.
+# Excludes heavy ML frameworks (tensorflow/torch/transformers/xgboost/lightgbm/matplotlib)
+# which are only used inside analyzer/ml/ensemble/ and analyzer/ml/training/.
+# Those run in the separate Celery worker service (see requirements-worker.txt).
+
+Django>=4.0,<5.0
+gunicorn>=22.0.0
+psycopg2-binary>=2.9.3
+pandas>=2.0.0
+scikit-learn>=1.5.0
+numpy>=1.21.0
+whitenoise==6.2.0
+sqlparse>=0.4.2
+django-crispy-forms>=1.14.0
+djangorestframework>=3.14.0
+djangorestframework-simplejwt>=5.2.0
+celery>=5.2.0
+redis>=4.0.0
+django-redis>=5.0.0
+joblib>=1.2.0
+
+# Security & Configuration
+django-csp==4.0
+django-ratelimit==4.1.0
+python-decouple>=3.8
+
+# Documentation Loading Dependencies
+beautifulsoup4>=4.12.0
+requests>=2.31.0

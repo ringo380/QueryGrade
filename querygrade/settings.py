@@ -14,7 +14,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-CHANGE-ME-IN-PRODUCTI
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,querygrade.com,querygrade.net,.up.railway.app',
+    cast=Csv(),
+)
 
 # Application definition
 
@@ -360,7 +364,11 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_USE_SESSIONS = True
 CSRF_COOKIE_AGE = 3600  # 1 hour
-CSRF_TRUSTED_ORIGINS = []  # Add trusted origins for production
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://querygrade.com,https://querygrade.net,https://querygrade-production.up.railway.app',
+    cast=Csv(),
+)
 CSRF_FAILURE_VIEW = 'analyzer.views.csrf_failure'
 
 # Enhanced XSS Protection Settings
