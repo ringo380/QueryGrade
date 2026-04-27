@@ -1,238 +1,44 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
-{% block title %}Database Analysis - QueryGrade{% endblock %}
-
-
+{% block title %}Connect database · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 mt-4">
-    <div class="row justify-center">
-        <div class="lg:w-66/100">
-            <div class="bg-white rounded-lg border border-gray-200">
-                <div class="px-4 py-3 border-b border-gray-100 font-semibold">
-                    <h4 class="mb-0">
-                        <i class="fas fa-database me-2"></i>
-                        Database Architecture Analysis
-                    </h4>
-                </div>
-                <div class="p-4">
-                    <div class="connection-info">
-                        <h6><i class="fas fa-info-circle me-2"></i>About Database Analysis</h6>
-                        <p class="mb-0">
-                            Connect to your database to perform comprehensive schema analysis,
-                            query optimization with context-aware recommendations, and identify
-                            performance improvement opportunities based on your actual database structure.
-                        </p>
-                    </div>
+<div class="max-w-3xl mx-auto space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">🗄️ Connect a database</h1>
+    <p class="mt-1 text-sm text-gray-500">Connect to your database to enable schema introspection and context-aware query analysis.</p>
+  </header>
 
-                    <div class="security-notice">
-                        <h6><i class="fas fa-shield-alt me-2"></i>Security Notice</h6>
-                        <p class="mb-0">
-                            <strong>Your database credentials are secure:</strong> Connection details are used only
-                            for read-only analysis during your session and are not stored permanently.
-                            We recommend using a read-only database user for maximum security.
-                        </p>
-                    </div>
+  <section class="bg-white rounded-lg border border-gray-200 p-6">
+    <form method="post" class="space-y-5">
+      {% csrf_token %}
 
-                    <form method="post">
-                        {% csrf_token %}
+      {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ field.label }}{% if field.field.required %} <span class="text-red-600">*</span>{% endif %}</label>
+        <div class="mt-1">{{ field }}</div>
+        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text|safe }}</p>{% endif %}
+        {% if field.errors %}<p class="mt-1 text-xs text-red-600">{{ field.errors|join:", " }}</p>{% endif %}
+      </div>
+      {% endfor %}
 
-                        <!-- Database Engine Selection -->
-                        <div class="mb-4">
-                            <label for="{{ form.engine.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.engine.label }}</label>
-                            {{ form.engine }}
-                            {% if form.engine.help_text %}
-                                <div class="help-text">{{ form.engine.help_text }}</div>
-                            {% endif %}
-                            {% if form.engine.errors %}
-                                <div class="text-red-600 mt-1">
-                                    {% for error in form.engine.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+      {% if form.non_field_errors %}
+      <div class="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">{{ form.non_field_errors|join:", " }}</div>
+      {% endif %}
 
-                        <!-- Database Name -->
-                        <div class="mb-4">
-                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.name.label }}</label>
-                            {{ form.name }}
-                            {% if form.name.help_text %}
-                                <div class="help-text">{{ form.name.help_text }}</div>
-                            {% endif %}
-                            {% if form.name.errors %}
-                                <div class="text-red-600 mt-1">
-                                    {% for error in form.name.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+      <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+          🔌 Test & connect
+        </button>
+        <a href="{% url 'index' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Cancel</a>
+      </div>
+    </form>
+  </section>
 
-                        <div class="flex flex-wrap gap-4">
-                            <!-- Host -->
-                            <div class="md:flex-1">
-                                <div class="mb-4">
-                                    <label for="{{ form.host.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.host.label }}</label>
-                                    {{ form.host }}
-                                    {% if form.host.help_text %}
-                                        <div class="help-text">{{ form.host.help_text }}</div>
-                                    {% endif %}
-                                    {% if form.host.errors %}
-                                        <div class="text-red-600 mt-1">
-                                            {% for error in form.host.errors %}{{ error }}{% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Port -->
-                            <div class="md:flex-1">
-                                <div class="mb-4">
-                                    <label for="{{ form.port.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.port.label }}</label>
-                                    {{ form.port }}
-                                    {% if form.port.help_text %}
-                                        <div class="help-text">{{ form.port.help_text }}</div>
-                                    {% endif %}
-                                    {% if form.port.errors %}
-                                        <div class="text-red-600 mt-1">
-                                            {% for error in form.port.errors %}{{ error }}{% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-4">
-                            <!-- Username -->
-                            <div class="md:flex-1">
-                                <div class="mb-4">
-                                    <label for="{{ form.user.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.user.label }}</label>
-                                    {{ form.user }}
-                                    {% if form.user.help_text %}
-                                        <div class="help-text">{{ form.user.help_text }}</div>
-                                    {% endif %}
-                                    {% if form.user.errors %}
-                                        <div class="text-red-600 mt-1">
-                                            {% for error in form.user.errors %}{{ error }}{% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Password -->
-                            <div class="md:flex-1">
-                                <div class="mb-4">
-                                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.password.label }}</label>
-                                    {{ form.password }}
-                                    {% if form.password.help_text %}
-                                        <div class="help-text">{{ form.password.help_text }}</div>
-                                    {% endif %}
-                                    {% if form.password.errors %}
-                                        <div class="text-red-600 mt-1">
-                                            {% for error in form.password.errors %}{{ error }}{% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Schema (for PostgreSQL) -->
-                        <div class="mb-4" id="schema-field" style="display: none;">
-                            <label for="{{ form.schema.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.schema.label }}</label>
-                            {{ form.schema }}
-                            {% if form.schema.help_text %}
-                                <div class="help-text">{{ form.schema.help_text }}</div>
-                            {% endif %}
-                            {% if form.schema.errors %}
-                                <div class="text-red-600 mt-1">
-                                    {% for error in form.schema.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Form Errors -->
-                        {% if form.non_field_errors %}
-                            <div class="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">
-                                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'index' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
-                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                                <i class="fas fa-plug me-2"></i>
-                                Connect & Analyze Database
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Features Overview -->
-            <div class="bg-white rounded-lg border border-gray-200 mt-4">
-                <div class="px-4 py-3 border-b border-gray-100 font-semibold">
-                    <h5 class="mb-0">What You'll Get</h5>
-                </div>
-                <div class="p-4">
-                    <div class="flex flex-wrap gap-4">
-                        <div class="md:flex-1">
-                            <h6><i class="fas fa-min-w-full text-sm text-indigo-600 me-2"></i>Schema Analysis</h6>
-                            <ul class="list-unstyled ms-3">
-                                <li>• Table structure overview</li>
-                                <li>• Column types and constraints</li>
-                                <li>• Index analysis</li>
-                                <li>• Foreign key relationships</li>
-                            </ul>
-                        </div>
-                        <div class="md:flex-1">
-                            <h6><i class="fas fa-search text-emerald-600 me-2"></i>Context-Aware Query Analysis</h6>
-                            <ul class="list-unstyled ms-3">
-                                <li>• Schema-specific recommendations</li>
-                                <li>• Index usage optimization</li>
-                                <li>• Query execution plans</li>
-                                <li>• Performance insights</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900">
+    <p class="font-semibold">🔒 Security note</p>
+    <p class="mt-1 text-amber-800">Credentials are used only to introspect schema and run EXPLAIN — they're stored in your session and not persisted to disk. Use a read-only DB user where possible.</p>
+  </section>
 </div>
-
-<script>
-    // Show/hide schema field based on database engine
-    document.getElementById('id_engine').addEventListener('change', function() {
-        const schemaField = document.getElementById('schema-field');
-        if (this.value === 'postgresql') {
-            schemaField.style.display = 'block';
-        } else {
-            schemaField.style.display = 'none';
-        }
-    });
-
-    // Auto-populate default ports
-    document.getElementById('id_engine').addEventListener('change', function() {
-        const portField = document.getElementById('id_port');
-        const hostField = document.getElementById('id_host');
-        const userField = document.getElementById('id_user');
-
-        switch(this.value) {
-            case 'mysql':
-                if (!portField.value) portField.value = '3306';
-                if (!hostField.value) hostField.value = 'localhost';
-                break;
-            case 'postgresql':
-                if (!portField.value) portField.value = '5432';
-                if (!hostField.value) hostField.value = 'localhost';
-                break;
-            case 'sqlite':
-                portField.value = '';
-                hostField.value = '';
-                userField.value = '';
-                break;
-        }
-    });
-
-    // Initial setup
-    document.getElementById('id_engine').dispatchEvent(new Event('change'));
-</script>
 {% endblock %}
