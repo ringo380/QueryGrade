@@ -270,6 +270,8 @@ ML_PERFORMANCE_THRESHOLD = 0.7         # Min accuracy threshold
 - Manual deploy: `railway up --service querygrade --detach` (uploads local working tree, bypasses GitHub).
 - `railway add -d postgres` needs a TTY: `script -q /dev/null railway add -d postgres`.
 - Slim/worker split: `requirements-prod.txt` (web, no tensorflow/torch/transformers) + `requirements-worker.txt` (full ML). ML imports gated to `analyzer/ml/ensemble/multi_model.py`.
+- Check live deploy status: `railway status --json | python3 -c "import json,sys; d=json.load(sys.stdin); [print(e['node']['serviceName'], '->', e['node']['latestDeployment']['status']) for e in d['environments']['edges'][0]['node']['serviceInstances']['edges']]"`
+- PR merge requires `gh pr merge <N> --admin --squash --delete-branch` — required checks (Test Suite, Security Scan, Trivy) stay PENDING due to a GitHub Actions billing block on this repo.
 
 ## Key Dependencies
 
