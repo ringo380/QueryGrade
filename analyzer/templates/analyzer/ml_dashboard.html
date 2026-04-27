@@ -1,518 +1,287 @@
-{% extends 'base.html' %}
+{% extends 'analyzer/base.html' %}
 {% load static %}
 
-{% block title %}ML Performance Dashboard - QueryGrade{% endblock %}
-
-
+{% block title %}ML dashboard · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">
-            <i class="fas fa-chart-line"></i>
-            ML Performance Dashboard
-        </h1>
-        <p class="dashboard-subtitle">
-            Real-time monitoring of machine learning system performance and user satisfaction
-        </p>
+<div class="space-y-6">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">📈 ML performance dashboard</h1>
+      <p class="mt-1 text-sm text-gray-500">Real-time monitoring of ML system performance and user satisfaction.</p>
     </div>
+    <div class="text-xs text-gray-500">Last updated: <span id="last-update">—</span></div>
+  </header>
 
-    <!-- System Overview -->
-    <div class="row mb-4">
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-database"></i>
-                    Total Queries
-                </div>
-                <div class="metric-value" id="total-queries">-</div>
-                <div class="metric-label">Analyzed</div>
-            </div>
-        </div>
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-thumbs-up"></i>
-                    User Feedback
-                </div>
-                <div class="metric-value" id="total-feedback">-</div>
-                <div class="metric-label">Items Collected</div>
-            </div>
-        </div>
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-robot"></i>
-                    Model Accuracy
-                </div>
-                <div class="metric-value" id="model-accuracy">-</div>
-                <div class="metric-label">Validation Score</div>
-            </div>
-        </div>
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-star"></i>
-                    Satisfaction
-                </div>
-                <div class="metric-value" id="avg-satisfaction">-</div>
-                <div class="metric-label">Average Rating</div>
-            </div>
-        </div>
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500 flex items-center gap-1"><span>🗄️</span><span>Total queries</span></div>
+      <div class="mt-2 text-3xl font-bold text-gray-900" id="total-queries">—</div>
+      <div class="text-xs text-gray-500">Analyzed</div>
     </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500 flex items-center gap-1"><span>👍</span><span>Feedback</span></div>
+      <div class="mt-2 text-3xl font-bold text-gray-900" id="total-feedback">—</div>
+      <div class="text-xs text-gray-500">Items collected</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500 flex items-center gap-1"><span>🤖</span><span>Model accuracy</span></div>
+      <div class="mt-2 text-3xl font-bold text-gray-900" id="model-accuracy">—</div>
+      <div class="text-xs text-gray-500">Validation score</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500 flex items-center gap-1"><span>⭐</span><span>Satisfaction</span></div>
+      <div class="mt-2 text-3xl font-bold text-gray-900" id="avg-satisfaction">—</div>
+      <div class="text-xs text-gray-500">Average rating</div>
+    </div>
+  </section>
 
-    <!-- Charts Row -->
-    <div class="row mb-4">
-        <div class="md:flex-1">
-            <div class="chart-container">
-                <div class="chart-title">
-                    User Satisfaction Trend (Last 30 Days)
-                </div>
-                <canvas id="satisfactionTrendChart" height="300"></canvas>
-            </div>
-        </div>
-        <div class="md:flex-1">
-            <div class="chart-container">
-                <div class="chart-title">
-                    Feedback Distribution
-                </div>
-                <canvas id="feedbackDistributionChart" height="300"></canvas>
-            </div>
-        </div>
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">User satisfaction trend (last 30 days)</h3>
+      <div class="h-72"><canvas id="satisfactionTrendChart"></canvas></div>
     </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Feedback distribution</h3>
+      <div class="h-72"><canvas id="feedbackDistributionChart"></canvas></div>
+    </div>
+  </section>
 
-    <!-- Model Performance and Training -->
-    <div class="row mb-4">
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-cogs"></i>
-                    Active Models
-                </div>
-                <div class="model-list" id="active-models">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-        </div>
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-graduation-cap"></i>
-                    Training Pipeline
-                </div>
-                <div id="training-status">
-                    <div class="loading-spinner"></div>
-                </div>
-                <button class="btn-dashboard mt-3" onclick="triggerTraining()">
-                    <i class="fas fa-play"></i>
-                    Trigger Training
-                </button>
-            </div>
-        </div>
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">⚙️ Active models</h3>
+      <div id="active-models" class="space-y-2 text-sm text-gray-500">Loading…</div>
     </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">🎓 Training pipeline</h3>
+      <div id="training-status" class="text-sm text-gray-500">Loading…</div>
+      <button onclick="triggerTraining()" class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+        ▶ Trigger training
+      </button>
+    </div>
+  </section>
 
-    <!-- Feature Importance -->
-    <div class="row mb-4">
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-chart-bar"></i>
-                    Top Feature Importance
-                </div>
-                <div id="feature-importance">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-        </div>
-        <div class="md:flex-1">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    System Alerts
-                </div>
-                <div id="system-alerts">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-        </div>
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">📊 Top feature importance</h3>
+      <div id="feature-importance" class="space-y-2 text-sm text-gray-500">Loading…</div>
     </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">⚠ System alerts</h3>
+      <div id="system-alerts" class="space-y-2 text-sm text-gray-500">Loading…</div>
+    </div>
+  </section>
 
-    <!-- Real-time Activity -->
-    <div class="flex flex-wrap gap-4">
-        <div class="col-12">
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-title">
-                    <i class="fas fa-pulse"></i>
-                    Real-time Activity
-                </div>
-                <div class="flex flex-wrap gap-4">
-                    <div class="md:flex-1">
-                        <div class="metric-value" id="queries-last-hour">-</div>
-                        <div class="metric-label">Queries (Last Hour)</div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="metric-value" id="feedback-last-hour">-</div>
-                        <div class="metric-label">Feedback (Last Hour)</div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="metric-value" id="active-users-hour">-</div>
-                        <div class="metric-label">Active Users</div>
-                    </div>
-                    <div class="md:flex-1">
-                        <div class="metric-value">
-                            <span class="status-indicator status-active"></span>
-                            Online
-                        </div>
-                        <div class="metric-label">System Status</div>
-                    </div>
-                </div>
-                <div class="refresh-indicator">
-                    Last updated: <span id="last-update">-</span>
-                </div>
-            </div>
-        </div>
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">⚡ Real-time activity</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div>
+        <div class="text-2xl font-bold text-indigo-700" id="queries-last-hour">—</div>
+        <div class="text-xs text-gray-500">Queries (last hour)</div>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-emerald-700" id="feedback-last-hour">—</div>
+        <div class="text-xs text-gray-500">Feedback (last hour)</div>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-amber-700" id="active-users-hour">—</div>
+        <div class="text-xs text-gray-500">Active users</div>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-emerald-700 inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>Online</div>
+        <div class="text-xs text-gray-500">System status</div>
+      </div>
     </div>
+  </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
 <script>
-    // Dashboard data and charts
-    let satisfactionChart, distributionChart;
-    let refreshInterval;
+let satisfactionChart, distributionChart, refreshInterval;
 
-    // Initialize dashboard
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeCharts();
-        loadDashboardData();
-        startAutoRefresh();
+document.addEventListener('DOMContentLoaded', () => {
+  initializeCharts();
+  loadDashboardData();
+  refreshInterval = setInterval(loadDashboardData, 30000);
+});
+
+window.addEventListener('beforeunload', () => { if (refreshInterval) clearInterval(refreshInterval); });
+
+function initializeCharts() {
+  const sCtx = document.getElementById('satisfactionTrendChart').getContext('2d');
+  satisfactionChart = new Chart(sCtx, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Satisfaction', data: [], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.15)', tension: 0.3, fill: true }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+        y: { min: 1, max: 5, ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } },
+      },
+    },
+  });
+
+  const dCtx = document.getElementById('feedbackDistributionChart').getContext('2d');
+  distributionChart = new Chart(dCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['1 ★', '2 ★', '3 ★', '4 ★', '5 ★'],
+      datasets: [{ data: [], backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#3b82f6', '#10b981'] }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { color: '#374151', padding: 12 } } },
+    },
+  });
+}
+
+function loadDashboardData() {
+  Promise.all([
+    fetch('/ml/api/overview/'),
+    fetch('/ml/api/models/'),
+    fetch('/ml/api/satisfaction/'),
+    fetch('/ml/api/training/'),
+    fetch('/ml/api/realtime/'),
+    fetch('/ml/api/feature-importance/'),
+  ])
+    .then(rs => Promise.all(rs.map(r => r.json())))
+    .then(([overview, models, satisfaction, training, realtime, features]) => {
+      updateOverview(overview.data);
+      updateModels(models.data);
+      updateSatisfaction(satisfaction.data);
+      updateTraining(training.data);
+      updateRealtime(realtime.data);
+      updateFeatures(features.data);
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+    })
+    .catch(err => {
+      console.error('Dashboard load failed:', err);
+      showToast('Error loading dashboard data', 'error');
     });
+}
 
-    function initializeCharts() {
-        // Satisfaction trend chart
-        const satisfactionCtx = document.getElementById('satisfactionTrendChart').getContext('2d');
-        satisfactionChart = new Chart(satisfactionCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'User Satisfaction',
-                    data: [],
-                    borderColor: '#00d4aa',
-                    backgroundColor: 'rgba(0, 212, 170, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#e8e8e2'
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#8fa4b3'
-                        },
-                        grid: {
-                            color: '#3a4553'
-                        }
-                    },
-                    y: {
-                        min: 1,
-                        max: 5,
-                        ticks: {
-                            color: '#8fa4b3'
-                        },
-                        grid: {
-                            color: '#3a4553'
-                        }
-                    }
-                }
-            }
-        });
+function updateOverview(d) {
+  document.getElementById('total-queries').textContent = d.system_metrics.total_queries.toLocaleString();
+  document.getElementById('total-feedback').textContent = d.system_metrics.total_feedback.toLocaleString();
+  document.getElementById('model-accuracy').textContent = d.performance_metrics.model_accuracy + '%';
+  document.getElementById('avg-satisfaction').textContent = d.performance_metrics.avg_satisfaction.toFixed(1);
+}
 
-        // Feedback distribution chart
-        const distributionCtx = document.getElementById('feedbackDistributionChart').getContext('2d');
-        distributionChart = new Chart(distributionCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
-                datasets: [{
-                    data: [],
-                    backgroundColor: [
-                        '#ff6b6b',
-                        '#ffa726',
-                        '#ffeb3b',
-                        '#42a5f5',
-                        '#00d4aa'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#e8e8e2',
-                            padding: 20
-                        }
-                    }
-                }
-            }
-        });
-    }
+function updateModels(d) {
+  const c = document.getElementById('active-models');
+  c.innerHTML = '';
+  d.models.slice(0, 5).forEach(m => {
+    const div = document.createElement('div');
+    div.className = `rounded-md border p-3 flex items-center justify-between gap-3 ${m.is_active ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50'}`;
+    div.innerHTML = `
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="h-2 w-2 rounded-full flex-shrink-0 ${m.is_active ? 'bg-emerald-500' : 'bg-gray-400'}"></span>
+        <span class="font-mono text-sm font-semibold text-gray-900 truncate">${m.version}</span>
+      </div>
+      <div class="text-xs text-gray-600 flex flex-shrink-0 gap-3">
+        <span>Acc ${(m.validation_accuracy * 100).toFixed(1)}%</span>
+        <span>${m.training_samples} samples</span>
+      </div>`;
+    c.appendChild(div);
+  });
+  if (!d.models.length) c.innerHTML = '<p class="text-sm text-gray-400">No models trained yet.</p>';
+}
 
-    function loadDashboardData() {
-        Promise.all([
-            fetch('/analyzer/ml/api/overview/'),
-            fetch('/analyzer/ml/api/models/'),
-            fetch('/analyzer/ml/api/satisfaction/'),
-            fetch('/analyzer/ml/api/training/'),
-            fetch('/analyzer/ml/api/realtime/'),
-            fetch('/analyzer/ml/api/feature-importance/')
-        ]).then(responses => Promise.all(responses.map(r => r.json())))
-        .then(([overview, models, satisfaction, training, realtime, features]) => {
-            updateOverviewMetrics(overview.data);
-            updateModels(models.data);
-            updateSatisfactionData(satisfaction.data);
-            updateTrainingStatus(training.data);
-            updateRealtimeMetrics(realtime.data);
-            updateFeatureImportance(features.data);
-            updateLastRefresh();
-        })
-        .catch(error => {
-            console.error('Error loading dashboard data:', error);
-            showAlert('Error loading dashboard data', 'warning');
-        });
-    }
+function updateSatisfaction(d) {
+  const trend = (d.satisfaction_trend || []).filter(x => x.satisfaction !== null);
+  satisfactionChart.data.labels = trend.map(x => x.date);
+  satisfactionChart.data.datasets[0].data = trend.map(x => x.satisfaction);
+  satisfactionChart.update();
 
-    function updateOverviewMetrics(data) {
-        document.getElementById('total-queries').textContent = data.system_metrics.total_queries.toLocaleString();
-        document.getElementById('total-feedback').textContent = data.system_metrics.total_feedback.toLocaleString();
-        document.getElementById('model-accuracy').textContent = data.performance_metrics.model_accuracy + '%';
-        document.getElementById('avg-satisfaction').textContent = data.performance_metrics.avg_satisfaction.toFixed(1);
-    }
+  const dist = d.satisfaction_distribution || {};
+  distributionChart.data.datasets[0].data = ['1', '2', '3', '4', '5'].map(k => dist[k] || 0);
+  distributionChart.update();
+}
 
-    function updateModels(data) {
-        const container = document.getElementById('active-models');
-        container.innerHTML = '';
+function updateTraining(d) {
+  const c = document.getElementById('training-status');
+  const s = d.pipeline_status;
+  c.innerHTML = `
+    <div class="space-y-1.5">
+      <p><strong>Training data:</strong> ${s.training_data.total_samples} samples
+        <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs ${s.training_data.ready_for_training ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${s.training_data.ready_for_training ? 'Ready' : 'Not ready'}</span></p>
+      <p><strong>Latest model:</strong> ${s.latest_model.version || 'None'}
+        <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs ${s.latest_model.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${s.latest_model.is_active ? 'Active' : 'Inactive'}</span></p>
+      <p><strong>Recent feedback:</strong> ${s.recent_activity.feedback_last_week} items (7 days)</p>
+    </div>`;
+  if (d.recommendations && d.recommendations.length) {
+    const rec = document.createElement('div');
+    rec.className = 'mt-3 space-y-1.5';
+    rec.innerHTML = '<p class="text-xs font-semibold uppercase text-gray-500">Recommendations</p>' +
+      d.recommendations.map(r => `<div class="text-xs rounded p-2 border bg-${r.type === 'warning' ? 'amber' : r.type === 'error' ? 'red' : 'sky'}-50 border-${r.type === 'warning' ? 'amber' : r.type === 'error' ? 'red' : 'sky'}-200"><strong>${r.title}:</strong> ${r.message}</div>`).join('');
+    c.appendChild(rec);
+  }
+}
 
-        data.models.slice(0, 5).forEach(model => {
-            const modelDiv = document.createElement('div');
-            modelDiv.className = `model-item ${model.is_active ? 'active' : ''}`;
-            modelDiv.innerHTML = `
-                <div class="model-version">
-                    ${model.is_active ? '<span class="status-indicator status-active"></span>' : '<span class="status-indicator status-inactive"></span>'}
-                    ${model.version}
-                </div>
-                <div class="model-metrics">
-                    <span class="model-metric">Accuracy: ${(model.validation_accuracy * 100).toFixed(1)}%</span>
-                    <span class="model-metric">Samples: ${model.training_samples}</span>
-                </div>
-            `;
-            container.appendChild(modelDiv);
-        });
-    }
+function updateRealtime(d) {
+  document.getElementById('queries-last-hour').textContent = d.recent_activity.queries_last_hour;
+  document.getElementById('feedback-last-hour').textContent = d.recent_activity.feedback_last_hour;
+  document.getElementById('active-users-hour').textContent = d.recent_activity.active_users_last_hour;
 
-    function updateSatisfactionData(data) {
-        // Update satisfaction trend chart
-        const trendData = data.satisfaction_trend.filter(item => item.satisfaction !== null);
-        satisfactionChart.data.labels = trendData.map(item => item.date);
-        satisfactionChart.data.datasets[0].data = trendData.map(item => item.satisfaction);
-        satisfactionChart.update();
-
-        // Update distribution chart
-        const distribution = data.satisfaction_distribution;
-        distributionChart.data.datasets[0].data = [
-            distribution['1'] || 0,
-            distribution['2'] || 0,
-            distribution['3'] || 0,
-            distribution['4'] || 0,
-            distribution['5'] || 0
-        ];
-        distributionChart.update();
-    }
-
-    function updateTrainingStatus(data) {
-        const container = document.getElementById('training-status');
-        const status = data.pipeline_status;
-
-        container.innerHTML = `
-            <div class="mb-3">
-                <strong>Training Data:</strong> ${status.training_data.total_samples} samples
-                ${status.training_data.ready_for_training ?
-                    '<span class="status-indicator status-active"></span>Ready' :
-                    '<span class="status-indicator status-warning"></span>Not Ready'}
-            </div>
-            <div class="mb-3">
-                <strong>Latest Model:</strong> ${status.latest_model.version || 'None'}
-                ${status.latest_model.is_active ?
-                    '<span class="status-indicator status-active"></span>Active' :
-                    '<span class="status-indicator status-inactive"></span>Inactive'}
-            </div>
-            <div>
-                <strong>Recent Feedback:</strong> ${status.recent_activity.feedback_last_week} items (7 days)
-            </div>
-        `;
-
-        // Show recommendations
-        if (data.recommendations && data.recommendations.length > 0) {
-            const recommendationsDiv = document.createElement('div');
-            recommendationsDiv.className = 'mt-3';
-            recommendationsDiv.innerHTML = '<strong>Recommendations:</strong>';
-
-            data.recommendations.forEach(rec => {
-                const recDiv = document.createElement('div');
-                recDiv.className = `alert-bg-white rounded-lg border border-gray-200 alert-${rec.type} mt-2`;
-                recDiv.innerHTML = `<small><strong>${rec.title}:</strong> ${rec.message}</small>`;
-                recommendationsDiv.appendChild(recDiv);
-            });
-
-            container.appendChild(recommendationsDiv);
-        }
-    }
-
-    function updateRealtimeMetrics(data) {
-        document.getElementById('queries-last-hour').textContent = data.recent_activity.queries_last_hour;
-        document.getElementById('feedback-last-hour').textContent = data.recent_activity.feedback_last_hour;
-        document.getElementById('active-users-hour').textContent = data.recent_activity.active_users_last_hour;
-
-        // Update alerts
-        const alertsContainer = document.getElementById('system-alerts');
-        alertsContainer.innerHTML = '';
-
-        if (data.alerts.length === 0) {
-            alertsContainer.innerHTML = '<div class="alert-bg-white rounded-lg border border-gray-200 alert-success">All systems operating normally</div>';
-        } else {
-            data.alerts.forEach(alert => {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert-bg-white rounded-lg border border-gray-200 alert-${alert.type}`;
-                alertDiv.innerHTML = `<small><strong>${alert.severity.toUpperCase()}:</strong> ${alert.message}</small>`;
-                alertsContainer.appendChild(alertDiv);
-            });
-        }
-    }
-
-    function updateFeatureImportance(data) {
-        if (!data || !data.top_features) {
-            document.getElementById('feature-importance').innerHTML = '<p>No feature importance data available</p>';
-            return;
-        }
-
-        const container = document.getElementById('feature-importance');
-        container.innerHTML = '';
-
-        data.top_features.slice(0, 10).forEach(([feature, importance]) => {
-            const featureDiv = document.createElement('div');
-            featureDiv.className = 'mb-2';
-
-            const percentage = (importance * 100).toFixed(1);
-            featureDiv.innerHTML = `
-                <div class="feature-importance-bar">
-                    <div class="feature-importance-fill" style="width: ${percentage}%"></div>
-                    <div class="feature-importance-label">${feature}: ${percentage}%</div>
-                </div>
-            `;
-            container.appendChild(featureDiv);
-        });
-    }
-
-    function updateLastRefresh() {
-        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
-    }
-
-    function startAutoRefresh() {
-        refreshInterval = setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
-    }
-
-    function triggerTraining() {
-        const button = event.target;
-        const originalText = button.innerHTML;
-        button.innerHTML = '<div class="loading-spinner"></div> Training...';
-        button.disabled = true;
-
-        fetch('/analyzer/ml/api/trigger-training/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'force=false'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('Training started successfully!', 'success');
-                setTimeout(loadDashboardData, 2000); // Refresh data after 2 seconds
-            } else {
-                showAlert('Training failed: ' + (data.error || 'Unknown error'), 'warning');
-            }
-        })
-        .catch(error => {
-            showAlert('Error triggering training: ' + error.message, 'warning');
-        })
-        .finally(() => {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        });
-    }
-
-    function showAlert(message, type = 'info') {
-        // Create alert element
-        const alert = document.createElement('div');
-        alert.className = `alert-bg-white rounded-lg border border-gray-200 alert-${type}`;
-        alert.style.position = 'fixed';
-        alert.style.top = '20px';
-        alert.style.right = '20px';
-        alert.style.zIndex = '9999';
-        alert.style.maxWidth = '400px';
-        alert.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0 0 0 10px;">×</button>
-            </div>
-        `;
-
-        document.body.appendChild(alert);
-
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            if (alert.parentElement) {
-                alert.remove();
-            }
-        }, 5000);
-    }
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', function() {
-        if (refreshInterval) {
-            clearInterval(refreshInterval);
-        }
+  const c = document.getElementById('system-alerts');
+  c.innerHTML = '';
+  if (!d.alerts || !d.alerts.length) {
+    c.innerHTML = '<div class="rounded p-2 bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">All systems operating normally.</div>';
+  } else {
+    d.alerts.forEach(a => {
+      const t = a.type === 'error' ? 'red' : a.type === 'warning' ? 'amber' : 'sky';
+      const div = document.createElement('div');
+      div.className = `rounded p-2 border bg-${t}-50 border-${t}-200 text-xs`;
+      div.innerHTML = `<strong>${(a.severity || a.type).toUpperCase()}:</strong> ${a.message}`;
+      c.appendChild(div);
     });
+  }
+}
+
+function updateFeatures(d) {
+  const c = document.getElementById('feature-importance');
+  if (!d || !d.top_features || !d.top_features.length) {
+    c.innerHTML = '<p class="text-sm text-gray-400">No feature importance data yet.</p>';
+    return;
+  }
+  c.innerHTML = '';
+  d.top_features.slice(0, 10).forEach(([feature, importance]) => {
+    const pct = (importance * 100).toFixed(1);
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="flex items-center justify-between text-xs"><span class="font-mono text-gray-700 truncate pr-2">${feature}</span><span class="text-gray-500 flex-shrink-0">${pct}%</span></div>
+      <div class="h-1.5 mt-1 bg-gray-100 rounded overflow-hidden"><div class="h-full bg-indigo-500" style="width: ${pct}%"></div></div>`;
+    c.appendChild(div);
+  });
+}
+
+function triggerTraining() {
+  const btn = event.target;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Training…';
+  btn.disabled = true;
+  fetch('/ml/api/trigger-training/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'force=false',
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Training started', 'success');
+        setTimeout(loadDashboardData, 2000);
+      } else {
+        showToast('Training failed: ' + (data.error || 'unknown'), 'error');
+      }
+    })
+    .catch(err => showToast('Error triggering training: ' + err.message, 'error'))
+    .finally(() => {
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    });
+}
 </script>
 {% endblock %}
