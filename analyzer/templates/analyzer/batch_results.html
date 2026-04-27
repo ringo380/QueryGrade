@@ -1,306 +1,166 @@
+{% extends 'analyzer/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QueryGrade - Batch Analysis Results</title>
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
 
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+{% block title %}Batch results · QueryGrade{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<style>
+  .CodeMirror { height: auto; min-height: 100px; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+</style>
+{% endblock %}
 
-</head>
-<body>
-    <nav>
-        <h1>QueryGrade</h1>
-    </nav>
-    <div class="max-w-7xl mx-auto px-4">
-
-<div class="batch-results-container">
-    <div class="batch-header">
-        <h1>📊 Batch Analysis Results</h1>
-        <p class="subtitle">Comprehensive analysis of {{ results|length }} SQL queries with performance insights and optimization recommendations</p>
-
-        <div class="navigation-tabs">
-            <a href="{% url 'grade_query' %}" class="tab-link">Grade Query</a>
-            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
-            <a href="{% url 'query_compare' %}" class="tab-link">Compare Queries</a>
-            <a href="{% url 'batch_analysis' %}" class="tab-link active">Batch Analysis</a>
-            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
-        </div>
+{% block content %}
+<div class="space-y-6">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">📊 Batch results</h1>
+      <p class="mt-1 text-sm text-gray-500">{{ results|length }} {{ results|length|pluralize:"query,queries" }} analyzed.</p>
     </div>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <a href="{% url 'batch_analysis' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">New batch</a>
+      {% if results %}<button onclick="exportResults()" class="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700">📥 Export</button>{% endif %}
+    </div>
+  </header>
 
-    {% if batch_summary %}
-    <div class="batch-overview">
-        <h2>🔍 Batch Analysis Overview</h2>
-        <div class="batch-summary">{{ batch_summary }}</div>
+  {% if batch_summary %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📋</span><span>Summary</span></h2>
+    <pre class="mt-3 text-sm text-gray-700 whitespace-pre-wrap font-sans">{{ batch_summary }}</pre>
+  </section>
+  {% endif %}
 
-        {% if batch_stats %}
-        <div class="batch-stats">
-            <div class="stat-bg-white rounded-lg border border-gray-200">
-                <h4>Total Queries</h4>
-                <div class="stat-value">{{ batch_stats.total_queries }}</div>
-            </div>
-            <div class="stat-bg-white rounded-lg border border-gray-200">
-                <h4>Average Grade</h4>
-                <div class="stat-value grade-{{ batch_stats.avg_grade|lower }}">{{ batch_stats.avg_grade }}</div>
-            </div>
-            <div class="stat-bg-white rounded-lg border border-gray-200">
-                <h4>Grade A Queries</h4>
-                <div class="stat-value grade-a">{{ batch_stats.grade_distribution.A|default:0 }}</div>
-            </div>
-            <div class="stat-bg-white rounded-lg border border-gray-200">
-                <h4>Needs Improvement</h4>
-                <div class="stat-value grade-f">{{ batch_stats.grade_distribution.F|default:0 }}</div>
-            </div>
+  {% if results %}
+  <section class="space-y-3">
+    {% for result in results %}
+    {% with grade=result.analysis.grade|lower %}
+    <article class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="text-xs font-mono text-gray-500">#{{ result.query_number }}</span>
+          {% if result.analysis %}
+          <span class="inline-flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold flex-shrink-0
+            {% if grade == 'a' %}bg-emerald-100 text-emerald-700
+            {% elif grade == 'b' %}bg-lime-100 text-lime-700
+            {% elif grade == 'c' %}bg-amber-100 text-amber-700
+            {% elif grade == 'd' %}bg-orange-100 text-orange-700
+            {% else %}bg-red-100 text-red-700{% endif %}">{{ result.analysis.grade }}</span>
+          <span class="text-xs text-gray-600">{{ result.analysis.score|floatformat:1 }}/100</span>
+          {% elif result.error %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-medium">⚠ Error</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <textarea class="sql-display">{{ result.query_text }}</textarea>
+      </div>
+
+      {% if result.error %}
+      <p class="mt-3 rounded bg-red-50 border border-red-200 p-3 text-sm text-red-800"><strong>Error:</strong> {{ result.error }}</p>
+      {% endif %}
+
+      {% if result.analysis %}
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+        {% if result.analysis.issues_found %}
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Issues ({{ result.analysis.issues_found|length }})</h4>
+          <ul class="space-y-1 text-xs">
+            {% for issue in result.analysis.issues_found|slice:":4" %}
+            <li class="rounded border-l-2 px-2 py-1
+              {% if issue.severity == 'critical' %}border-red-500 bg-red-50
+              {% elif issue.severity == 'high' %}border-orange-500 bg-orange-50
+              {% elif issue.severity == 'medium' %}border-amber-500 bg-amber-50
+              {% else %}border-sky-500 bg-sky-50{% endif %}">
+              <span class="font-semibold text-gray-900">{{ issue.type|title }}</span>
+              <span class="text-gray-600">— {{ issue.description|truncatechars:80 }}</span>
+            </li>
+            {% endfor %}
+            {% if result.analysis.issues_found|length > 4 %}<li class="text-xs text-gray-400">+{{ result.analysis.issues_found|length|add:"-4" }} more</li>{% endif %}
+          </ul>
         </div>
         {% endif %}
-    </div>
-    {% endif %}
 
-    {% if results %}
-    <div class="queries-grid">
-        {% for result in results %}
-        <div class="query-result-bg-white rounded-lg border border-gray-200 {% if result.is_best %}best-query{% elif result.is_worst %}worst-query{% endif %}">
-            {% if result.is_best %}
-                <div class="performance-badge badge-best">Best Performing</div>
-            {% elif result.is_worst %}
-                <div class="performance-badge badge-worst">Needs Improvement</div>
-            {% endif %}
-
-            <div class="query-header">
-                <div class="query-title">Query {{ forloop.counter }}</div>
-                <div class="query-grade grade-{{ result.grade|lower }}-bg">{{ result.grade }}</div>
-            </div>
-
-            <div class="query-content">
-                <textarea class="sql-display">{{ result.query }}</textarea>
-            </div>
-
-            <div class="query-analysis">
-                {% if result.issues %}
-                <div class="analysis-section">
-                    <h4>⚠️ Issues Found</h4>
-                    <div class="issues-list">
-                        <ul>
-                            {% for issue in result.issues %}
-                            <li>{{ issue }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if result.suggestions %}
-                <div class="analysis-section">
-                    <h4>💡 Optimization Suggestions</h4>
-                    <div class="suggestions-list">
-                        <ul>
-                            {% for suggestion in result.suggestions %}
-                            <li>{{ suggestion }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+        {% if result.analysis.recommendations %}
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Recommendations ({{ result.analysis.recommendations|length }})</h4>
+          <ul class="space-y-1 text-xs">
+            {% for rec in result.analysis.recommendations|slice:":4" %}
+            <li class="rounded border border-gray-200 px-2 py-1">
+              <span class="font-semibold text-gray-900">{{ rec.type|title }}</span>
+              <span class="text-gray-600">— {{ rec.description|truncatechars:80 }}</span>
+            </li>
+            {% endfor %}
+            {% if result.analysis.recommendations|length > 4 %}<li class="text-xs text-gray-400">+{{ result.analysis.recommendations|length|add:"-4" }} more</li>{% endif %}
+          </ul>
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <h3>No Batch Results</h3>
-        <p>It looks like there was an issue processing your batch analysis. Please try again.</p>
-        <a href="{% url 'batch_analysis' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            <span>📊</span>
-            Start New Batch Analysis
-        </a>
-    </div>
-    {% endif %}
-
-    <div class="actions-bar">
-        <a href="{% url 'batch_analysis' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
-            <span>🔄</span>
-            Analyze New Batch
-        </a>
-
-        {% if results %}
-        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700" onclick="exportBatchResults()">
-            <span>📥</span>
-            Export Results
-        </button>
         {% endif %}
-
-        <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            <span>⭐</span>
-            Grade Single Query
-        </a>
-    </div>
+      </div>
+      {% endif %}
+    </article>
+    {% endwith %}
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="bg-white rounded-lg border border-gray-200 p-10 text-center">
+    <div class="text-4xl mb-3">📦</div>
+    <h2 class="text-lg font-semibold text-gray-900">No results</h2>
+    <p class="mt-2 text-sm text-gray-500">There was an issue processing your batch.</p>
+    <a href="{% url 'batch_analysis' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Start new batch</a>
+  </section>
+  {% endif %}
 </div>
 
-    </div>
-
-<!-- CodeMirror JavaScript -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
-
 <script>
-// Initialize CodeMirror for read-only SQL display
-document.addEventListener('DOMContentLoaded', function() {
-    const textareas = document.querySelectorAll('textarea.sql-display');
-
-    textareas.forEach((textarea) => {
-        if (textarea) {
-            const editor = CodeMirror.fromTextArea(textarea, {
-                mode: 'text/x-sql',
-                theme: 'material-darker',
-                lineNumbers: true,
-                readOnly: true,
-                lineWrapping: true,
-                showCursorWhenSelecting: false,
-                cursorBlinkRate: -1, // Hide cursor
-            });
-
-            // Set height based on content
-            const lineCount = textarea.value.split('\n').length;
-            const height = Math.max(100, Math.min(250, lineCount * 20 + 40));
-            editor.setSize(null, height);
-        }
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('textarea.sql-display').forEach(ta => {
+    const editor = CodeMirror.fromTextArea(ta, {
+      mode: 'text/x-sql', theme: 'material-darker',
+      lineNumbers: true, readOnly: true, lineWrapping: true,
+      cursorBlinkRate: -1,
     });
+    const lines = ta.value.split('\n').length;
+    editor.setSize(null, Math.max(100, Math.min(240, lines * 20 + 30)));
+  });
 });
 
-function exportBatchResults() {
-    {% if results %}
-    // Create comprehensive batch results export
-    const exportData = {
-        timestamp: new Date().toISOString(),
-        analysis_type: 'batch_analysis',
-        batch_summary: {{ batch_summary|escapejs }},
-        database_type: "{{ database_type|default:'Not specified' }}",
-        database_version: "{{ database_version|default:'Not specified' }}",
-        analysis_notes: "{{ analysis_notes|default:'None' }}",
-        total_queries: {{ results|length }},
-        {% if batch_stats %}
-        statistics: {
-            average_grade: "{{ batch_stats.avg_grade }}",
-            grade_distribution: {
-                {% for grade, count in batch_stats.grade_distribution.items %}
-                "{{ grade }}": {{ count }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            }
-        },
-        {% endif %}
-        queries: [
-            {% for result in results %}
-            {
-                query_number: {{ forloop.counter }},
-                query: {{ result.query|escapejs }},
-                grade: "{{ result.grade }}",
-                score: {{ result.score|default:0 }},
-                issues: [
-                    {% for issue in result.issues %}
-                    {{ issue|escapejs }}{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                suggestions: [
-                    {% for suggestion in result.suggestions %}
-                    {{ suggestion|escapejs }}{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                is_best: {{ result.is_best|yesno:"true,false" }},
-                is_worst: {{ result.is_worst|yesno:"true,false" }}
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
+function exportResults() {
+  const data = {
+    timestamp: new Date().toISOString(),
+    total_queries: {{ results|length }},
+    batch_summary: {{ batch_summary|default:''|escapejs|default:'""' }},
+    queries: [
+      {% for r in results %}
+      {
+        query_number: {{ r.query_number }},
+        query: "{{ r.query_text|escapejs }}",
+        grade: "{{ r.analysis.grade|default:'' }}",
+        score: {{ r.analysis.score|default:0|floatformat:2 }},
+        error: "{{ r.error|default:''|escapejs }}",
+        issues: [
+          {% for issue in r.analysis.issues_found %}
+          {type: "{{ issue.type|escapejs }}", severity: "{{ issue.severity|escapejs }}", description: "{{ issue.description|escapejs }}"}{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ],
+        recommendations: [
+          {% for rec in r.analysis.recommendations %}
+          {type: "{{ rec.type|escapejs }}", priority: "{{ rec.priority|escapejs }}", description: "{{ rec.description|escapejs }}"}{% if not forloop.last %},{% endif %}
+          {% endfor %}
         ]
-    };
-
-    // Create and download JSON file
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `batch-analysis-results-${new Date().toISOString().split('T')[0]}.json`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Also create a text summary
-    let textSummary = "QueryGrade - Batch Analysis Results\n";
-    textSummary += "===================================\n\n";
-    textSummary += `Generated: ${new Date().toLocaleString()}\n`;
-    textSummary += `Database Type: {{ database_type|default:'Not specified' }}\n`;
-    textSummary += `Database Version: {{ database_version|default:'Not specified' }}\n`;
-    textSummary += `Total Queries Analyzed: {{ results|length }}\n\n`;
-
-    {% if batch_summary %}
-    textSummary += "Analysis Summary:\n";
-    textSummary += "{{ batch_summary|escapejs }}\n\n";
-    {% endif %}
-
-    {% if batch_stats %}
-    textSummary += "Grade Distribution:\n";
-    {% for grade, count in batch_stats.grade_distribution.items %}
-    textSummary += "{{ grade }}: {{ count }} queries\n";
-    {% endfor %}
-    textSummary += "\n";
-    {% endif %}
-
-    textSummary += "Individual Query Results:\n";
-    textSummary += "========================\n\n";
-
-    {% for result in results %}
-    textSummary += "Query {{ forloop.counter }}:\n";
-    textSummary += "Grade: {{ result.grade }}\n";
-    {% if result.is_best %}textSummary += "🏆 Best Performing Query\n";{% endif %}
-    {% if result.is_worst %}textSummary += "⚠️ Needs Most Improvement\n";{% endif %}
-    textSummary += "\nSQL Query:\n{{ result.query|escapejs }}\n\n";
-
-    {% if result.issues %}
-    textSummary += "Issues Found:\n";
-    {% for issue in result.issues %}
-    textSummary += "- {{ issue|escapejs }}\n";
-    {% endfor %}
-    textSummary += "\n";
-    {% endif %}
-
-    {% if result.suggestions %}
-    textSummary += "Optimization Suggestions:\n";
-    {% for suggestion in result.suggestions %}
-    textSummary += "- {{ suggestion|escapejs }}\n";
-    {% endfor %}
-    textSummary += "\n";
-    {% endif %}
-
-    textSummary += "----------------------------------------\n\n";
-    {% endfor %}
-
-    const textBlob = new Blob([textSummary], {type: 'text/plain'});
-    const textLink = document.createElement('a');
-    textLink.href = URL.createObjectURL(textBlob);
-    textLink.download = `batch-analysis-summary-${new Date().toISOString().split('T')[0]}.txt`;
-
-    document.body.appendChild(textLink);
-    textLink.click();
-    document.body.removeChild(textLink);
-
-    console.log('Batch analysis results exported successfully');
-    {% endif %}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `batch_results_${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Results exported');
 }
-
-// Add keyboard shortcut for export
-document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        exportBatchResults();
-    }
-});
-
-console.log('Batch analysis results loaded. Press Ctrl+S to export results.');
 </script>
-
-</body>
-</html>
+{% endblock %}
