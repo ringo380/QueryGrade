@@ -1,390 +1,129 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}QueryGrade - MySQL Query Analyzer{% endblock %}</title>
-
-    <!-- Dark Mode CSS -->
-    <link rel="stylesheet" href="{% static 'analyzer/css/dark-mode.css' %}">
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
-
-    {% block extra_css %}{% endblock %}
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{% static 'analyzer/favicon.ico' %}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}QueryGrade{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'] }
+        }
+      }
+    }
+  </script>
+  {% block extra_css %}{% endblock %}
+  {% block extra_head %}{% endblock %}
 </head>
-<body>
-    <!-- Skip Navigation Links for Accessibility -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
-    <a href="#navigation" class="skip-link">Skip to navigation</a>
-    <a href="#footer" class="skip-link">Skip to footer</a>
+<body class="bg-gray-50 min-h-screen flex flex-col">
 
-    <nav class="navbar" id="navigation">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <a href="{% url 'index' %}">
-                    <h1>QueryGrade</h1>
-                </a>
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-3 py-2 rounded z-50">Skip to main content</a>
+
+  <nav class="bg-white border-b border-gray-200 shadow-sm" id="navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="flex items-center justify-between h-14">
+        <a href="{% url 'index' %}" class="font-bold text-indigo-600 text-lg tracking-tight">QueryGrade</a>
+
+        <div class="flex gap-1 items-center">
+          {% if user.is_authenticated %}
+            {% with url_name=request.resolver_match.url_name %}
+              <a href="{% url 'index' %}"
+                 class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'index' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Dashboard</a>
+              <a href="{% url 'grade_query' %}"
+                 class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'grade_query' or url_name == 'grade_results' or url_name == 'enhanced_grade_results' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Grade</a>
+              <a href="{% url 'batch_analysis' %}"
+                 class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'batch_analysis' or url_name == 'batch_results' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Batch</a>
+              <a href="{% url 'database_analyze' %}"
+                 class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'database_analyze' or url_name == 'database_schema' or url_name == 'query_with_context' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Database</a>
+              <a href="{% url 'query_history' %}"
+                 class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'query_history' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">History</a>
+              {% if user.is_staff %}
+              <a href="{% url 'ml_dashboard' %}"
+                 class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'ml_dashboard' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">ML</a>
+              {% endif %}
+            {% endwith %}
+
+            <div class="relative ml-2 group">
+              <button class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1" type="button">
+                {{ user.username }}
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+              </button>
+              <div class="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                <a href="{% url 'account' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Account</a>
+                <a href="{% url 'password_change' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Change Password</a>
+                <div class="border-t border-gray-100"></div>
+                <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
+              </div>
             </div>
-            <div class="nav-menu">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'index' %}" class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
-                        <span class="nav-icon">🏠</span>
-                        Home
-                    </a>
-                    <a href="{% url 'grade_query' %}" class="nav-link {% if request.resolver_match.url_name == 'grade_query' or request.resolver_match.url_name == 'grade_results' or request.resolver_match.url_name == 'enhanced_grade_results' %}active{% endif %}">
-                        <span class="nav-icon">📊</span>
-                        Grade Query
-                    </a>
-                    <a href="{% url 'database_analyze' %}" class="nav-link {% if request.resolver_match.url_name == 'database_analyze' or request.resolver_match.url_name == 'database_schema' %}active{% endif %}">
-                        <span class="nav-icon">🗄️</span>
-                        Database Analysis
-                    </a>
-                    <a href="{% url 'query_history' %}" class="nav-link {% if request.resolver_match.url_name == 'query_history' %}active{% endif %}">
-                        <span class="nav-icon">📚</span>
-                        History
-                    </a>
-                    <div class="nav-dropdown">
-                        <span class="nav-user">
-                            <span class="user-icon">👤</span>
-                            {{ user.username }} ▾
-                        </span>
-                        <div class="dropdown-content">
-                            <a href="{% url 'account' %}">
-                                <span class="dropdown-icon">⚙️</span>
-                                My Account
-                            </a>
-                            <a href="{% url 'password_change' %}">
-                                <span class="dropdown-icon">🔑</span>
-                                Change Password
-                            </a>
-                            <a href="{% url 'logout' %}" class="dropdown-logout">
-                                <span class="dropdown-icon">🚪</span>
-                                Logout
-                            </a>
-                        </div>
-                    </div>
-                {% else %}
-                    <a href="{% url 'login' %}" class="nav-link">Login</a>
-                    <a href="{% url 'register' %}" class="nav-link">Register</a>
-                {% endif %}
-            </div>
+          {% else %}
+            <a href="{% url 'login' %}" class="px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">Login</a>
+            <a href="{% url 'register' %}" class="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700">Register</a>
+          {% endif %}
         </div>
-    </nav>
+      </div>
+    </div>
+  </nav>
 
-    <main class="main-content" id="main-content">
-        <!-- Messages Display -->
-        {% if messages %}
-            <div class="messages-container">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
+  <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+    <div id="toast-inner" class="px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center gap-2 min-w-48"></div>
+  </div>
 
-        <div class="container">
-            {% block content %}{% endblock %}
-        </div>
-    </main>
+  {% if messages %}
+  <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4 space-y-2">
+    {% for message in messages %}
+    <div class="rounded-md p-3 text-sm border {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200{% elif message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% else %}bg-indigo-50 text-indigo-800 border-indigo-200{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-    <footer class="footer" id="footer">
-        <div class="footer-content">
-            <p>&copy; 2024 QueryGrade. SQL Query Analysis Platform</p>
-            <div class="footer-links">
-                <a href="https://github.com/ringo380/QueryGrade" class="footer-link" target="_blank" rel="noopener noreferrer">
-                    <span class="footer-icon">📖</span>
-                    Documentation
-                </a>
-                <a href="https://github.com/ringo380/QueryGrade/issues" class="footer-link" target="_blank" rel="noopener noreferrer">
-                    <span class="footer-icon">💬</span>
-                    Support
-                </a>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'ml_dashboard' %}" class="footer-link">
-                        <span class="footer-icon">📊</span>
-                        ML Dashboard
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-    </footer>
+  <main id="main-content" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
+    {% block content %}{% endblock %}
+  </main>
 
-    {% block extra_js %}{% endblock %}
+  <footer class="bg-white border-t border-gray-200 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-500">
+      <p>&copy; 2026 QueryGrade. SQL Query Analysis Platform</p>
+      <div class="flex gap-4">
+        <a href="https://github.com/ringo380/QueryGrade" class="hover:text-gray-700" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/ringo380/QueryGrade/issues" class="hover:text-gray-700" target="_blank" rel="noopener">Support</a>
+      </div>
+    </div>
+  </footer>
 
-    <style>
-    /* Skip Navigation Links (Accessibility) */
-    .skip-link {
-        position: absolute;
-        top: -40px;
-        left: 0;
-        background: var(--btn-primary-bg);
-        color: var(--text-white);
-        padding: 8px 16px;
-        text-decoration: none;
-        border-radius: 0 0 4px 0;
-        font-weight: 600;
-        z-index: 10000;
-        transition: top 0.3s ease;
+  <script>
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const inner = document.getElementById('toast-inner');
+      inner.className = 'px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center gap-2 min-w-48 ' +
+        (type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-indigo-600');
+      inner.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
     }
 
-    .skip-link:focus {
-        top: 0;
-        outline: 3px solid var(--text-accent);
-        outline-offset: 2px;
+    function getCsrfToken() {
+      return document.cookie.split(';').map(c => c.trim())
+        .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
     }
 
-    /* Navigation Bar Styles */
-    .navbar {
-        background-color: var(--bg-tertiary);
-        padding: 1rem 0;
-        box-shadow: 0 2px 4px var(--shadow-light);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
+    // Apply Tailwind-friendly classes to Django-rendered form widgets that don't already have a `class` attr
+    document.addEventListener('DOMContentLoaded', () => {
+      const inputClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white text-gray-900';
+      document.querySelectorAll('form input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=file]), form select, form textarea').forEach(el => {
+        if (!el.className.trim()) el.className = inputClasses;
+      });
+      document.querySelectorAll('form input[type=file]').forEach(el => {
+        if (!el.className.trim()) el.className = 'block text-sm text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100';
+      });
+    });
+  </script>
 
-    .nav-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .nav-brand a {
-        text-decoration: none;
-        color: inherit;
-    }
-
-    .nav-brand h1 {
-        color: var(--text-white);
-        margin: 0;
-        font-size: 1.8rem;
-        text-shadow: 2px 2px 4px var(--shadow-medium);
-    }
-
-    .nav-menu {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-    }
-
-    .nav-link {
-        color: var(--text-primary);
-        text-decoration: none;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        transition: all 0.3s ease;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .nav-link:hover {
-        background-color: var(--bg-elevated);
-        color: var(--text-white);
-        text-decoration: none;
-    }
-
-    .nav-link.active {
-        background-color: var(--btn-primary-bg);
-        color: var(--text-white);
-        font-weight: 600;
-    }
-
-    .nav-icon {
-        font-size: 1rem;
-        line-height: 1;
-    }
-
-    .user-icon {
-        font-size: 1.2rem;
-        line-height: 1;
-    }
-
-    .nav-user {
-        color: var(--text-accent);
-        font-weight: 600;
-        padding: 0.5rem 1rem;
-        background-color: var(--bg-secondary);
-        border-radius: 6px;
-        cursor: pointer;
-        user-select: none;
-    }
-
-    .nav-dropdown {
-        position: relative;
-        display: inline-block;
-    }
-
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 100%;
-        margin-top: 0.5rem;
-        background-color: var(--bg-secondary);
-        min-width: 200px;
-        box-shadow: 0 8px 16px var(--shadow-medium);
-        border-radius: 8px;
-        border: 1px solid var(--border-primary);
-        z-index: 1001;
-    }
-
-    .nav-dropdown:hover .dropdown-content {
-        display: block;
-    }
-
-    .dropdown-content a {
-        color: var(--text-primary);
-        padding: 0.75rem 1rem;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: background-color 0.3s ease;
-    }
-
-    .dropdown-icon {
-        font-size: 1rem;
-        line-height: 1;
-    }
-
-    .dropdown-content a:hover {
-        background-color: var(--bg-elevated);
-        color: var(--text-white);
-    }
-
-    .dropdown-content a:first-child {
-        border-radius: 8px 8px 0 0;
-    }
-
-    .dropdown-content a:last-child {
-        border-radius: 0 0 8px 8px;
-    }
-
-    .dropdown-logout {
-        border-top: 1px solid var(--border-primary);
-        color: var(--btn-danger-bg) !important;
-    }
-
-    .dropdown-logout:hover {
-        background-color: var(--btn-danger-bg) !important;
-        color: var(--text-white) !important;
-    }
-
-    /* Main Content */
-    .main-content {
-        min-height: calc(100vh - 200px);
-        padding-bottom: 2rem;
-    }
-
-    .messages-container {
-        max-width: 1200px;
-        margin: 1rem auto 0;
-        padding: 0 2rem;
-    }
-
-    /* Footer */
-    .footer {
-        background-color: var(--bg-tertiary);
-        color: var(--text-secondary);
-        padding: 2rem 0;
-        margin-top: auto;
-        border-top: 1px solid var(--border-primary);
-    }
-
-    .footer-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .footer-links {
-        display: flex;
-        gap: 1.5rem;
-    }
-
-    .footer-link {
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: color 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-    }
-
-    .footer-link:hover {
-        color: var(--text-accent);
-    }
-
-    .footer-icon {
-        font-size: 0.9rem;
-        line-height: 1;
-    }
-
-    /* Responsive Navigation */
-    @media (max-width: 768px) {
-        .nav-container {
-            padding: 0 1rem;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .nav-brand h1 {
-            font-size: 1.5rem;
-        }
-
-        .nav-menu {
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 1rem;
-        }
-
-        .nav-link {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.9rem;
-        }
-
-        .footer-content {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-        }
-
-        .footer-links {
-            justify-content: center;
-        }
-
-        .messages-container {
-            padding: 0 1rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .nav-menu {
-            gap: 0.5rem;
-        }
-
-        .nav-link {
-            padding: 0.4rem 0.6rem;
-            font-size: 0.8rem;
-        }
-
-        .footer-links {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-    }
-    </style>
+  {% block extra_js %}{% endblock %}
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>
