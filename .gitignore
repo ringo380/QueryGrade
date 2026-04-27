@@ -118,7 +118,12 @@ analyzer/ml/models/
 *.tsv
 *.json
 *.xml
-samples/large/# Claude Code files
+samples/large/
+
+# Claude Code files
 CLAUDE.md
+**/CLAUDE.md
 .claude/
+.claude.local.md
+memory/
 
