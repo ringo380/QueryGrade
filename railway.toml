@@ -3,5 +3,8 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile.web"
 
 [deploy]
-preDeployCommand = "sh -c 'python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py init_superuser'"
-startCommand = "sh -c 'gunicorn querygrade.wsgi --log-file - --log-level info --bind 0.0.0.0:$PORT'"
+# Pre-deploy runs in a separate container, so collectstatic output wouldn't reach
+# the runtime container. Keep migrate + init_superuser in pre-deploy (one-shot ops),
+# and re-run collectstatic in startCommand so /app/staticfiles exists for whitenoise.
+preDeployCommand = "sh -c 'python manage.py migrate --noinput && python manage.py init_superuser'"
+startCommand = "sh -c 'python manage.py collectstatic --noinput && gunicorn querygrade.wsgi --log-file - --log-level info --bind 0.0.0.0:$PORT'"
