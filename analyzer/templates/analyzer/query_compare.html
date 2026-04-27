@@ -1,161 +1,100 @@
+{% extends 'analyzer/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QueryGrade - Query Comparison</title>
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
 
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+{% block title %}Compare queries · QueryGrade{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<style>
+  .CodeMirror { height: auto; min-height: 200px; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+</style>
+{% endblock %}
 
-</head>
-<body>
-    <nav>
-        <h1>QueryGrade</h1>
-    </nav>
-    <div class="max-w-7xl mx-auto px-4">
+{% block content %}
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">Compare queries</h1>
+    <p class="mt-1 text-sm text-gray-500">Submit 2 or 3 SQL queries to see a side-by-side analysis with grades, issues, and recommendations.</p>
+  </header>
 
-<div class="compare-container">
-    <div class="compare-header">
-        <h1>🔍 SQL Query Comparison</h1>
-        <p class="subtitle">Compare multiple SQL queries side-by-side to analyze performance differences and optimization opportunities</p>
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
 
-        <div class="navigation-tabs">
-            <a href="{% url 'grade_query' %}" class="tab-link">Grade Query</a>
-            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
-            <a href="{% url 'query_compare' %}" class="tab-link active">Compare Queries</a>
-            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
+    <section class="bg-white rounded-lg border border-gray-200 p-5">
+      <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔸</span><span>Query 1</span></h2>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Name</label>
+          <div class="mt-1">{{ form.query_1_name }}</div>
+          {% if form.query_1_name.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.query_1_name.help_text }}</p>{% endif %}
         </div>
-    </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">SQL query</label>
+        <div class="mt-1">{{ form.query_1 }}</div>
+        {% if form.query_1.errors %}<p class="mt-1 text-xs text-red-600">{{ form.query_1.errors|join:", " }}</p>{% endif %}
+      </div>
+    </section>
 
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
+    <section class="bg-white rounded-lg border border-gray-200 p-5">
+      <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔹</span><span>Query 2</span></h2>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Name</label>
+          <div class="mt-1">{{ form.query_2_name }}</div>
+          {% if form.query_2_name.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.query_2_name.help_text }}</p>{% endif %}
         </div>
-    {% endif %}
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">SQL query</label>
+        <div class="mt-1">{{ form.query_2 }}</div>
+        {% if form.query_2.errors %}<p class="mt-1 text-xs text-red-600">{{ form.query_2.errors|join:", " }}</p>{% endif %}
+      </div>
+    </section>
 
-    <div class="compare-form-container">
-        <form method="post" class="compare-form">
-            {% csrf_token %}
+    <section class="bg-white rounded-lg border border-gray-200 p-5">
+      <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔺</span><span>Query 3 <span class="text-xs font-normal text-gray-500">(optional)</span></span></h2>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Name</label>
+          <div class="mt-1">{{ form.query_3_name }}</div>
+          {% if form.query_3_name.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.query_3_name.help_text }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">SQL query</label>
+        <div class="mt-1">{{ form.query_3 }}</div>
+        {% if form.query_3.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.query_3.help_text }}</p>{% endif %}
+      </div>
+    </section>
 
-            <div class="queries-grid">
-                <!-- Query 1 -->
-                <div class="query-section">
-                    <h3>🔸 {{ form.query_1.label }}</h3>
+    <section class="bg-white rounded-lg border border-gray-200 p-5">
+      <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>⚙️</span><span>Comparison settings</span></h2>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">{{ form.database_type.label }}</label>
+          <div class="mt-1">{{ form.database_type }}</div>
+          {% if form.database_type.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_type.help_text }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">{{ form.comparison_notes.label }}</label>
+        <div class="mt-1">{{ form.comparison_notes }}</div>
+        {% if form.comparison_notes.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.comparison_notes.help_text }}</p>{% endif %}
+      </div>
+    </section>
 
-                    <div class="mb-4">
-                        <label for="{{ form.query_1_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                            {{ form.query_1_name.label }}
-                        </label>
-                        {{ form.query_1_name }}
-                        <div class="form-help">{{ form.query_1_name.help_text }}</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="{{ form.query_1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                            SQL Query <span class="required">*</span>
-                        </label>
-                        {{ form.query_1 }}
-                        <div class="form-help">{{ form.query_1.help_text }}</div>
-                    </div>
-                </div>
-
-                <!-- Query 2 -->
-                <div class="query-section">
-                    <h3>🔹 {{ form.query_2.label }}</h3>
-
-                    <div class="mb-4">
-                        <label for="{{ form.query_2_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                            {{ form.query_2_name.label }}
-                        </label>
-                        {{ form.query_2_name }}
-                        <div class="form-help">{{ form.query_2_name.help_text }}</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="{{ form.query_2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                            SQL Query <span class="required">*</span>
-                        </label>
-                        {{ form.query_2 }}
-                        <div class="form-help">{{ form.query_2.help_text }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Query 3 (Optional) -->
-            <div class="query-section optional">
-                <h3>🔺 {{ form.query_3.label }}</h3>
-
-                <div class="form-row">
-                    <div class="half-width">
-                        <div class="mb-4">
-                            <label for="{{ form.query_3_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                {{ form.query_3_name.label }}
-                            </label>
-                            {{ form.query_3_name }}
-                            <div class="form-help">{{ form.query_3_name.help_text }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label for="{{ form.query_3.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                        SQL Query
-                    </label>
-                    {{ form.query_3 }}
-                    <div class="form-help">{{ form.query_3.help_text }}</div>
-                </div>
-            </div>
-
-            <!-- Shared Options -->
-            <div class="shared-options">
-                <h3>⚙️ Comparison Settings</h3>
-
-                <div class="form-row">
-                    <div class="half-width">
-                        <div class="mb-4">
-                            <label for="{{ form.database_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                {{ form.database_type.label }}
-                            </label>
-                            {{ form.database_type }}
-                            <div class="form-help">{{ form.database_type.help_text }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label for="{{ form.comparison_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                        {{ form.comparison_notes.label }}
-                    </label>
-                    {{ form.comparison_notes }}
-                    <div class="form-help">{{ form.comparison_notes.help_text }}</div>
-                </div>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                    <span>🔍</span>
-                    Compare Queries
-                </button>
-                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50" onclick="clearAllForms()">
-                    Clear All
-                </button>
-            </div>
-        </form>
+    <div class="flex flex-wrap gap-2">
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+        <span>🔍</span><span>Compare queries</span>
+      </button>
+      <button type="button" onclick="clearAllForms()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Clear all</button>
+      <button type="button" onclick="loadComparisonExample()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">📋 Load example</button>
     </div>
+  </form>
 </div>
 
-    </div>
-
-<!-- CodeMirror JavaScript -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
@@ -166,118 +105,42 @@
 <script>
 let sqlEditors = [];
 
-// Initialize CodeMirror SQL editors
-document.addEventListener('DOMContentLoaded', function() {
-    const textareas = document.querySelectorAll('textarea.sql-editor');
-
-    textareas.forEach((textarea, index) => {
-        if (textarea) {
-            // Create CodeMirror instance
-            const editor = CodeMirror.fromTextArea(textarea, {
-                mode: 'text/x-sql',
-                theme: 'material-darker',
-                lineNumbers: true,
-                indentUnit: 2,
-                smartIndent: true,
-                lineWrapping: true,
-                autoCloseBrackets: true,
-                matchBrackets: true,
-                showCursorWhenSelecting: true,
-                extraKeys: {
-                    "Ctrl-Space": "autocomplete",
-                    "Cmd-Space": "autocomplete"
-                },
-                hintOptions: {
-                    tables: {
-                        users: ["id", "name", "email", "created_at", "status", "last_login"],
-                        orders: ["id", "user_id", "total", "status", "created_at", "shipped_at"],
-                        products: ["id", "name", "price", "category", "in_stock", "description"],
-                        customers: ["id", "name", "email", "phone", "address", "registration_date"],
-                        employees: ["id", "name", "department", "salary", "hire_date", "manager_id"],
-                        categories: ["id", "name", "description", "parent_id"]
-                    }
-                }
-            });
-
-            // Set editor height
-            editor.setSize(null, 200);
-
-            // Enable auto-completion
-            editor.on("inputRead", function(cm, event) {
-                if (event.text[0].match(/\w/) || event.text[0] === '.') {
-                    cm.showHint();
-                }
-            });
-
-            // Sync with form submission
-            editor.on('change', function() {
-                editor.save(); // Save to original textarea
-            });
-
-            sqlEditors.push(editor);
-        }
+document.addEventListener('DOMContentLoaded', () => {
+  ['{{ form.query_1.id_for_label }}', '{{ form.query_2.id_for_label }}', '{{ form.query_3.id_for_label }}'].forEach(id => {
+    const ta = document.getElementById(id);
+    if (!ta || ta.tagName !== 'TEXTAREA') return;
+    const editor = CodeMirror.fromTextArea(ta, {
+      mode: 'text/x-sql', theme: 'material-darker',
+      lineNumbers: true, indentUnit: 2, smartIndent: true,
+      lineWrapping: true, autoCloseBrackets: true, matchBrackets: true,
     });
+    editor.on('change', () => editor.save());
+    sqlEditors.push(editor);
+  });
 });
 
 function clearAllForms() {
-    // Clear all CodeMirror editors
-    sqlEditors.forEach(editor => {
-        editor.setValue('');
-    });
-
-    // Clear regular form fields
-    document.querySelectorAll('input[type="text"], textarea:not(.sql-editor), select').forEach(field => {
-        field.value = '';
-        if (field.selectedIndex !== undefined) {
-            field.selectedIndex = 0;
-        }
-    });
+  sqlEditors.forEach(ed => ed.setValue(''));
+  document.querySelectorAll('form input[type=text], form textarea').forEach(el => { el.value = ''; });
+  document.querySelectorAll('form select').forEach(el => { el.selectedIndex = 0; });
 }
 
-// Load example queries for comparison
 function loadComparisonExample() {
-    if (sqlEditors.length >= 2) {
-        // Query 1: SELECT *
-        sqlEditors[0].setValue(`SELECT * FROM users WHERE active = 1 ORDER BY created_at DESC;`);
-
-        // Query 2: Optimized version
-        sqlEditors[1].setValue(`SELECT id, name, email, created_at
-FROM users
-WHERE active = 1
-ORDER BY created_at DESC
-LIMIT 100;`);
-
-        // Query 3 (if available): Best practices
-        if (sqlEditors.length >= 3) {
-            sqlEditors[2].setValue(`SELECT u.id, u.name, u.email, u.created_at
-FROM users u
-WHERE u.active = 1
-  AND u.created_at >= '2023-01-01'
-ORDER BY u.created_at DESC
-LIMIT 100;`);
-        }
-
-        // Set query names
-        const nameInputs = document.querySelectorAll('input[id*="name"]');
-        if (nameInputs.length >= 2) {
-            nameInputs[0].value = 'Original Query (SELECT *)';
-            nameInputs[1].value = 'Optimized Query';
-            if (nameInputs.length >= 3) {
-                nameInputs[2].value = 'Best Practices Query';
-            }
-        }
-
-        // Set comparison notes
-        const notesTextarea = document.querySelector('textarea[id*="comparison_notes"]');
-        if (notesTextarea) {
-            notesTextarea.value = 'Comparing SELECT * vs specific columns vs best practices with conditions and limits.';
-        }
+  if (sqlEditors.length >= 2) {
+    sqlEditors[0].setValue("SELECT * FROM users WHERE active = 1 ORDER BY created_at DESC;");
+    sqlEditors[1].setValue("SELECT id, name, email, created_at\nFROM users\nWHERE active = 1\nORDER BY created_at DESC\nLIMIT 100;");
+    if (sqlEditors[2]) {
+      sqlEditors[2].setValue("SELECT u.id, u.name, u.email, u.created_at\nFROM users u\nWHERE u.active = 1\n  AND u.created_at >= '2023-01-01'\nORDER BY u.created_at DESC\nLIMIT 100;");
     }
+    const n1 = document.getElementById('{{ form.query_1_name.id_for_label }}');
+    const n2 = document.getElementById('{{ form.query_2_name.id_for_label }}');
+    const n3 = document.getElementById('{{ form.query_3_name.id_for_label }}');
+    if (n1) n1.value = 'Original (SELECT *)';
+    if (n2) n2.value = 'Optimized';
+    if (n3) n3.value = 'Best practices';
+    const notes = document.getElementById('{{ form.comparison_notes.id_for_label }}');
+    if (notes) notes.value = 'Comparing SELECT * vs specific columns vs best practices with conditions and limits.';
+  }
 }
-
-// Add example button (can be triggered from console or added to UI)
-console.log('Use loadComparisonExample() to load example queries for comparison');
 </script>
-
-</body>
-</html>
+{% endblock %}

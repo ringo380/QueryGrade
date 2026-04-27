@@ -1,264 +1,188 @@
+{% extends 'analyzer/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QueryGrade - Query Comparison Results</title>
-    <link rel="stylesheet" href="{% static 'analyzer/css/styles.css' %}">
 
-    <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+{% block title %}Compare results · QueryGrade{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<style>
+  .CodeMirror { height: auto; min-height: 120px; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+</style>
+{% endblock %}
 
-</head>
-<body>
-    <nav>
-        <h1>QueryGrade</h1>
-    </nav>
-    <div class="max-w-7xl mx-auto px-4">
+{% block content %}
+<div class="space-y-6">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">📊 Comparison results</h1>
+      <p class="mt-1 text-sm text-gray-500">Side-by-side analysis of your SQL queries with grades and recommendations.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <a href="{% url 'query_compare' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Compare different queries</a>
+      <a href="{% url 'grade_query' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Grade single query</a>
+      {% if results %}<button onclick="exportResults()" class="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700">📥 Export</button>{% endif %}
+    </div>
+  </header>
 
-<div class="comparison-container">
-    <div class="comparison-header">
-        <h1>📊 Query Comparison Results</h1>
-        <p class="subtitle">Side-by-side analysis of your SQL queries with performance grades and optimization recommendations</p>
+  {% if comparison_summary %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔍</span><span>Comparison overview</span></h2>
+    <pre class="mt-3 text-sm text-gray-700 whitespace-pre-wrap font-sans">{{ comparison_summary }}</pre>
+  </section>
+  {% endif %}
 
-        <div class="navigation-tabs">
-            <a href="{% url 'grade_query' %}" class="tab-link">Grade Query</a>
-            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
-            <a href="{% url 'query_compare' %}" class="tab-link">Compare Queries</a>
-            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
+  {% if results %}
+  <section class="grid grid-cols-1 {% if results|length == 2 %}lg:grid-cols-2{% else %}lg:grid-cols-3{% endif %} gap-4">
+    {% for result in results %}
+    {% with grade=result.analysis.grade|lower %}
+    <article class="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col">
+      <header class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-2
+        {% if grade == 'a' %}bg-emerald-50
+        {% elif grade == 'b' %}bg-lime-50
+        {% elif grade == 'c' %}bg-amber-50
+        {% elif grade == 'd' %}bg-orange-50
+        {% elif grade %}bg-red-50
+        {% else %}bg-gray-50{% endif %}">
+        <h3 class="text-sm font-semibold text-gray-900 truncate">{{ result.name|default:"Query" }}</h3>
+        {% if result.analysis %}
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span class="inline-flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold
+            {% if grade == 'a' %}bg-emerald-100 text-emerald-700
+            {% elif grade == 'b' %}bg-lime-100 text-lime-700
+            {% elif grade == 'c' %}bg-amber-100 text-amber-700
+            {% elif grade == 'd' %}bg-orange-100 text-orange-700
+            {% else %}bg-red-100 text-red-700{% endif %}">{{ result.analysis.grade }}</span>
+          <span class="text-xs text-gray-600">{{ result.analysis.score|floatformat:1 }}/100</span>
         </div>
-    </div>
+        {% elif result.error %}
+        <span class="text-xs font-medium text-red-600">⚠ Error</span>
+        {% endif %}
+      </header>
 
-    {% if comparison_summary %}
-    <div class="comparison-overview">
-        <h2>🔍 Comparison Overview</h2>
-        <div class="comparison-summary">{{ comparison_summary }}</div>
-    </div>
-    {% endif %}
-
-    {% if results %}
-    <div class="queries-comparison">
-        {% for result in results %}
-        <div class="query-result {% if result.is_best %}best-query{% elif result.is_worst %}worst-query{% endif %}">
-            {% if result.is_best %}
-                <div class="performance-badge badge-best">Best Performing</div>
-            {% elif result.is_worst %}
-                <div class="performance-badge badge-worst">Needs Improvement</div>
-            {% endif %}
-
-            <div class="query-header">
-                <div class="query-name">
-                    {% if result.name %}
-                        {{ result.name }}
-                    {% else %}
-                        Query {{ forloop.counter }}
-                    {% endif %}
-                </div>
-                <div class="query-grade grade-{{ result.grade|lower }}">
-                    {{ result.grade }}
-                </div>
-            </div>
-
-            <div class="query-content">
-                <textarea class="sql-display">{{ result.query }}</textarea>
-            </div>
-
-            <div class="query-analysis">
-                {% if result.issues %}
-                <div class="analysis-section">
-                    <h4>⚠️ Issues Found</h4>
-                    <div class="issues-list">
-                        <ul>
-                            {% for issue in result.issues %}
-                            <li>{{ issue }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if result.suggestions %}
-                <div class="analysis-section">
-                    <h4>💡 Optimization Suggestions</h4>
-                    <div class="suggestions-list">
-                        <ul>
-                            {% for suggestion in result.suggestions %}
-                            <li>{{ suggestion }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+      <div class="p-5 flex-1 space-y-4">
+        {% if result.error %}
+        <div class="rounded bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+          <strong>Could not analyze:</strong> {{ result.error }}
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <h3>No Comparison Results</h3>
-        <p>It looks like there was an issue processing your query comparison. Please try again.</p>
-        <a href="{% url 'query_compare' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            <span>🔍</span>
-            Start New Comparison
-        </a>
-    </div>
-    {% endif %}
-
-    <div class="actions-bar">
-        <a href="{% url 'query_compare' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
-            <span>🔄</span>
-            Compare Different Queries
-        </a>
-
-        {% if results %}
-        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700" onclick="exportResults()">
-            <span>📥</span>
-            Export Results
-        </button>
         {% endif %}
 
-        <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            <span>⭐</span>
-            Grade Single Query
-        </a>
-    </div>
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Query</h4>
+          <textarea class="sql-display">{% if result.query %}{{ result.query.sql_text }}{% endif %}</textarea>
+        </div>
+
+        {% if result.analysis %}
+        <dl class="grid grid-cols-3 gap-2 text-xs">
+          <div><dt class="text-gray-500">Type</dt><dd class="font-medium text-gray-900">{{ result.query.query_type }}</dd></div>
+          <div><dt class="text-gray-500">Tables</dt><dd class="font-medium text-gray-900">{{ result.query.table_count }}</dd></div>
+          <div><dt class="text-gray-500">Joins</dt><dd class="font-medium text-gray-900">{{ result.query.join_count }}</dd></div>
+        </dl>
+
+        {% if result.analysis.issues_found %}
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-2">⚠ Issues ({{ result.analysis.issues_found|length }})</h4>
+          <ul class="space-y-1.5 text-sm">
+            {% for issue in result.analysis.issues_found %}
+            <li class="rounded border-l-2 px-2 py-1
+              {% if issue.severity == 'critical' %}border-red-500 bg-red-50
+              {% elif issue.severity == 'high' %}border-orange-500 bg-orange-50
+              {% elif issue.severity == 'medium' %}border-amber-500 bg-amber-50
+              {% else %}border-sky-500 bg-sky-50{% endif %}">
+              <span class="text-xs font-semibold text-gray-900">{{ issue.type|title }}</span>
+              <span class="text-xs text-gray-600">— {{ issue.description|truncatechars:100 }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if result.analysis.recommendations %}
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-2">💡 Recommendations ({{ result.analysis.recommendations|length }})</h4>
+          <ul class="space-y-1.5 text-sm">
+            {% for rec in result.analysis.recommendations %}
+            <li class="rounded border border-gray-200 px-2 py-1.5">
+              <span class="text-xs font-semibold text-gray-900">{{ rec.type|title }}</span>
+              <span class="text-xs text-gray-600">— {{ rec.description|truncatechars:120 }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if result.optimization and result.optimization.optimizations_applied %}
+        <details class="rounded border border-gray-200 p-2">
+          <summary class="cursor-pointer text-xs font-semibold text-emerald-700">🚀 Optimization suggestion (+{{ result.optimization.improvement_estimate }}%)</summary>
+          <pre class="mt-2 p-2 bg-gray-900 text-gray-100 rounded text-xs font-mono overflow-x-auto"><code>{{ result.optimization.optimized_query }}</code></pre>
+        </details>
+        {% endif %}
+        {% endif %}
+      </div>
+    </article>
+    {% endwith %}
+    {% endfor %}
+  </section>
+
+  {% else %}
+  <section class="bg-white rounded-lg border border-gray-200 p-10 text-center">
+    <div class="text-4xl mb-3">🔍</div>
+    <h2 class="text-lg font-semibold text-gray-900">No comparison results</h2>
+    <p class="mt-2 text-sm text-gray-500">There was an issue processing your comparison. Try again.</p>
+    <a href="{% url 'query_compare' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Start new comparison</a>
+  </section>
+  {% endif %}
 </div>
 
-    </div>
-
-<!-- CodeMirror JavaScript -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 
 <script>
-// Initialize CodeMirror for read-only SQL display
-document.addEventListener('DOMContentLoaded', function() {
-    const textareas = document.querySelectorAll('textarea.sql-display');
-
-    textareas.forEach((textarea) => {
-        if (textarea) {
-            const editor = CodeMirror.fromTextArea(textarea, {
-                mode: 'text/x-sql',
-                theme: 'material-darker',
-                lineNumbers: true,
-                readOnly: true,
-                lineWrapping: true,
-                showCursorWhenSelecting: false,
-                cursorBlinkRate: -1, // Hide cursor
-            });
-
-            // Set height based on content
-            const lineCount = textarea.value.split('\n').length;
-            const height = Math.max(120, Math.min(300, lineCount * 20 + 40));
-            editor.setSize(null, height);
-        }
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('textarea.sql-display').forEach(ta => {
+    const editor = CodeMirror.fromTextArea(ta, {
+      mode: 'text/x-sql', theme: 'material-darker',
+      lineNumbers: true, readOnly: true, lineWrapping: true,
+      cursorBlinkRate: -1,
     });
+    const lines = ta.value.split('\n').length;
+    editor.setSize(null, Math.max(120, Math.min(300, lines * 20 + 40)));
+  });
 });
 
 function exportResults() {
-    {% if results %}
-    // Create a comprehensive results export
-    const exportData = {
-        timestamp: new Date().toISOString(),
-        comparison_summary: {{ comparison_summary|escapejs }},
-        database_type: "{{ database_type|default:'Not specified' }}",
-        queries: [
-            {% for result in results %}
-            {
-                name: "{{ result.name|default:'Unnamed Query'|escapejs }}",
-                query: {{ result.query|escapejs }},
-                grade: "{{ result.grade }}",
-                issues: [
-                    {% for issue in result.issues %}
-                    {{ issue|escapejs }}{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                suggestions: [
-                    {% for suggestion in result.suggestions %}
-                    {{ suggestion|escapejs }}{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                is_best: {{ result.is_best|yesno:"true,false" }},
-                is_worst: {{ result.is_worst|yesno:"true,false" }}
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
+  const data = {
+    timestamp: new Date().toISOString(),
+    comparison_summary: {{ comparison_summary|default:''|escapejs|default:'""' }},
+    database_type: "{{ comparison_data.database_type|default:'' }}",
+    queries: [
+      {% for result in results %}
+      {
+        name: "{{ result.name|default:''|escapejs }}",
+        sql: "{% if result.query %}{{ result.query.sql_text|escapejs }}{% endif %}",
+        grade: "{{ result.analysis.grade|default:'' }}",
+        score: {{ result.analysis.score|default:0|floatformat:2 }},
+        issues: [
+          {% for issue in result.analysis.issues_found %}
+          {type: "{{ issue.type|escapejs }}", severity: "{{ issue.severity|escapejs }}", description: "{{ issue.description|escapejs }}"}{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ],
+        recommendations: [
+          {% for rec in result.analysis.recommendations %}
+          {type: "{{ rec.type|escapejs }}", priority: "{{ rec.priority|escapejs }}", description: "{{ rec.description|escapejs }}"}{% if not forloop.last %},{% endif %}
+          {% endfor %}
         ]
-    };
-
-    // Create and download JSON file
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `query-comparison-results-${new Date().toISOString().split('T')[0]}.json`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Also create a text summary
-    let textSummary = "QueryGrade - Query Comparison Results\n";
-    textSummary += "=====================================\n\n";
-    textSummary += `Generated: ${new Date().toLocaleString()}\n`;
-    textSummary += `Database Type: {{ database_type|default:'Not specified' }}\n\n`;
-
-    {% if comparison_summary %}
-    textSummary += "Comparison Summary:\n";
-    textSummary += "{{ comparison_summary|escapejs }}\n\n";
-    {% endif %}
-
-    {% for result in results %}
-    textSummary += "{{ result.name|default:'Query '}}{{ forloop.counter }}:\n";
-    textSummary += "Grade: {{ result.grade }}\n";
-    {% if result.is_best %}textSummary += "🏆 Best Performing Query\n";{% endif %}
-    {% if result.is_worst %}textSummary += "⚠️ Needs Most Improvement\n";{% endif %}
-    textSummary += "\nSQL Query:\n{{ result.query|escapejs }}\n\n";
-
-    {% if result.issues %}
-    textSummary += "Issues Found:\n";
-    {% for issue in result.issues %}
-    textSummary += "- {{ issue|escapejs }}\n";
-    {% endfor %}
-    textSummary += "\n";
-    {% endif %}
-
-    {% if result.suggestions %}
-    textSummary += "Optimization Suggestions:\n";
-    {% for suggestion in result.suggestions %}
-    textSummary += "- {{ suggestion|escapejs }}\n";
-    {% endfor %}
-    textSummary += "\n";
-    {% endif %}
-
-    textSummary += "----------------------------------------\n\n";
-    {% endfor %}
-
-    const textBlob = new Blob([textSummary], {type: 'text/plain'});
-    const textLink = document.createElement('a');
-    textLink.href = URL.createObjectURL(textBlob);
-    textLink.download = `query-comparison-summary-${new Date().toISOString().split('T')[0]}.txt`;
-
-    document.body.appendChild(textLink);
-    textLink.click();
-    document.body.removeChild(textLink);
-
-    console.log('Comparison results exported successfully');
-    {% endif %}
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `comparison_${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Results exported');
 }
-
-// Add keyboard shortcut for export
-document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        exportResults();
-    }
-});
-
-console.log('Query comparison results loaded. Press Ctrl+S to export results.');
 </script>
-
-</body>
-</html>
+{% endblock %}
