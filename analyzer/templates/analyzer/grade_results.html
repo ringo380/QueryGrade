@@ -1,818 +1,447 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
+{% block title %}Grade results · QueryGrade{% endblock %}
+
 {% block content %}
-<div class="results-container">
-    <div class="results-header">
-        <div class="navigation-tabs">
-            <a href="{% url 'grade_query' %}" class="tab-link">Grade Another Query</a>
-            <a href="{% url 'index' %}" class="tab-link">Log Analysis</a>
-            <a href="{% url 'query_history' %}" class="tab-link">Query History</a>
-        </div>
+<div class="space-y-6">
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-bold text-gray-900">Query analysis results</h1>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <a href="{% url 'grade_query' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Grade another</a>
+      <a href="{% url 'query_history' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">History</a>
+      <a href="{% url 'index' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Dashboard</a>
+    </div>
+  </div>
+
+  {% with g=analysis.grade|lower %}
+  <section class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col md:flex-row gap-6">
+    <div class="flex-shrink-0 flex flex-col items-center justify-center text-center md:w-48 p-4 rounded-lg
+      {% if g == 'a' %}bg-emerald-50 ring-1 ring-emerald-200
+      {% elif g == 'b' %}bg-lime-50 ring-1 ring-lime-200
+      {% elif g == 'c' %}bg-amber-50 ring-1 ring-amber-200
+      {% elif g == 'd' %}bg-orange-50 ring-1 ring-orange-200
+      {% else %}bg-red-50 ring-1 ring-red-200{% endif %}">
+      <div class="text-6xl font-bold leading-none
+        {% if g == 'a' %}text-emerald-700
+        {% elif g == 'b' %}text-lime-700
+        {% elif g == 'c' %}text-amber-700
+        {% elif g == 'd' %}text-orange-700
+        {% else %}text-red-700{% endif %}">{{ analysis.grade }}</div>
+      <div class="mt-2 text-2xl font-semibold text-gray-900">{{ analysis.score|floatformat:1 }}<span class="text-base text-gray-500">/100</span></div>
+      <div class="mt-1 text-xs uppercase tracking-wide text-gray-500">
+        {% if g == 'a' %}Excellent{% elif g == 'b' %}Good{% elif g == 'c' %}Average{% elif g == 'd' %}Poor{% else %}Failing{% endif %}
+      </div>
     </div>
 
-    <div class="grade-display">
-        <div class="grade-badge grade-{{ analysis.grade|lower }}">
-            <div class="grade-letter">{{ analysis.grade }}</div>
-            <div class="grade-score">{{ analysis.score|floatformat:1 }}/100</div>
-            <div class="grade-label">
-                {% if analysis.grade == 'A' %}Excellent
-                {% elif analysis.grade == 'B' %}Good
-                {% elif analysis.grade == 'C' %}Average
-                {% elif analysis.grade == 'D' %}Poor
-                {% else %}Failing
-                {% endif %}
-            </div>
-        </div>
+    <div class="flex-1">
+      <h2 class="text-lg font-semibold text-gray-900">Summary</h2>
+      <dl class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+        <div><dt class="text-gray-500">Query type</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.query_type }}</dd></div>
+        <div><dt class="text-gray-500">Complexity</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.estimated_complexity }}/100</dd></div>
+        <div><dt class="text-gray-500">Tables</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.table_count }}</dd></div>
+        <div><dt class="text-gray-500">Joins</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.join_count }}</dd></div>
+        <div><dt class="text-gray-500">Analysis time</dt><dd class="mt-0.5 font-medium text-gray-900">{{ analysis.execution_time_ms }}ms</dd></div>
+        <div><dt class="text-gray-500">Issues found</dt><dd class="mt-0.5 font-medium text-gray-900">{{ analysis.issues_found|length }}</dd></div>
+      </dl>
+    </div>
+  </section>
+  {% endwith %}
 
-        <div class="analysis-summary">
-            <h2>Query Analysis Results</h2>
-            <div class="summary-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Query Type:</span>
-                    <span class="stat-value">{{ query.query_type }}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Complexity:</span>
-                    <span class="stat-value">{{ query.estimated_complexity }}/100</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Tables:</span>
-                    <span class="stat-value">{{ query.table_count }}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Joins:</span>
-                    <span class="stat-value">{{ query.join_count }}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Analysis Time:</span>
-                    <span class="stat-value">{{ analysis.execution_time_ms }}ms</span>
-                </div>
-            </div>
-        </div>
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <p class="text-sm font-medium text-gray-700">Was this analysis helpful?</p>
+      <div class="flex gap-2">
+        <button id="thumbs-up" onclick="submitQuickFeedback(true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50 transition">
+          <span>👍</span><span>Helpful</span>
+        </button>
+        <button id="thumbs-down" onclick="submitQuickFeedback(false)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50 transition">
+          <span>👎</span><span>Not helpful</span>
+        </button>
+        <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm text-indigo-700 hover:bg-indigo-50 transition">
+          <span>💬</span><span>Detailed feedback</span>
+        </a>
+      </div>
+    </div>
+    <div id="feedback-status" class="hidden mt-3 text-sm"></div>
+  </section>
+
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700">Overall score</h3>
+        <span class="text-sm font-medium text-gray-900">{{ analysis.score|floatformat:1 }}/100</span>
+      </div>
+      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
+        {% with g=analysis.grade|lower %}
+        <div class="progress-fill h-full transition-all duration-700
+          {% if g == 'a' %}bg-emerald-500
+          {% elif g == 'b' %}bg-lime-500
+          {% elif g == 'c' %}bg-amber-500
+          {% elif g == 'd' %}bg-orange-500
+          {% else %}bg-red-500{% endif %}" style="width: {{ analysis.score }}%"></div>
+        {% endwith %}
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>0</span><span>50</span><span>100</span></div>
     </div>
 
-    <!-- Quick Feedback Section -->
-    <div class="quick-feedback-section">
-        <h3>Was this analysis helpful? 👍👎</h3>
-        <div class="feedback-buttons">
-            <button id="thumbs-up" class="feedback-btn thumbs-up" onclick="submitQuickFeedback(true)" title="Yes, this analysis was helpful">
-                <span class="feedback-icon">👍</span>
-                <span class="feedback-text">Helpful</span>
-            </button>
-            <button id="thumbs-down" class="feedback-btn thumbs-down" onclick="submitQuickFeedback(false)" title="No, this analysis needs improvement">
-                <span class="feedback-icon">👎</span>
-                <span class="feedback-text">Not Helpful</span>
-            </button>
-        </div>
-        <div id="feedback-status" class="feedback-status" style="display: none;"></div>
-        <div class="detailed-feedback-link">
-            <a href="{% url 'submit_feedback' analysis.id %}" class="detailed-feedback-btn">
-                💬 Provide Detailed Feedback
-            </a>
-        </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700">Query complexity</h3>
+        <span class="text-sm font-medium text-gray-900">{{ query.estimated_complexity }}/100</span>
+      </div>
+      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
+        <div class="progress-fill h-full transition-all duration-700
+          {% if query.estimated_complexity <= 25 %}bg-emerald-500
+          {% elif query.estimated_complexity <= 50 %}bg-amber-500
+          {% elif query.estimated_complexity <= 75 %}bg-orange-500
+          {% else %}bg-red-500{% endif %}" style="width: {{ query.estimated_complexity }}%"></div>
+      </div>
+      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>Simple</span><span>Moderate</span><span>Complex</span><span>Very</span></div>
     </div>
 
-    <!-- Performance Indicators Section -->
-    <div class="performance-indicators">
-        <h3>📊 Performance Metrics</h3>
-        <div class="metrics-grid">
-            <!-- Score Progress Bar -->
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-header">
-                    <h4>Overall Score</h4>
-                    <span class="metric-value">{{ analysis.score|floatformat:1 }}/100</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill score-progress" style="width: {{ analysis.score }}%; background-color: {% if analysis.grade == 'A' %}#28a745{% elif analysis.grade == 'B' %}#17a2b8{% elif analysis.grade == 'C' %}#ffc107{% elif analysis.grade == 'D' %}#fd7e14{% else %}#dc3545{% endif %};"></div>
-                </div>
-                <div class="progress-labels">
-                    <span>0</span>
-                    <span>25</span>
-                    <span>50</span>
-                    <span>75</span>
-                    <span>100</span>
-                </div>
-            </div>
-
-            <!-- Complexity Meter -->
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-header">
-                    <h4>Query Complexity</h4>
-                    <span class="metric-value">{{ query.estimated_complexity }}/100</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill complexity-progress" style="width: {{ query.estimated_complexity }}%; background-color: {% if query.estimated_complexity <= 25 %}#28a745{% elif query.estimated_complexity <= 50 %}#ffc107{% elif query.estimated_complexity <= 75 %}#fd7e14{% else %}#dc3545{% endif %};"></div>
-                </div>
-                <div class="progress-labels">
-                    <span>Simple</span>
-                    <span>Moderate</span>
-                    <span>Complex</span>
-                    <span>Very Complex</span>
-                </div>
-            </div>
-
-            <!-- Issues Distribution Chart -->
-            <div class="metric-bg-white rounded-lg border border-gray-200 issues-chart">
-                <div class="metric-header">
-                    <h4>Issues by Severity</h4>
-                    <span class="metric-value">{{ analysis.issues_found|length }} total</span>
-                </div>
-                <div class="issues-breakdown">
-                    <div class="severity-bars">
-                        <div class="severity-bar">
-                            <span class="severity-label">🔴 Critical</span>
-                            <div class="severity-count" id="critical-count">0</div>
-                        </div>
-                        <div class="severity-bar">
-                            <span class="severity-label">🟠 High</span>
-                            <div class="severity-count" id="high-count">0</div>
-                        </div>
-                        <div class="severity-bar">
-                            <span class="severity-label">🟡 Medium</span>
-                            <div class="severity-count" id="medium-count">0</div>
-                        </div>
-                        <div class="severity-bar">
-                            <span class="severity-label">🔵 Low</span>
-                            <div class="severity-count" id="low-count">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Performance Impact Gauge -->
-            <div class="metric-bg-white rounded-lg border border-gray-200">
-                <div class="metric-header">
-                    <h4>Performance Impact</h4>
-                    <span class="metric-value">
-                        {% if analysis.score >= 90 %}Minimal
-                        {% elif analysis.score >= 80 %}Low
-                        {% elif analysis.score >= 70 %}Moderate
-                        {% elif analysis.score >= 60 %}High
-                        {% else %}Critical
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="impact-gauge">
-                    <div class="gauge-arc">
-                        <div class="gauge-needle" style="transform: rotate({% widthratio analysis.score 100 180 %}deg);"></div>
-                    </div>
-                    <div class="gauge-labels">
-                        <span>Critical</span>
-                        <span>Optimal</span>
-                    </div>
-                </div>
-            </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Issues by severity</h3>
+        <span class="text-sm font-medium text-gray-900">{{ analysis.issues_found|length }} total</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-red-50">
+          <span class="text-red-700">🔴 Critical</span><span id="critical-count" class="font-bold text-red-700">0</span>
         </div>
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-orange-50">
+          <span class="text-orange-700">🟠 High</span><span id="high-count" class="font-bold text-orange-700">0</span>
+        </div>
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-amber-50">
+          <span class="text-amber-700">🟡 Medium</span><span id="medium-count" class="font-bold text-amber-700">0</span>
+        </div>
+        <div class="flex items-center justify-between px-3 py-2 rounded bg-sky-50">
+          <span class="text-sky-700">🔵 Low</span><span id="low-count" class="font-bold text-sky-700">0</span>
+        </div>
+      </div>
     </div>
 
-    <div class="query-display">
-        <div class="section-header">
-            <h3>Analyzed Query</h3>
-            <button class="copy-btn" onclick="copyToClipboard('analyzed-query', 'Query copied!')" title="Copy SQL query">
-                📋 Copy Query
-            </button>
+    <div class="bg-white rounded-lg border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700">Performance impact</h3>
+        <span class="text-sm font-medium text-gray-900">
+          {% if analysis.score >= 90 %}Minimal
+          {% elif analysis.score >= 80 %}Low
+          {% elif analysis.score >= 70 %}Moderate
+          {% elif analysis.score >= 60 %}High
+          {% else %}Critical{% endif %}
+        </span>
+      </div>
+      <div class="mt-4 w-full max-w-xs mx-auto">
+        <div class="relative h-3 rounded-full overflow-hidden bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500"></div>
+        <div class="relative h-0">
+          <div class="w-3 h-3 rounded-full bg-gray-900 ring-2 ring-white shadow transition-all duration-700 -mt-2.5" style="margin-left: calc({{ analysis.score }}% - 6px);"></div>
         </div>
-        <div class="query-text">
-            <pre><code id="analyzed-query">{{ query.sql_text }}</code></pre>
-        </div>
+        <div class="mt-3 flex justify-between text-xs text-gray-400"><span>Critical</span><span>Optimal</span></div>
+      </div>
     </div>
+  </section>
 
-    {% if analysis.issues_found %}
-    <div class="issues-section">
-        <h3>🔍 Issues Found</h3>
-        <div class="issues-list">
-            {% for issue in analysis.issues_found %}
-                <div class="issue-item severity-{{ issue.severity }}">
-                    <div class="issue-header">
-                        <span class="issue-type">{{ issue.type|title }}</span>
-                        <span class="severity-badge severity-{{ issue.severity }}">
-                            {% if issue.severity == 'critical' %}🔴 Critical
-                            {% elif issue.severity == 'high' %}🟠 High
-                            {% elif issue.severity == 'medium' %}🟡 Medium
-                            {% else %}🔵 Low
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="issue-description">{{ issue.description }}</div>
-                </div>
-            {% endfor %}
-        </div>
+  <section class="bg-white rounded-lg border border-gray-200">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <h3 class="text-sm font-semibold text-gray-700">Analyzed query</h3>
+      <button onclick="copyToClipboard('analyzed-query', 'Query copied!')" class="text-xs text-indigo-600 hover:underline">📋 Copy</button>
     </div>
-    {% endif %}
+    <pre class="overflow-x-auto p-5 text-sm font-mono text-gray-100 bg-gray-900 rounded-b-lg"><code id="analyzed-query">{{ query.sql_text }}</code></pre>
+  </section>
 
-    {% if analysis.recommendations %}
-    <div class="recommendations-section">
-        <div class="section-header">
-            <h3>💡 Recommendations</h3>
-            <button class="copy-btn" onclick="copyAllRecommendations()" title="Copy all recommendations">
-                📋 Copy All
-            </button>
+  {% if analysis.issues_found %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔍</span><span>Issues found</span></h3>
+    <ul class="mt-4 space-y-3">
+      {% for issue in analysis.issues_found %}
+      <li class="issue-item rounded-md border-l-4 p-3
+        {% if issue.severity == 'critical' %}border-red-500 bg-red-50
+        {% elif issue.severity == 'high' %}border-orange-500 bg-orange-50
+        {% elif issue.severity == 'medium' %}border-amber-500 bg-amber-50
+        {% else %}border-sky-500 bg-sky-50{% endif %}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="issue-type text-sm font-semibold text-gray-900">{{ issue.type|title }}</span>
+          <span class="severity-badge text-xs font-medium px-2 py-0.5 rounded
+            {% if issue.severity == 'critical' %}bg-red-100 text-red-700
+            {% elif issue.severity == 'high' %}bg-orange-100 text-orange-700
+            {% elif issue.severity == 'medium' %}bg-amber-100 text-amber-700
+            {% else %}bg-sky-100 text-sky-700{% endif %}">
+            {% if issue.severity == 'critical' %}🔴 Critical{% elif issue.severity == 'high' %}🟠 High{% elif issue.severity == 'medium' %}🟡 Medium{% else %}🔵 Low{% endif %}
+          </span>
         </div>
-        <div class="recommendations-list" id="recommendations-list">
-            {% for recommendation in analysis.recommendations %}
-                <div class="recommendation-item priority-{{ recommendation.priority }}">
-                    <div class="recommendation-header">
-                        <span class="recommendation-type">{{ recommendation.type|title }}</span>
-                        <span class="priority-badge priority-{{ recommendation.priority }}">
-                            {% if recommendation.priority == 'critical' %}⚡ Critical
-                            {% elif recommendation.priority == 'high' %}🔥 High Priority
-                            {% elif recommendation.priority == 'medium' %}📈 Medium Priority
-                            {% else %}💡 Suggestion
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="recommendation-description">{{ recommendation.description }}</div>
-                    {% if recommendation.example %}
-                        <div class="recommendation-example">
-                            <div class="example-header">
-                                <strong>Example:</strong>
-                                <button class="copy-btn-small" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')" title="Copy example">
-                                    📋
-                                </button>
-                            </div>
-                            <code id="example-{{ forloop.counter }}">{{ recommendation.example }}</code>
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
+        <p class="issue-description mt-1 text-sm text-gray-700">{{ issue.description }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if analysis.recommendations %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>💡</span><span>Recommendations</span></h3>
+      <button onclick="copyAllRecommendations()" class="text-xs text-indigo-600 hover:underline">📋 Copy all</button>
     </div>
-    {% endif %}
-
-    {% if optimization_result and optimization_result.optimizations_applied %}
-    <div class="optimization-section">
-        <div class="section-header">
-            <h3>🚀 Query Optimization Suggestions</h3>
-            <button class="copy-btn" onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" title="Copy optimized query">
-                📋 Copy Optimized Query
-            </button>
+    <ul id="recommendations-list" class="mt-4 space-y-3">
+      {% for rec in analysis.recommendations %}
+      <li class="recommendation-item rounded-md border border-gray-200 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="recommendation-type text-sm font-semibold text-gray-900">{{ rec.type|title }}</span>
+          <span class="priority-badge text-xs font-medium px-2 py-0.5 rounded
+            {% if rec.priority == 'critical' %}bg-red-100 text-red-700
+            {% elif rec.priority == 'high' %}bg-orange-100 text-orange-700
+            {% elif rec.priority == 'medium' %}bg-amber-100 text-amber-700
+            {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+            {% if rec.priority == 'critical' %}⚡ Critical{% elif rec.priority == 'high' %}🔥 High{% elif rec.priority == 'medium' %}📈 Medium{% else %}💡 Suggestion{% endif %}
+          </span>
         </div>
-
-        <div class="optimization-summary">
-            <div class="optimization-stats">
-                <div class="optimization-stat">
-                    <span class="stat-icon">🔧</span>
-                    <span class="stat-label">Optimizations Applied:</span>
-                    <span class="stat-value">{{ optimization_result.optimizations_applied|length }}</span>
-                </div>
-                <div class="optimization-stat">
-                    <span class="stat-icon">📈</span>
-                    <span class="stat-label">Estimated Improvement:</span>
-                    <span class="stat-value improvement-{{ optimization_result.improvement_estimate|floatformat:0 }}">
-                        {{ optimization_result.improvement_estimate }}%
-                    </span>
-                </div>
-            </div>
+        <p class="recommendation-description mt-2 text-sm text-gray-700">{{ rec.description }}</p>
+        {% if rec.example %}
+        <div class="recommendation-example mt-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-gray-500">Example</span>
+            <button class="text-xs text-indigo-600 hover:underline" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')">📋 Copy</button>
+          </div>
+          <pre class="text-xs font-mono p-3 bg-gray-900 text-gray-100 rounded overflow-x-auto"><code id="example-{{ forloop.counter }}">{{ rec.example }}</code></pre>
         </div>
-
-        <div class="optimization-tabs">
-            <button class="tab-button active" onclick="showOptimizationTab('optimized')" id="optimized-tab">
-                Optimized Query
-            </button>
-            <button class="tab-button" onclick="showOptimizationTab('comparison')" id="comparison-tab">
-                Side-by-Side Comparison
-            </button>
-            <button class="tab-button" onclick="showOptimizationTab('explanations')" id="explanations-tab">
-                Explanations
-            </button>
-        </div>
-
-        <div class="optimization-content">
-            <!-- Optimized Query Tab -->
-            <div class="tab-content active" id="optimized-content">
-                <div class="query-container">
-                    <div class="query-header">
-                        <h4>🎯 Optimized Query</h4>
-                        <div class="query-actions">
-                            <button class="copy-btn-small" onclick="copyToClipboard('optimized-query', 'Optimized query copied!')">
-                                📋 Copy
-                            </button>
-                        </div>
-                    </div>
-                    <div class="query-text">
-                        <pre><code id="optimized-query">{{ optimization_result.optimized_query }}</code></pre>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comparison Tab -->
-            <div class="tab-content" id="comparison-content">
-                <div class="query-comparison">
-                    <div class="query-comparison-side">
-                        <h4>📄 Original Query</h4>
-                        <div class="query-text">
-                            <pre><code>{{ optimization_result.original_query }}</code></pre>
-                        </div>
-                    </div>
-                    <div class="comparison-arrow">
-                        <div class="arrow-icon">➡️</div>
-                        <div class="improvement-badge">
-                            +{{ optimization_result.improvement_estimate }}% improvement
-                        </div>
-                    </div>
-                    <div class="query-comparison-side">
-                        <h4>🎯 Optimized Query</h4>
-                        <div class="query-text">
-                            <pre><code>{{ optimization_result.optimized_query }}</code></pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Explanations Tab -->
-            <div class="tab-content" id="explanations-content">
-                <div class="optimization-explanations">
-                    <h4>🔍 What Was Changed</h4>
-                    <div class="optimizations-list">
-                        {% for optimization in optimization_result.optimizations_applied %}
-                            <div class="optimization-item">
-                                <div class="optimization-icon">✅</div>
-                                <div class="optimization-text">{{ optimization }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if optimization_result.explanation %}
-                    <h4>💡 Detailed Explanations</h4>
-                    <div class="explanations-list">
-                        {% for explanation in optimization_result.explanation %}
-                            <div class="explanation-item">
-                                <div class="explanation-icon">💡</div>
-                                <div class="explanation-text">{{ explanation }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="optimization-disclaimer">
-            <p><strong>⚠️ Important:</strong> These are automated optimization suggestions. Always test optimized queries in a development environment before applying them to production. Performance improvements may vary based on your specific database schema, indexes, and data distribution.</p>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if analysis.performance_notes %}
-    <div class="performance-notes">
-        <h3>📊 Performance Notes</h3>
-        <div class="notes-content">{{ analysis.performance_notes }}</div>
-    </div>
-    {% endif %}
-
-    {% if user_history.database_type or user_history.database_version or user_history.use_case_notes %}
-    <div class="context-section">
-        <h3>📝 Query Context</h3>
-        <div class="context-grid">
-            {% if user_history.database_type %}
-                <div class="context-item">
-                    <span class="context-label">Database:</span>
-                    <span class="context-value">{{ user_history.database_type|title }}</span>
-                </div>
-            {% endif %}
-            {% if user_history.database_version %}
-                <div class="context-item">
-                    <span class="context-label">Version:</span>
-                    <span class="context-value">{{ user_history.database_version }}</span>
-                </div>
-            {% endif %}
-        </div>
-        {% if user_history.use_case_notes %}
-            <div class="use-case-notes">
-                <span class="context-label">Use Case:</span>
-                <div class="notes-text">{{ user_history.use_case_notes }}</div>
-            </div>
         {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if optimization_result and optimization_result.optimizations_applied %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🚀</span><span>Optimization suggestions</span></h3>
+      <button onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" class="text-xs text-indigo-600 hover:underline">📋 Copy optimized</button>
+    </div>
+    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      <div class="rounded bg-gray-50 p-3 flex items-center gap-2"><span>🔧</span><span class="text-gray-500">Optimizations applied:</span><span class="ml-auto font-semibold text-gray-900">{{ optimization_result.optimizations_applied|length }}</span></div>
+      <div class="rounded bg-emerald-50 p-3 flex items-center gap-2"><span>📈</span><span class="text-gray-500">Estimated improvement:</span><span class="ml-auto font-semibold text-emerald-700">{{ optimization_result.improvement_estimate }}%</span></div>
+    </div>
+
+    <div class="mt-4 border-b border-gray-200 flex gap-1">
+      <button id="optimized-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-indigo-700 border-b-2 border-indigo-600 -mb-px" onclick="showOptimizationTab('optimized')">Optimized</button>
+      <button id="comparison-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent -mb-px" onclick="showOptimizationTab('comparison')">Side-by-side</button>
+      <button id="explanations-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent -mb-px" onclick="showOptimizationTab('explanations')">Explanations</button>
+    </div>
+
+    <div id="optimized-content" class="opt-tab-content mt-4">
+      <pre class="overflow-x-auto p-4 text-sm font-mono text-gray-100 bg-gray-900 rounded"><code id="optimized-query">{{ optimization_result.optimized_query }}</code></pre>
+    </div>
+
+    <div id="comparison-content" class="opt-tab-content mt-4 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Original</h4>
+          <pre class="overflow-x-auto p-3 text-xs font-mono text-gray-100 bg-gray-800 rounded"><code>{{ optimization_result.original_query }}</code></pre>
+        </div>
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-1">Optimized</h4>
+          <pre class="overflow-x-auto p-3 text-xs font-mono text-gray-100 bg-gray-900 rounded ring-1 ring-emerald-500/40"><code>{{ optimization_result.optimized_query }}</code></pre>
+        </div>
+      </div>
+      <p class="mt-2 text-xs text-emerald-700">+{{ optimization_result.improvement_estimate }}% estimated improvement</p>
+    </div>
+
+    <div id="explanations-content" class="opt-tab-content mt-4 hidden space-y-4">
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">What was changed</h4>
+        <ul class="space-y-1.5 text-sm">
+          {% for opt in optimization_result.optimizations_applied %}
+          <li class="flex gap-2"><span class="text-emerald-600 flex-shrink-0">✅</span><span class="text-gray-700">{{ opt }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% if optimization_result.explanation %}
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">Detailed explanations</h4>
+        <ul class="space-y-1.5 text-sm">
+          {% for explanation in optimization_result.explanation %}
+          <li class="flex gap-2"><span class="text-amber-500 flex-shrink-0">💡</span><span class="text-gray-700">{{ explanation }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <p class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
+      <strong>⚠ Important:</strong> Always test optimized queries against a development environment before applying to production. Improvements vary by schema, indexes, and data distribution.
+    </p>
+  </section>
+  {% endif %}
+
+  {% if analysis.performance_notes %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📊</span><span>Performance notes</span></h3>
+    <p class="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{{ analysis.performance_notes }}</p>
+  </section>
+  {% endif %}
+
+  {% if user_history.database_type or user_history.database_version or user_history.use_case_notes %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📝</span><span>Query context</span></h3>
+    <dl class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      {% if user_history.database_type %}<div><dt class="text-gray-500">Database</dt><dd class="mt-0.5 font-medium text-gray-900">{{ user_history.database_type|title }}</dd></div>{% endif %}
+      {% if user_history.database_version %}<div><dt class="text-gray-500">Version</dt><dd class="mt-0.5 font-medium text-gray-900">{{ user_history.database_version }}</dd></div>{% endif %}
+    </dl>
+    {% if user_history.use_case_notes %}
+    <div class="mt-3">
+      <dt class="text-sm text-gray-500">Use case notes</dt>
+      <dd class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ user_history.use_case_notes }}</dd>
     </div>
     {% endif %}
+  </section>
+  {% endif %}
 
-    <div class="action-buttons">
-        <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            Grade Another Query
-        </a>
-        <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">
-            View Query History
-        </a>
-        <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-md hover:bg-sky-700">
-            💬 Provide Feedback
-        </a>
-        <button onclick="copyFullReport()" class="btn btn-outline" title="Copy complete analysis report">
-            📋 Copy Full Report
-        </button>
-        <button onclick="window.print()" class="btn btn-outline">
-            🖨️ Print Results
-        </button>
-    </div>
+  <div class="flex flex-wrap gap-2 pt-2">
+    <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Grade another query</a>
+    <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">View history</a>
+    <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">💬 Detailed feedback</a>
+    <button onclick="copyFullReport()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">📋 Copy full report</button>
+    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">🖨️ Print</button>
+  </div>
 </div>
 
-
-
 <script>
-// Copy to clipboard functionality
-async function copyToClipboard(elementId, successMessage) {
+  async function copyText(text, msg) {
     try {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            throw new Error('Element not found');
-        }
-
-        const text = element.textContent || element.innerText;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(text);
-        } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification(successMessage);
-    } catch (err) {
-        console.error('Copy failed: ', err);
-        showNotification('Copy failed. Please try selecting and copying manually.', 'error');
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      showToast(msg, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Copy failed', 'error');
     }
-}
+  }
 
-// Copy all recommendations as a formatted summary
-async function copyAllRecommendations() {
-    try {
-        const recommendationsList = document.getElementById('recommendations-list');
-        if (!recommendationsList) {
-            throw new Error('Recommendations not found');
-        }
+  async function copyToClipboard(elementId, msg) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    await copyText((el.textContent || el.innerText).trim(), msg);
+  }
 
-        let summary = "SQL Query Analysis Recommendations\n";
-        summary += "=====================================\n\n";
-
-        const recommendations = recommendationsList.querySelectorAll('.recommendation-item');
-        recommendations.forEach((item, index) => {
-            const type = item.querySelector('.recommendation-type')?.textContent?.trim() || 'Unknown';
-            const priority = item.querySelector('.priority-badge')?.textContent?.trim() || 'Unknown';
-            const description = item.querySelector('.recommendation-description')?.textContent?.trim() || '';
-            const example = item.querySelector('.recommendation-example code')?.textContent?.trim();
-
-            summary += `${index + 1}. ${type}\n`;
-            summary += `   Priority: ${priority}\n`;
-            summary += `   Description: ${description}\n`;
-            if (example) {
-                summary += `   Example: ${example}\n`;
-            }
-            summary += '\n';
-        });
-
-        summary += `Generated by QueryGrade SQL Analyzer\n`;
-        summary += `Analysis Date: ${new Date().toLocaleString()}\n`;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(summary);
-        } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = summary;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification('All recommendations copied to clipboard!');
-    } catch (err) {
-        console.error('Copy all recommendations failed: ', err);
-        showNotification('Copy failed. Please try again.', 'error');
-    }
-}
-
-// Copy full analysis report
-async function copyFullReport() {
-    try {
-        let report = "SQL Query Analysis Report\n";
-        report += "========================\n\n";
-
-        // Grade and summary
-        const gradeLetter = document.querySelector('.grade-letter')?.textContent?.trim();
-        const gradeScore = document.querySelector('.grade-score')?.textContent?.trim();
-        const gradeLabel = document.querySelector('.grade-label')?.textContent?.trim();
-
-        if (gradeLetter) {
-            report += `Overall Grade: ${gradeLetter} (${gradeScore}) - ${gradeLabel}\n\n`;
-        }
-
-        // Query
-        const query = document.getElementById('analyzed-query')?.textContent?.trim();
-        if (query) {
-            report += "Analyzed Query:\n";
-            report += "---------------\n";
-            report += query + "\n\n";
-        }
-
-        // Summary stats
-        const stats = document.querySelectorAll('.stat-item');
-        if (stats.length > 0) {
-            report += "Query Statistics:\n";
-            report += "-----------------\n";
-            stats.forEach(stat => {
-                const label = stat.querySelector('.stat-label')?.textContent?.trim();
-                const value = stat.querySelector('.stat-value')?.textContent?.trim();
-                if (label && value) {
-                    report += `${label} ${value}\n`;
-                }
-            });
-            report += "\n";
-        }
-
-        // Issues
-        const issues = document.querySelectorAll('.issue-item');
-        if (issues.length > 0) {
-            report += "Issues Found:\n";
-            report += "-------------\n";
-            issues.forEach((issue, index) => {
-                const type = issue.querySelector('.issue-type')?.textContent?.trim();
-                const severity = issue.querySelector('.severity-badge')?.textContent?.trim();
-                const description = issue.querySelector('.issue-description')?.textContent?.trim();
-
-                report += `${index + 1}. ${type} (${severity})\n`;
-                report += `   ${description}\n\n`;
-            });
-        }
-
-        // Recommendations
-        const recommendations = document.querySelectorAll('.recommendation-item');
-        if (recommendations.length > 0) {
-            report += "Recommendations:\n";
-            report += "----------------\n";
-            recommendations.forEach((item, index) => {
-                const type = item.querySelector('.recommendation-type')?.textContent?.trim();
-                const priority = item.querySelector('.priority-badge')?.textContent?.trim();
-                const description = item.querySelector('.recommendation-description')?.textContent?.trim();
-                const example = item.querySelector('.recommendation-example code')?.textContent?.trim();
-
-                report += `${index + 1}. ${type} (${priority})\n`;
-                report += `   ${description}\n`;
-                if (example) {
-                    report += `   Example: ${example}\n`;
-                }
-                report += '\n';
-            });
-        }
-
-        // Performance notes
-        const notes = document.querySelector('.notes-content')?.textContent?.trim();
-        if (notes) {
-            report += "Performance Notes:\n";
-            report += "------------------\n";
-            report += notes + "\n\n";
-        }
-
-        report += `\nGenerated by QueryGrade SQL Analyzer\n`;
-        report += `Analysis Date: ${new Date().toLocaleString()}\n`;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(report);
-        } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = report;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                throw new Error('Copy command failed');
-            } finally {
-                textArea.remove();
-            }
-        }
-
-        showNotification('Complete analysis report copied to clipboard!');
-    } catch (err) {
-        console.error('Copy full report failed: ', err);
-        showNotification('Copy failed. Please try again.', 'error');
-    }
-}
-
-// Show optimization tab
-function showOptimizationTab(tabName) {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
+  async function copyAllRecommendations() {
+    const list = document.getElementById('recommendations-list');
+    if (!list) return;
+    let summary = "SQL Query Analysis Recommendations\n=====================================\n\n";
+    list.querySelectorAll('.recommendation-item').forEach((item, i) => {
+      const type = item.querySelector('.recommendation-type')?.textContent?.trim() || '';
+      const priority = item.querySelector('.priority-badge')?.textContent?.trim() || '';
+      const desc = item.querySelector('.recommendation-description')?.textContent?.trim() || '';
+      const example = item.querySelector('.recommendation-example code')?.textContent?.trim();
+      summary += `${i + 1}. ${type}\n   Priority: ${priority}\n   ${desc}\n`;
+      if (example) summary += `   Example: ${example}\n`;
+      summary += '\n';
     });
+    summary += `\nGenerated by QueryGrade - ${new Date().toLocaleString()}\n`;
+    await copyText(summary, 'All recommendations copied');
+  }
 
-    // Remove active class from all tab buttons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
+  async function copyFullReport() {
+    let r = "SQL Query Analysis Report\n========================\n\n";
+    const grade = "{{ analysis.grade }}";
+    const score = "{{ analysis.score|floatformat:1 }}";
+    r += `Overall Grade: ${grade} (${score}/100)\n\n`;
+    const q = document.getElementById('analyzed-query')?.textContent?.trim();
+    if (q) r += `Analyzed Query:\n---------------\n${q}\n\n`;
+    const issues = document.querySelectorAll('.issue-item');
+    if (issues.length) {
+      r += "Issues Found:\n-------------\n";
+      issues.forEach((issue, i) => {
+        const type = issue.querySelector('.issue-type')?.textContent?.trim();
+        const sev = issue.querySelector('.severity-badge')?.textContent?.trim();
+        const desc = issue.querySelector('.issue-description')?.textContent?.trim();
+        r += `${i + 1}. ${type} (${sev})\n   ${desc}\n\n`;
+      });
+    }
+    document.querySelectorAll('.recommendation-item').forEach((item, i) => {
+      if (i === 0) r += "Recommendations:\n----------------\n";
+      const type = item.querySelector('.recommendation-type')?.textContent?.trim();
+      const priority = item.querySelector('.priority-badge')?.textContent?.trim();
+      const desc = item.querySelector('.recommendation-description')?.textContent?.trim();
+      r += `${i + 1}. ${type} (${priority})\n   ${desc}\n\n`;
     });
+    r += `\nGenerated by QueryGrade - ${new Date().toLocaleString()}\n`;
+    await copyText(r, 'Full report copied');
+  }
 
-    // Show selected tab content
-    const selectedContent = document.getElementById(tabName + '-content');
-    if (selectedContent) {
-        selectedContent.classList.add('active');
+  function showOptimizationTab(tab) {
+    document.querySelectorAll('.opt-tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.opt-tab-btn').forEach(btn => {
+      btn.classList.remove('text-indigo-700', 'border-indigo-600');
+      btn.classList.add('text-gray-500', 'border-transparent');
+    });
+    document.getElementById(tab + '-content')?.classList.remove('hidden');
+    const btn = document.getElementById(tab + '-tab');
+    if (btn) {
+      btn.classList.remove('text-gray-500', 'border-transparent');
+      btn.classList.add('text-indigo-700', 'border-indigo-600');
     }
+  }
 
-    // Add active class to selected tab button
-    const selectedButton = document.getElementById(tabName + '-tab');
-    if (selectedButton) {
-        selectedButton.classList.add('active');
-    }
-}
-
-// Show notification
-function showNotification(message, type = 'success') {
-    // Remove existing notifications
-    document.querySelectorAll('.copy-notification').forEach(n => n.remove());
-
-    const notification = document.createElement('div');
-    notification.className = 'copy-notification';
-    notification.textContent = message;
-
-    if (type === 'error') {
-        notification.style.backgroundColor = '#dc3545';
-    }
-
-    document.body.appendChild(notification);
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Quick feedback submission
-async function submitQuickFeedback(isHelpful) {
-    const thumbsUpBtn = document.getElementById('thumbs-up');
-    const thumbsDownBtn = document.getElementById('thumbs-down');
-    const statusDiv = document.getElementById('feedback-status');
-
-    // Disable buttons to prevent double submission
-    thumbsUpBtn.disabled = true;
-    thumbsDownBtn.disabled = true;
-
+  async function submitQuickFeedback(isHelpful) {
+    const up = document.getElementById('thumbs-up');
+    const down = document.getElementById('thumbs-down');
+    const status = document.getElementById('feedback-status');
+    up.disabled = true; down.disabled = true;
     try {
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-        if (!csrfToken) {
-            // If no CSRF token found, try to get it from cookie
-            const cookies = document.cookie.split(';');
-            const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrftoken='));
-            if (!csrfCookie) {
-                throw new Error('CSRF token not found');
-            }
-        }
-
-        const response = await fetch('{% url "quick_feedback" analysis.id %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({
-                'was_helpful': isHelpful
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Show success message
-            statusDiv.textContent = data.message || 'Thank you for your feedback!';
-            statusDiv.className = 'feedback-status success';
-            statusDiv.style.display = 'block';
-
-            // Update button states
-            if (isHelpful) {
-                thumbsUpBtn.classList.add('selected');
-                thumbsDownBtn.classList.remove('selected');
-            } else {
-                thumbsDownBtn.classList.add('selected');
-                thumbsUpBtn.classList.remove('selected');
-            }
-
-            // Keep buttons disabled after successful submission
-            thumbsUpBtn.disabled = true;
-            thumbsDownBtn.disabled = true;
-
-            // Show notification
-            showNotification('Feedback submitted successfully! 🎉');
-
-        } else {
-            throw new Error(data.error || 'Failed to submit feedback');
-        }
-
-    } catch (error) {
-        console.error('Error submitting feedback:', error);
-
-        // Show error message
-        statusDiv.textContent = 'Unable to submit feedback. Please try the detailed feedback form below.';
-        statusDiv.className = 'feedback-status error';
-        statusDiv.style.display = 'block';
-
-        // Re-enable buttons on error
-        thumbsUpBtn.disabled = false;
-        thumbsDownBtn.disabled = false;
-
-        // Show error notification
-        showNotification('Failed to submit feedback. Please try again.', 'error');
+      const csrf = getCsrfToken();
+      const res = await fetch('{% url "quick_feedback" analysis.id %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({was_helpful: isHelpful}),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      status.textContent = data.message || 'Thanks for your feedback!';
+      status.className = 'mt-3 text-sm text-emerald-700';
+      const chosen = isHelpful ? up : down;
+      const other = isHelpful ? down : up;
+      chosen.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+      other.classList.add('opacity-50');
+      showToast('Feedback submitted', 'success');
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'Could not submit. Try the detailed feedback form.';
+      status.className = 'mt-3 text-sm text-red-600';
+      up.disabled = false; down.disabled = false;
+      showToast('Submission failed', 'error');
     }
-}
+    status.classList.remove('hidden');
+  }
 
-// Performance indicators initialization
-document.addEventListener('DOMContentLoaded', function() {
-    // Count issues by severity
+  document.addEventListener('DOMContentLoaded', () => {
     const issues = {{ analysis.issues_found|safe }};
-    const severityCounts = {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0
-    };
-
-    issues.forEach(issue => {
-        if (severityCounts.hasOwnProperty(issue.severity)) {
-            severityCounts[issue.severity]++;
-        }
+    const counts = {critical: 0, high: 0, medium: 0, low: 0};
+    issues.forEach(i => { if (counts.hasOwnProperty(i.severity)) counts[i.severity]++; });
+    ['critical', 'high', 'medium', 'low'].forEach(k => {
+      const el = document.getElementById(`${k}-count`);
+      if (el) el.textContent = counts[k];
     });
 
-    // Update severity count displays
-    const criticalElement = document.getElementById('critical-count');
-    const highElement = document.getElementById('high-count');
-    const mediumElement = document.getElementById('medium-count');
-    const lowElement = document.getElementById('low-count');
-
-    if (criticalElement) criticalElement.textContent = severityCounts.critical;
-    if (highElement) highElement.textContent = severityCounts.high;
-    if (mediumElement) mediumElement.textContent = severityCounts.medium;
-    if (lowElement) lowElement.textContent = severityCounts.low;
-
-    // Update severity count colors based on values
-    function updateSeverityCountColor(element, count, baseColor) {
-        if (element && count > 0) {
-            element.style.backgroundColor = baseColor;
-        } else if (element) {
-            element.style.backgroundColor = '#666';
-        }
-    }
-
-    updateSeverityCountColor(criticalElement, severityCounts.critical, '#dc3545');
-    updateSeverityCountColor(highElement, severityCounts.high, '#fd7e14');
-    updateSeverityCountColor(mediumElement, severityCounts.medium, '#ffc107');
-    updateSeverityCountColor(lowElement, severityCounts.low, '#17a2b8');
-
-    // Animate progress bars
     setTimeout(() => {
-        const progressBars = document.querySelectorAll('.progress-fill');
-        progressBars.forEach(bar => {
-            const width = bar.style.width;
-            bar.style.width = '0%';
-            setTimeout(() => {
-                bar.style.width = width;
-            }, 100);
-        });
-    }, 500);
-
-    // Animate gauge needle
-    const needle = document.querySelector('.gauge-needle');
-    if (needle) {
-        const finalRotation = needle.style.transform;
-        needle.style.transform = 'rotate(0deg)';
-        setTimeout(() => {
-            needle.style.transform = finalRotation;
-        }, 1000);
-    }
-});
+      document.querySelectorAll('.progress-fill').forEach(bar => {
+        const w = bar.style.width;
+        bar.style.width = '0%';
+        requestAnimationFrame(() => { bar.style.width = w; });
+      });
+    }, 100);
+  });
 </script>
 {% endblock %}
