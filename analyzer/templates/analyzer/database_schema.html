@@ -1,247 +1,139 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
-{% block title %}Database Schema Analysis - QueryGrade{% endblock %}
-
-
+{% block title %}Database schema · QueryGrade{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 mt-4">
-    <!-- Database Overview -->
-    <div class="flex flex-wrap gap-4">
-        <div class="col-12">
-            <div class="stats-bg-white rounded-lg border border-gray-200">
-                <div class="row items-center">
-                    <div class="md:flex-1">
-                        <h4 class="mb-1">
-                            <i class="fas fa-database me-2"></i>
-                            {{ db_config.name }} ({{ db_config.engine|title }})
-                        </h4>
-                        <p class="mb-0">Connected to {{ db_config.host }}{% if db_config.port %}:{{ db_config.port }}{% endif %}</p>
-                    </div>
-                    <div class="md:flex-1 text-md-end">
-                        <div class="row text-center">
-                            <div class="col-3">
-                                <h5 class="mb-0">{{ table_count }}</h5>
-                                <small>Tables</small>
-                            </div>
-                            <div class="col-3">
-                                <h5 class="mb-0">{{ total_columns }}</h5>
-                                <small>Columns</small>
-                            </div>
-                            <div class="col-3">
-                                <h5 class="mb-0">{{ total_indexes }}</h5>
-                                <small>Indexes</small>
-                            </div>
-                            <div class="col-3">
-                                <h5 class="mb-0">{{ total_foreign_keys }}</h5>
-                                <small>Foreign Keys</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="space-y-6">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">🗄️ Database schema</h1>
+      <p class="mt-1 text-sm text-gray-500">{{ db_config.engine|title }} · <span class="font-medium">{{ db_config.name }}</span></p>
     </div>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <a href="{% url 'query_with_context' %}" class="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700">⭐ Grade with context</a>
+      <a href="{% url 'database_analyze' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Switch database</a>
+    </div>
+  </header>
 
-    <!-- Analysis Results -->
-    {% if schema_analysis %}
-    <div class="flex flex-wrap gap-4">
-        <div class="col-12">
-            <div class="bg-white rounded-lg border border-gray-200">
-                <div class="px-4 py-3 border-b border-gray-100 font-semibold">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-line me-2"></i>
-                        Schema Analysis Results
-                    </h5>
-                </div>
-                <div class="p-4">
-                    <!-- Issues -->
-                    {% if schema_analysis.issues %}
-                        <h6><i class="fas fa-exclamation-triangle text-red-600 me-2"></i>Issues Found</h6>
-                        {% for issue in schema_analysis.issues %}
-                            <div class="issue">
-                                <i class="fas fa-times-circle me-2"></i>{{ issue }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
+  <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-indigo-700">{{ table_count }}</div>
+      <div class="text-xs text-gray-500 mt-1">Tables</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-indigo-700">{{ total_columns }}</div>
+      <div class="text-xs text-gray-500 mt-1">Columns</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-indigo-700">{{ total_indexes }}</div>
+      <div class="text-xs text-gray-500 mt-1">Indexes</div>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+      <div class="text-2xl font-bold text-indigo-700">{{ total_foreign_keys }}</div>
+      <div class="text-xs text-gray-500 mt-1">Foreign keys</div>
+    </div>
+  </section>
 
-                    <!-- Performance Notes -->
-                    {% if schema_analysis.performance_notes %}
-                        <h6><i class="fas fa-tachometer-alt text-info me-2"></i>Performance Considerations</h6>
-                        {% for note in schema_analysis.performance_notes %}
-                            <div class="performance-note">
-                                <i class="fas fa-info-circle me-2"></i>{{ note }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
+  {% if schema_analysis %}
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔍</span><span>Schema analysis</span></h2>
 
-                    <!-- Recommendations -->
-                    {% if schema_analysis.recommendations %}
-                        <h6><i class="fas fa-lightbulb text-amber-600 me-2"></i>Recommendations</h6>
-                        {% for recommendation in schema_analysis.recommendations %}
-                            <div class="recommendation">
-                                <i class="fas fa-arrow-right me-2"></i>{{ recommendation }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-
-                    {% if not schema_analysis.issues and not schema_analysis.performance_notes and not schema_analysis.recommendations %}
-                        <div class="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong>Great schema!</strong> No significant issues found. Your database schema follows good practices.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+    {% if schema_analysis.issues %}
+    <div class="mt-4">
+      <h3 class="text-sm font-semibold text-red-700">⚠ Issues</h3>
+      <ul class="mt-2 space-y-1.5 text-sm text-gray-700 list-disc pl-5">
+        {% for issue in schema_analysis.issues %}<li>{{ issue }}</li>{% endfor %}
+      </ul>
     </div>
     {% endif %}
 
-    <!-- Tables Overview -->
-    <div class="flex flex-wrap gap-4">
-        <div class="col-12">
-            <div class="bg-white rounded-lg border border-gray-200">
-                <div class="px-4 py-3 border-b border-gray-100 font-semibold flex justify-between items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-min-w-full text-sm me-2"></i>
-                        Database Tables ({{ table_count }})
-                    </h5>
-                    <div>
-                        <button class="btn text-xs px-2 py-1 btn-outline-light" onclick="toggleAllTables()">
-                            <i class="fas fa-expand-arrows-alt me-1"></i>Toggle All
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4">
-                    {% for min-w-full text-sm in tables %}
-                    <div class="min-w-full text-sm-bg-white rounded-lg border border-gray-200">
-                        <div class="min-w-full text-sm-header" data-bs-toggle="collapse" data-bs-target="#min-w-full text-sm-{{ forloop.counter }}" style="cursor: pointer;">
-                            <div class="row items-center">
-                                <div class="md:flex-1">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-min-w-full text-sm me-2"></i>{{ min-w-full text-sm.name }}
-                                    </h6>
-                                </div>
-                                <div class="md:flex-1">
-                                    <div class="min-w-full text-sm-stats text-right">
-                                        <span class="me-3">
-                                            <i class="fas fa-columns me-1"></i>{{ min-w-full text-sm.columns|length }} columns
-                                        </span>
-                                        <span class="me-3">
-                                            <i class="fas fa-search me-1"></i>{{ min-w-full text-sm.indexes|length }} indexes
-                                        </span>
-                                        {% if min-w-full text-sm.row_count %}
-                                            <span class="me-3">
-                                                <i class="fas fa-database me-1"></i>{{ min-w-full text-sm.row_count|floatformat:0 }} rows
-                                            </span>
-                                        {% endif %}
-                                        {% if min-w-full text-sm.size_mb %}
-                                            <span>
-                                                <i class="fas fa-hdd me-1"></i>{{ min-w-full text-sm.size_mb }} MB
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="collapse" id="min-w-full text-sm-{{ forloop.counter }}">
-                            <div class="min-w-full text-sm-content">
-                                <!-- Columns -->
-                                <div class="mb-3">
-                                    <h6><i class="fas fa-columns me-2"></i>Columns</h6>
-                                    {% for column in min-w-full text-sm.columns %}
-                                        <span class="column-badge">
-                                            {{ column.name }}
-                                            <small>({{ column.type }})</small>
-                                            {% if not column.nullable %}<i class="fas fa-exclamation-circle" title="NOT NULL"></i>{% endif %}
-                                        </span>
-                                    {% endfor %}
-                                </div>
-
-                                <!-- Indexes -->
-                                {% if min-w-full text-sm.indexes %}
-                                <div class="mb-3">
-                                    <h6><i class="fas fa-search me-2"></i>Indexes</h6>
-                                    {% for index in min-w-full text-sm.indexes %}
-                                        <span class="index-badge">
-                                            {{ index.name }}
-                                            <small>({{ index.columns|join:", " }})</small>
-                                            {% if index.unique %}<i class="fas fa-key" title="Unique"></i>{% endif %}
-                                            {% if index.primary %}<i class="fas fa-star" title="Primary Key"></i>{% endif %}
-                                        </span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-
-                                <!-- Foreign Keys -->
-                                {% if min-w-full text-sm.foreign_keys %}
-                                <div class="mb-3">
-                                    <h6><i class="fas fa-link me-2"></i>Foreign Keys</h6>
-                                    {% for fk in min-w-full text-sm.foreign_keys %}
-                                        <span class="fk-badge">
-                                            {{ fk.columns|join:", " }} → {{ fk.referenced_table }}.{{ fk.referenced_columns|join:", " }}
-                                        </span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="rounded-md bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-800">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No tables found in this database.
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
+    {% if schema_analysis.performance_notes %}
+    <div class="mt-4">
+      <h3 class="text-sm font-semibold text-amber-700">⚡ Performance notes</h3>
+      <ul class="mt-2 space-y-1.5 text-sm text-gray-700 list-disc pl-5">
+        {% for note in schema_analysis.performance_notes %}<li>{{ note }}</li>{% endfor %}
+      </ul>
     </div>
+    {% endif %}
 
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-        <div class="flex flex-wrap gap-4">
-            <div class="col-12 flex gap-2 justify-center">
-                <a href="{% url 'query_with_context' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                    <i class="fas fa-search me-2"></i>
-                    Analyze Query with Context
-                </a>
-                <a href="{% url 'database_analyze' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-sync me-2"></i>
-                    Connect Different Database
-                </a>
-                <a href="{% url 'index' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-home me-2"></i>
-                    Back to Main
-                </a>
-            </div>
-        </div>
+    {% if schema_analysis.recommendations %}
+    <div class="mt-4">
+      <h3 class="text-sm font-semibold text-emerald-700">💡 Recommendations</h3>
+      <ul class="mt-2 space-y-1.5 text-sm text-gray-700 list-disc pl-5">
+        {% for rec in schema_analysis.recommendations %}<li>{{ rec }}</li>{% endfor %}
+      </ul>
     </div>
+    {% endif %}
+
+    {% if not schema_analysis.issues and not schema_analysis.performance_notes and not schema_analysis.recommendations %}
+    <p class="mt-3 text-sm text-gray-500">No schema issues detected. Your structure looks good!</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="space-y-3">
+    <h2 class="text-base font-semibold text-gray-900">Tables</h2>
+    {% for table in tables %}
+    <details class="bg-white rounded-lg border border-gray-200">
+      <summary class="cursor-pointer flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <span class="text-lg">📋</span>
+          <span class="font-mono text-sm font-semibold text-gray-900 truncate">{{ table.name }}</span>
+        </div>
+        <div class="flex flex-shrink-0 gap-3 text-xs text-gray-500">
+          <span>{{ table.columns|length }} cols</span>
+          <span>{{ table.indexes|length }} idx</span>
+          <span>{{ table.foreign_keys|length }} fks</span>
+        </div>
+      </summary>
+      <div class="px-5 pb-5 pt-2 space-y-4 border-t border-gray-100">
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-2">Columns</h4>
+          <div class="flex flex-wrap gap-1">
+            {% for column in table.columns %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded text-xs font-mono">
+              <span class="font-semibold text-gray-900">{{ column.name }}</span>
+              <span class="text-gray-500">{{ column.type }}</span>
+              {% if not column.nullable %}<span title="NOT NULL" class="text-red-500">!</span>{% endif %}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if table.indexes %}
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-2">Indexes</h4>
+          <div class="flex flex-wrap gap-1">
+            {% for index in table.indexes %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded text-xs font-mono">
+              <span class="font-semibold">{{ index.name }}</span>
+              <span class="text-indigo-600">({{ index.columns|join:", " }})</span>
+              {% if index.unique %}<span title="Unique" class="text-amber-600">🔑</span>{% endif %}
+              {% if index.primary %}<span title="Primary key" class="text-emerald-600">⭐</span>{% endif %}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if table.foreign_keys %}
+        <div>
+          <h4 class="text-xs font-semibold uppercase text-gray-500 mb-2">Foreign keys</h4>
+          <ul class="space-y-1 text-xs font-mono text-gray-700">
+            {% for fk in table.foreign_keys %}
+            <li><span class="text-gray-500">{{ fk.columns|join:", " }}</span> → <span class="text-indigo-700">{{ fk.referenced_table }}.{{ fk.referenced_columns|join:", " }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+    </details>
+    {% empty %}
+    <div class="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500">
+      No tables found in this database.
+    </div>
+    {% endfor %}
+  </section>
 </div>
-
-<script>
-    function toggleAllTables() {
-        const collapseElements = document.querySelectorAll('[id^="min-w-full text-sm-"]');
-        let anyExpanded = false;
-
-        collapseElements.forEach(element => {
-            if (element.classList.contains('show')) {
-                anyExpanded = true;
-            }
-        });
-
-        collapseElements.forEach(element => {
-            const bsCollapse = new bootstrap.Collapse(element, {
-                toggle: false
-            });
-
-            if (anyExpanded) {
-                bsCollapse.hide();
-            } else {
-                bsCollapse.show();
-            }
-        });
-    }
-</script>
 {% endblock %}
