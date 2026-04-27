@@ -87,7 +87,7 @@ DATABASES = {
             # PostgreSQL connection pooling and performance settings
             'sslmode': 'prefer',
             'connect_timeout': 10,
-            'options': '-c default_transaction_isolation=read_committed'
+            'options': "-c default_transaction_isolation='read committed'"
         },
         "CONN_MAX_AGE": 600,  # Connection pooling - 10 minutes
         "CONN_HEALTH_CHECKS": True,
