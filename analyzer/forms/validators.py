@@ -204,7 +204,7 @@ def validate_sql_query(sql_text):
         )
 
     try:
-        # Try to parse the SQL query
+        # Catches sqlparse parse failures and the ValidationErrors raised by the token checks below
         parsed = sqlparse.parse(sql_text)
         if not parsed:
             raise ValidationError(
