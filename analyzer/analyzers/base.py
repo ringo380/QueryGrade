@@ -201,6 +201,14 @@ class QueryGrader:
             query=query
         )
 
+        # For non-SELECT statements the analyzer pipeline is SELECT-optimized;
+        # flag this so results pages can surface a "limited analysis" notice.
+        if query.query_type not in ('SELECT', 'UNKNOWN'):
+            context.performance_notes.append(
+                f"Analysis is optimized for SELECT queries. {query.query_type} statements "
+                f"receive structural checks only — DML/DDL-specific recommendations are limited."
+            )
+
         # Run all analyzers in sequence
         for analyzer in self.analyzers:
             try:
