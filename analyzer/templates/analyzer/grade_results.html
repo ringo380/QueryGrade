@@ -356,7 +356,8 @@
       const type = item.querySelector('.recommendation-type')?.textContent?.trim() || '';
       const priority = item.querySelector('.priority-badge')?.textContent?.trim() || '';
       const desc = item.querySelector('.recommendation-description')?.textContent?.trim() || '';
-      const example = item.querySelector('.recommendation-example code')?.textContent?.trim();
+      const exampleEl = item.querySelector('.recommendation-example textarea, .recommendation-example code');
+      const example = exampleEl ? (exampleEl.value || exampleEl.textContent || '').trim() : undefined;
       summary += `${i + 1}. ${type}\n   Priority: ${priority}\n   ${desc}\n`;
       if (example) summary += `   Example: ${example}\n`;
       summary += '\n';
@@ -370,7 +371,8 @@
     const grade = "{{ analysis.grade }}";
     const score = "{{ analysis.score|floatformat:1 }}";
     r += `Overall Grade: ${grade} (${score}/100)\n\n`;
-    const q = document.getElementById('analyzed-query')?.textContent?.trim();
+    const analyzedEl = document.getElementById('analyzed-query');
+    const q = (analyzedEl?.value || analyzedEl?.textContent || '').trim();
     if (q) r += `Analyzed Query:\n---------------\n${q}\n\n`;
     const issues = document.querySelectorAll('.issue-item');
     if (issues.length) {
@@ -405,7 +407,7 @@
       btn.classList.remove('text-gray-500', 'border-transparent');
       btn.classList.add('text-indigo-700', 'border-indigo-600');
     }
-    if (typeof sqlEditors !== 'undefined') sqlEditors.forEach(ed => ed.refresh());
+    if (typeof sqlEditors !== 'undefined') setTimeout(() => sqlEditors.forEach(ed => ed.refresh()), 0);
   }
 
   async function submitQuickFeedback(isHelpful) {
