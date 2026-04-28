@@ -194,30 +194,6 @@ def validate_sql_query(sql_text):
             f"Try breaking complex queries into smaller parts for analysis."
         )
 
-    # Basic security checks - block dangerous patterns
-    dangerous_patterns = [
-        r'(?i)\b(exec|execute|sp_executesql)\b',  # Stored procedure execution
-        r'(?i)\b(xp_cmdshell|xp_regread|xp_regwrite)\b',  # System commands
-        r'(?i)\b(alter\s+table|drop\s+table|drop\s+database|truncate)\b',  # DDL operations
-        r'(?i)\b(insert\s+into|update\s+|delete\s+from)\b',  # DML operations
-        r'(?i)\b(create\s+|drop\s+|alter\s+)\b',  # Schema modifications
-        r'(?i)\b(grant\s+|revoke\s+)\b',  # Permission changes
-        r'(?i)(\-\-|\#|\/\*)',  # Comment injection attempts
-        r'(?i)\b(union\s+(?:all\s+)?select)\b',  # Union-based injection
-        r'(?i)\b(information_schema|sys\.|pg_catalog)\b',  # System schema access
-        r'(?i)\b(char|ascii|substring|mid|left|right)\s*\(',  # String manipulation functions
-        r'(?i)\b(sleep|waitfor|benchmark)\s*\(',  # Time-based attacks
-        r'(?i)\b(load_file|into\s+outfile|into\s+dumpfile)\b',  # File operations
-    ]
-
-    for pattern in dangerous_patterns:
-        if re.search(pattern, sql_text):
-            raise ValidationError(
-                "🚫 Query contains restricted operations. "
-                "For security, we only analyze SELECT queries. "
-                "Data modification (INSERT, UPDATE, DELETE) and schema changes (CREATE, DROP, ALTER) are not allowed."
-            )
-
     # Check for excessive semicolons (potential multi-statement injection)
     semicolon_count = sql_text.count(';')
     if semicolon_count > 1:
@@ -242,33 +218,6 @@ def validate_sql_query(sql_text):
                 "🔍 No valid SQL statement found. "
                 "Please ensure you've entered a complete SQL query with proper syntax."
             )
-
-        # Validate that it's a SELECT statement (read-only)
-        first_stmt = parsed[0] if parsed else None
-        if first_stmt:
-            # Get the first non-whitespace token
-            first_token = None
-            for token in first_stmt.flatten():
-                if not token.is_whitespace:
-                    first_token = token
-                    break
-
-            if first_token and first_token.ttype is sqlparse.tokens.DML:
-                if first_token.value.upper() != 'SELECT':
-                    statement_type = first_token.value.upper()
-                    raise ValidationError(
-                        f"🛑 {statement_type} statements are not supported. "
-                        f"This tool only analyzes read-only SELECT queries for performance optimization. "
-                        f"Data modifications are not allowed for security reasons."
-                    )
-            elif first_token and first_token.ttype is sqlparse.tokens.Keyword:
-                if first_token.value.upper() not in ['SELECT', 'WITH']:
-                    statement_type = first_token.value.upper()
-                    raise ValidationError(
-                        f"🛑 {statement_type} statements are not supported. "
-                        f"Only SELECT queries (including WITH/CTE) can be analyzed. "
-                        f"Try submitting a SELECT query to get performance insights."
-                    )
 
     except ValidationError:
         raise
