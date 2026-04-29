@@ -247,6 +247,46 @@ WHERE u.created_at > '2024-01-01' AND o.total > 100;</code></pre>
 <script>
 let sqlEditor = null;
 
+function toggleHistoryPanel() {
+  const panel = document.getElementById('history-panel');
+  const btn = document.getElementById('load-history-btn');
+  const isHidden = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !isHidden);
+  btn.textContent = isHidden ? '✕ Close history' : '📂 Load from history';
+}
+
+function loadFromHistory(btn) {
+  // Populate form fields from data attributes
+  if (sqlEditor) sqlEditor.setValue(btn.dataset.sql || '');
+  const dbType = document.getElementById('{{ form.database_type.id_for_label }}');
+  if (dbType) dbType.value = btn.dataset.dbType || '';
+  const dbVersion = document.getElementById('{{ form.database_version.id_for_label }}');
+  if (dbVersion) dbVersion.value = btn.dataset.dbVersion || '';
+  const useCase = document.getElementById('{{ form.use_case_notes.id_for_label }}');
+  if (useCase) useCase.value = btn.dataset.useCase || '';
+
+  // Highlight selected entry
+  document.querySelectorAll('.history-entry').forEach(el => el.classList.remove('bg-indigo-50', 'ring-1', 'ring-inset', 'ring-indigo-300'));
+  btn.classList.add('bg-indigo-50', 'ring-1', 'ring-inset', 'ring-indigo-300');
+
+  // Close panel after brief visual confirmation
+  setTimeout(() => {
+    const panel = document.getElementById('history-panel');
+    panel.classList.add('hidden');
+    document.getElementById('load-history-btn').textContent = '📂 Load from history';
+  }, 150);
+}
+
+document.addEventListener('click', e => {
+  const panel = document.getElementById('history-panel');
+  const btn = document.getElementById('load-history-btn');
+  if (!panel || panel.classList.contains('hidden')) return;
+  if (!panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+    panel.classList.add('hidden');
+    btn.textContent = '📂 Load from history';
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const ta = document.getElementById('{{ form.sql_query.id_for_label }}');
   if (ta) {
