@@ -250,9 +250,8 @@ let sqlEditor = null;
 function toggleHistoryPanel() {
   const panel = document.getElementById('history-panel');
   const btn = document.getElementById('load-history-btn');
-  const isHidden = panel.classList.contains('hidden');
-  panel.classList.toggle('hidden', !isHidden);
-  btn.textContent = isHidden ? '✕ Close history' : '📂 Load from history';
+  panel.classList.toggle('hidden');
+  btn.textContent = panel.classList.contains('hidden') ? '📂 Load from history' : '✕ Close history';
 }
 
 function loadFromHistory(btn) {
