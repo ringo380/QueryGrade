@@ -62,11 +62,65 @@
     <div>
       <div class="flex items-center justify-between mb-2">
         <label for="{{ form.sql_query.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.sql_query.label }} <span class="text-red-600">*</span></label>
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
+          <button type="button" id="load-history-btn"
+                  onclick="toggleHistoryPanel()"
+                  class="px-2 py-1 text-xs border border-indigo-300 text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100">
+            📂 Load from history
+          </button>
           <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="showKeyboardShortcuts()">⌨️ Shortcuts</button>
           <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="toggleFullscreen()">⛶ Fullscreen</button>
         </div>
       </div>
+
+      {# History panel — rendered server-side, shown/hidden by JS #}
+      <div id="history-panel" class="hidden mt-1 mb-2 border border-indigo-200 rounded-lg bg-white shadow-lg overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50">
+          <span class="text-xs font-semibold text-gray-700">Your 10 most recent queries</span>
+          <button type="button" onclick="toggleHistoryPanel()" class="text-gray-400 hover:text-gray-600 text-sm leading-none">✕</button>
+        </div>
+
+        {% if recent_queries %}
+          <ul class="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+            {% for history in recent_queries %}
+              {% with grade=history.query.queryanalysis_set.last.grade %}
+              <li>
+                <button type="button"
+                        class="history-entry w-full text-left px-3 py-2 hover:bg-indigo-50/50 flex items-start gap-3"
+                        onclick="loadFromHistory(this)"
+                        data-sql="{{ history.query.sql_text|escapejs }}"
+                        data-db-type="{{ history.database_type|default:'' }}"
+                        data-db-version="{{ history.database_version|default:'' }}"
+                        data-use-case="{{ history.use_case_notes|default:''|escapejs }}">
+                  <span class="flex-shrink-0 mt-0.5 inline-flex items-center justify-center w-6 h-5 rounded text-xs font-bold
+                    {% if grade == 'A' %}bg-emerald-100 text-emerald-700
+                    {% elif grade == 'B' %}bg-lime-100 text-lime-700
+                    {% elif grade == 'C' %}bg-amber-100 text-amber-700
+                    {% elif grade == 'D' %}bg-orange-100 text-orange-700
+                    {% elif grade == 'F' %}bg-red-100 text-red-700
+                    {% else %}bg-gray-100 text-gray-500{% endif %}">
+                    {{ grade|default:"—" }}
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-mono text-gray-700 truncate">{{ history.query.sql_text }}</p>
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {{ history.submitted_at|timesince }} ago{% if history.database_type %} · {{ history.database_type }}{% endif %}
+                    </p>
+                  </div>
+                </button>
+              </li>
+              {% endwith %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="px-3 py-4 text-xs text-gray-500 text-center">No history yet — grade a query to start building your history.</p>
+        {% endif %}
+
+        <div class="px-3 py-2 border-t border-gray-100 text-right">
+          <a href="{% url 'query_history' %}" class="text-xs text-indigo-600 hover:underline">View full history →</a>
+        </div>
+      </div>
+
       {{ form.sql_query }}
       {% if form.sql_query.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.sql_query.help_text }}</p>{% endif %}
       {% if form.sql_query.errors %}{% for error in form.sql_query.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
