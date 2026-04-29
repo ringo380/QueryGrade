@@ -174,7 +174,7 @@ def grade_results(request, analysis_id):
     user_history = UserQueryHistory.objects.filter(
         user=request.user,
         query=analysis.query
-    ).order_by('-created_at').first()
+    ).order_by('-submitted_at').first()
     if user_history is None:
         logger.warning(f"User {request.user.username} attempted to access analysis {analysis_id} without permission")
         messages.error(request, "You don't have permission to view this analysis.")
@@ -226,7 +226,7 @@ def enhanced_grade_results(request, analysis_id):
     user_history = UserQueryHistory.objects.filter(
         user=request.user,
         query=analysis.query
-    ).order_by('-created_at').first()
+    ).order_by('-submitted_at').first()
     if user_history is None:
         logger.warning(f"User {request.user.username} attempted to access analysis {analysis_id} without permission")
         messages.error(request, "You don't have permission to view this analysis.")

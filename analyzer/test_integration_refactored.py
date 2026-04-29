@@ -186,7 +186,7 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         # Step 7: Verify query history page shows the query
         history_response = self.client.get(reverse('query_history'))
         self.assertEqual(history_response.status_code, 200)
-        self.assertContains(history_response, 'Query History')
+        self.assertContains(history_response, 'Query history')
 
     def test_multiple_queries_with_transaction_management(self):
         """Test that user can grade multiple queries using explicit transactions."""
