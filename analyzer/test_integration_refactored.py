@@ -323,3 +323,9 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         self.assertEqual(Query.objects.count(), 0)
         self.assertEqual(QueryAnalysis.objects.count(), 0)
         self.assertEqual(UserQueryHistory.objects.count(), 0)
+
+    def test_grade_form_includes_recent_queries_context(self):
+        """GET /grade/ passes recent_queries in context for authenticated users."""
+        response = self.client.get(reverse('grade_query'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('recent_queries', response.context)

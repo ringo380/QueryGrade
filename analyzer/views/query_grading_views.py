@@ -139,7 +139,17 @@ def grade_query(request):
     else:
         form = QueryGradeForm()
 
-    return render(request, 'analyzer/grade_form.html', {'form': form})
+    recent_queries = (
+        UserQueryHistory.objects
+        .filter(user=request.user)
+        .select_related('query')
+        .order_by('-submitted_at')[:10]
+    ) if request.user.is_authenticated else []
+
+    return render(request, 'analyzer/grade_form.html', {
+        'form': form,
+        'recent_queries': recent_queries,
+    })
 
 
 @login_required
