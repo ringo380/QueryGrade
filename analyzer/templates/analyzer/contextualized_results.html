@@ -184,3 +184,17 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{% if GA4_MEASUREMENT_ID %}
+<script>
+  if (typeof gtag === 'function') {
+    gtag('event', 'query_graded', {
+      grade: '{{ analysis.grade|escapejs }}',
+      score: {{ analysis.score|default:0 }},
+      analysis_type: 'database'
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

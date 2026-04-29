@@ -63,6 +63,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "analyzer.context_processors.ga4_settings",
             ],
         },
     },
@@ -169,6 +170,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Google Analytics 4 — empty disables instrumentation entirely (no script tag rendered).
+GA4_MEASUREMENT_ID = config('GA4_MEASUREMENT_ID', default='')
 
 # Enhanced Cache configuration for performance optimization
 CACHES = {
@@ -328,6 +332,7 @@ CSP_SCRIPT_SRC = (
     "'unsafe-inline'",  # Temporarily allow for CodeMirror
     "https://cdnjs.cloudflare.com",  # For CodeMirror CDN
     "'unsafe-eval'",  # For CodeMirror functionality
+    "https://*.googletagmanager.com",  # GA4 gtag.js loader
 )
 CSP_STYLE_SRC = (
     "'self'",
@@ -336,7 +341,12 @@ CSP_STYLE_SRC = (
 )
 CSP_IMG_SRC = ("'self'", "data:", "https:")
 CSP_FONT_SRC = ("'self'", "https://cdnjs.cloudflare.com")
-CSP_CONNECT_SRC = ("'self'",)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://*.google-analytics.com",  # GA4 collection
+    "https://*.analytics.google.com",  # GA4 collection (regional)
+    "https://*.googletagmanager.com",  # GA4 config fetch
+)
 CSP_FRAME_ANCESTORS = ("'none'",)
 CSP_FRAME_SRC = ("'none'",)
 CSP_OBJECT_SRC = ("'none'",)

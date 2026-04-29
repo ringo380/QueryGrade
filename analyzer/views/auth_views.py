@@ -2,6 +2,7 @@
 Authentication views for user login, logout, and registration.
 """
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.forms import (
     UserCreationForm, AuthenticationForm,
@@ -102,7 +103,7 @@ def register_view(request):
             user = authenticate(username=username, password=raw_password)
             login(request, user)
             messages.success(request, f'Welcome to QueryGrade, {username}! Your account has been created.')
-            return redirect('index')
+            return redirect(f"{reverse('index')}?signup=1")
         else:
             messages.error(request, 'Please correct the errors below.')
     else:

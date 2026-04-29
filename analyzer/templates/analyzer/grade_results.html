@@ -432,6 +432,9 @@
       chosen.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
       other.classList.add('opacity-50');
       showToast('Feedback submitted', 'success');
+      if (typeof gtag === 'function') {
+        gtag('event', 'feedback_submitted', { feedback_type: 'quick', was_helpful: isHelpful });
+      }
     } catch (e) {
       console.error(e);
       status.textContent = 'Could not submit. Try the detailed feedback form.';
@@ -470,6 +473,14 @@
         requestAnimationFrame(() => { bar.style.width = w; });
       });
     }, 100);
+
+    if (typeof gtag === 'function') {
+      gtag('event', 'query_graded', {
+        grade: '{{ analysis.grade|escapejs }}',
+        score: {{ analysis.score|default:0 }},
+        analysis_type: 'single'
+      });
+    }
   });
 </script>
 {% endblock %}

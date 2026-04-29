@@ -125,6 +125,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const lines = ta.value.split('\n').length;
     editor.setSize(null, Math.max(100, Math.min(240, lines * 20 + 30)));
   });
+
+  if (typeof gtag === 'function') {
+    const total = {{ results|length|default:0 }};
+    let sum = 0, n = 0;
+    {% for r in results %}{% if r.analysis %}sum += {{ r.analysis.score|default:0 }}; n += 1;{% endif %}{% endfor %}
+    gtag('event', 'query_graded', {
+      analysis_type: 'batch',
+      batch_size: total,
+      avg_score: n > 0 ? +(sum / n).toFixed(2) : 0
+    });
+  }
 });
 
 function exportResults() {

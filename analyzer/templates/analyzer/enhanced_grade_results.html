@@ -593,6 +593,9 @@
       chosen.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
       other.classList.add('opacity-50');
       showToast('Feedback submitted', 'success');
+      if (typeof gtag === 'function') {
+        gtag('event', 'feedback_submitted', { feedback_type: 'quick', was_helpful: isHelpful });
+      }
     } catch (e) {
       console.error(e);
       status.textContent = 'Could not submit. Use the detailed form below.';
@@ -614,6 +617,9 @@
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('Detailed feedback submitted, thank you!', 'success');
+      if (typeof gtag === 'function') {
+        gtag('event', 'feedback_submitted', { feedback_type: 'detailed' });
+      }
       toggleDetailedFeedback();
     } catch (e) {
       console.error(e);
@@ -649,6 +655,14 @@
         requestAnimationFrame(() => { bar.style.width = w; });
       });
     }, 100);
+
+    if (typeof gtag === 'function') {
+      gtag('event', 'query_graded', {
+        grade: '{{ analysis.grade|escapejs }}',
+        score: {{ analysis.score|default:0 }},
+        analysis_type: 'single_enhanced'
+      });
+    }
 
     // Star rating: highlight stars when one is checked
     document.querySelectorAll('.star-row').forEach(row => {

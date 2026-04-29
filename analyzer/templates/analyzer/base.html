@@ -17,6 +17,28 @@
   </script>
   {% block extra_css %}{% endblock %}
   {% block extra_head %}{% endblock %}
+  {% if GA4_MEASUREMENT_ID %}
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ GA4_MEASUREMENT_ID }}', {
+      'send_page_view': true,
+      'anonymize_ip': true
+    });
+    {% if user.is_authenticated %}
+    gtag('set', 'user_properties', { user_type: '{% if user.is_staff %}staff{% else %}authenticated{% endif %}' });
+    gtag('set', { 'user_id': '{{ user.id }}' });
+    {% else %}
+    gtag('set', 'user_properties', { user_type: 'anonymous' });
+    {% endif %}
+    {% if request.GET.signup %}
+    gtag('event', 'sign_up', { method: 'email' });
+    {% endif %}
+  </script>
+  {% endif %}
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
