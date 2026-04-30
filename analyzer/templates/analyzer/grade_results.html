@@ -18,10 +18,36 @@
     <h1 class="text-2xl font-bold text-gray-900">Query analysis results</h1>
     <div class="flex flex-wrap gap-2 text-sm">
       <a href="{% url 'grade_query' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Grade another</a>
+      {% if is_anonymous %}
+      <a href="{% url 'register' %}" class="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700">Sign up to save</a>
+      {% else %}
       <a href="{% url 'query_history' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">History</a>
+      {% endif %}
       <a href="{% url 'index' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Dashboard</a>
     </div>
   </div>
+
+  {% if show_upgrade_cta %}
+  <section class="rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6">
+    <div class="flex items-start gap-4">
+      <div class="text-3xl">🔓</div>
+      <div class="flex-1">
+        <h2 class="text-lg font-semibold text-gray-900">Unlock advanced reporting</h2>
+        <p class="mt-1 text-sm text-gray-600">You're viewing a basic trial result. Create a free account to unlock:</p>
+        <ul class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-700">
+          <li>✓ AI rewrite suggestions</li>
+          <li>✓ Personalized feedback</li>
+          <li>✓ Query history &amp; saved reports</li>
+          <li>✓ Performance predictions</li>
+        </ul>
+        <div class="mt-4 flex gap-2">
+          <a href="{% url 'register' %}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700">Create free account</a>
+          <a href="{% url 'login' %}" class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50">Log in</a>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   {% with g=analysis.grade|lower %}
   <section class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col md:flex-row gap-6">
@@ -57,6 +83,7 @@
   </section>
   {% endwith %}
 
+  {% if not is_anonymous %}
   <section class="bg-white rounded-lg border border-gray-200 p-5">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <p class="text-sm font-medium text-gray-700">Was this analysis helpful?</p>
@@ -74,6 +101,7 @@
     </div>
     <div id="feedback-status" class="hidden mt-3 text-sm"></div>
   </section>
+  {% endif %}
 
   <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="bg-white rounded-lg border border-gray-200 p-5">
@@ -310,8 +338,10 @@
 
   <div class="flex flex-wrap gap-2 pt-2">
     <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Grade another query</a>
+    {% if not is_anonymous %}
     <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">View history</a>
     <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">💬 Detailed feedback</a>
+    {% endif %}
     <button onclick="copyFullReport()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">📋 Copy full report</button>
     <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">🖨️ Print</button>
   </div>

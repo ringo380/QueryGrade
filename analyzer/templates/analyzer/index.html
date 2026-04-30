@@ -93,9 +93,66 @@
   </section>
   {% endif %}
   {% else %}
-  <section class="bg-white rounded-lg border border-gray-200 p-6 text-center">
-    <p class="text-gray-700">Please <a class="text-indigo-600 font-medium hover:underline" href="{% url 'login' %}">log in</a> or <a class="text-indigo-600 font-medium hover:underline" href="{% url 'register' %}">create an account</a> to start analyzing queries.</p>
+  {# Anonymous trial: inline grade form + upgrade CTA #}
+  {% if trial_exhausted %}
+  <section class="bg-white rounded-lg border border-indigo-200 p-8 text-center space-y-4">
+    <div class="text-4xl">🚀</div>
+    <h2 class="text-2xl font-semibold text-gray-900">You've used all {{ trial_cap }} free trials</h2>
+    <p class="text-gray-600 max-w-xl mx-auto">Create a free account to keep grading queries — plus unlock AI rewrite suggestions, personalized feedback, query history, and saved reports.</p>
+    <div class="flex gap-3 justify-center pt-2">
+      <a href="{% url 'register' %}" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Create free account</a>
+      <a href="{% url 'login' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Log in</a>
+    </div>
   </section>
+  {% else %}
+  <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+    <div class="rounded-md bg-amber-50 border border-amber-200 p-3 flex items-start gap-3">
+      <span class="text-xl">🎁</span>
+      <div class="flex-1 text-sm text-amber-900">
+        <strong>Try QueryGrade free</strong> — {{ trial_remaining }} of {{ trial_cap }} grades left this session.
+        <a href="{% url 'register' %}" class="font-semibold underline hover:text-amber-950">Sign up</a>
+        for unlimited grading + AI rewrite suggestions, history, and saved reports.
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'grade_query' %}" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label for="{{ grade_form.sql_query.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ grade_form.sql_query.label }} <span class="text-red-600">*</span></label>
+        <div class="mt-1">{{ grade_form.sql_query }}</div>
+        {% if grade_form.sql_query.help_text %}<p class="mt-1 text-xs text-gray-500">{{ grade_form.sql_query.help_text }}</p>{% endif %}
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="{{ grade_form.database_type.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ grade_form.database_type.label }}</label>
+          <div class="mt-1">{{ grade_form.database_type }}</div>
+        </div>
+        <div>
+          <label for="{{ grade_form.database_version.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ grade_form.database_version.label }}</label>
+          <div class="mt-1">{{ grade_form.database_version }}</div>
+        </div>
+      </div>
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+        📊 Grade my query
+      </button>
+    </form>
+  </section>
+
+  <section class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900">Unlock more with a free account</h2>
+    <p class="mt-1 text-sm text-gray-500">Registered users get advanced ML-powered insights and persistent storage.</p>
+    <ul class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      <li class="flex items-start gap-2"><span>🤖</span><div><strong class="text-gray-900">AI rewrite suggestions</strong><p class="text-xs text-gray-500">Automatic query optimizations.</p></div></li>
+      <li class="flex items-start gap-2"><span>🎯</span><div><strong class="text-gray-900">Personalized feedback</strong><p class="text-xs text-gray-500">Based on your query patterns.</p></div></li>
+      <li class="flex items-start gap-2"><span>🕒</span><div><strong class="text-gray-900">Query history</strong><p class="text-xs text-gray-500">Browse and reload past analyses.</p></div></li>
+      <li class="flex items-start gap-2"><span>💾</span><div><strong class="text-gray-900">Saved reports</strong><p class="text-xs text-gray-500">Persistent records of every grade.</p></div></li>
+    </ul>
+    <div class="mt-5 flex gap-3">
+      <a href="{% url 'register' %}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Create free account</a>
+      <a href="{% url 'login' %}" class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Log in</a>
+    </div>
+  </section>
+  {% endif %}
   {% endif %}
 </div>
 

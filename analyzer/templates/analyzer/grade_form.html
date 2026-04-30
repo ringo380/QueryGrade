@@ -21,6 +21,29 @@
     <p class="mt-1 text-sm text-gray-500">Get instant feedback with letter grades (A–F) and optimization recommendations</p>
   </header>
 
+  {% if is_anonymous_trial and not trial_exhausted %}
+  <div class="rounded-md bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
+    <span class="text-xl">🎁</span>
+    <div class="flex-1 text-sm text-amber-900">
+      <strong>Trial mode:</strong> You have <strong>{{ trial_remaining }}</strong> of {{ trial_cap }} free grades left this session.
+      <a href="{% url 'register' %}" class="font-semibold underline hover:text-amber-950">Create a free account</a>
+      for unlimited grading, AI rewrite suggestions, history, and personalized feedback.
+    </div>
+  </div>
+  {% endif %}
+
+  {% if trial_exhausted %}
+  <div class="rounded-lg bg-white border border-indigo-200 p-6 text-center space-y-3">
+    <div class="text-3xl">🚀</div>
+    <h2 class="text-xl font-semibold text-gray-900">You've used all {{ trial_cap }} free trials</h2>
+    <p class="text-sm text-gray-600 max-w-lg mx-auto">Create a free account to keep grading queries — plus unlock AI rewrite suggestions, personalized feedback, query history, and saved reports.</p>
+    <div class="flex gap-3 justify-center pt-2">
+      <a href="{% url 'register' %}" class="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700">Create free account</a>
+      <a href="{% url 'login' %}" class="px-5 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50">Log in</a>
+    </div>
+  </div>
+  {% else %}
+
   <div id="helpBanner" class="rounded-md bg-indigo-50 border border-indigo-200 p-4 flex items-start gap-3">
     <span class="text-xl">💡</span>
     <div class="flex-1 text-sm text-indigo-900">
@@ -63,11 +86,13 @@
       <div class="flex items-center justify-between mb-2">
         <label for="{{ form.sql_query.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.sql_query.label }} <span class="text-red-600">*</span></label>
         <div class="flex gap-2 items-center">
+          {% if user.is_authenticated %}
           <button type="button" id="load-history-btn"
                   onclick="toggleHistoryPanel()"
                   class="px-2 py-1 text-xs border border-indigo-300 text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100">
             📂 Load from history
           </button>
+          {% endif %}
           <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="showKeyboardShortcuts()">⌨️ Shortcuts</button>
           <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="toggleFullscreen()">⛶ Fullscreen</button>
         </div>
@@ -155,6 +180,7 @@
       <button type="button" onclick="clearForm()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Clear</button>
     </div>
   </form>
+  {% endif %}
 
   <div id="loadingOverlay" class="fixed inset-0 z-40 hidden bg-gray-900/50 items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">

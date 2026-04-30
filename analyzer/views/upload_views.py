@@ -18,9 +18,12 @@ from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 from celery.result import AsyncResult
 
-from ..forms import UploadLogForm
+from django.conf import settings
+
+from ..forms import UploadLogForm, QueryGradeForm
 from ..parser import process_slow_log, process_general_log
 from ..tasks import process_log_file_async
+from .constants import ANON_TRIAL_COUNT_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +54,19 @@ def index(request):
         HttpResponse: The HTTP response object.
     """
     if not request.user.is_authenticated:
-        return redirect('login')
+        # Anonymous landing: show inline trial grade form + upgrade CTAs
+        if request.method == 'POST':
+            return redirect('login')
+        cap = getattr(settings, 'ANON_TRIAL_CAP', 3)
+        count = request.session.get(ANON_TRIAL_COUNT_KEY, 0)
+        remaining = max(0, cap - count)
+        return render(request, 'analyzer/index.html', {
+            'grade_form': QueryGradeForm(),
+            'is_anonymous_trial': True,
+            'trial_cap': cap,
+            'trial_remaining': remaining,
+            'trial_exhausted': remaining <= 0,
+        })
 
     if request.method == 'POST':
         form = UploadLogForm(request.POST, request.FILES)
