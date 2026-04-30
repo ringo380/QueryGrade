@@ -347,6 +347,7 @@
   </div>
 </div>
 
+{{ analysis.issues_found|json_script:"issues-json" }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script>
@@ -488,7 +489,7 @@
       sqlEditors.push(ed);
     });
 
-    const issues = {{ analysis.issues_found|safe }};
+    const issues = JSON.parse(document.getElementById('issues-json').textContent);
     const counts = {critical: 0, high: 0, medium: 0, low: 0};
     issues.forEach(i => { if (counts.hasOwnProperty(i.severity)) counts[i.severity]++; });
     ['critical', 'high', 'medium', 'low'].forEach(k => {

@@ -18,12 +18,10 @@ from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 from celery.result import AsyncResult
 
-from django.conf import settings
-
 from ..forms import UploadLogForm, QueryGradeForm
 from ..parser import process_slow_log, process_general_log
 from ..tasks import process_log_file_async
-from .constants import ANON_TRIAL_COUNT_KEY
+from .utils import anon_trial_state
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +55,7 @@ def index(request):
         # Anonymous landing: show inline trial grade form + upgrade CTAs
         if request.method == 'POST':
             return redirect('login')
-        cap = getattr(settings, 'ANON_TRIAL_CAP', 3)
-        count = request.session.get(ANON_TRIAL_COUNT_KEY, 0)
-        remaining = max(0, cap - count)
+        cap, _count, remaining = anon_trial_state(request)
         return render(request, 'analyzer/index.html', {
             'grade_form': QueryGradeForm(),
             'is_anonymous_trial': True,

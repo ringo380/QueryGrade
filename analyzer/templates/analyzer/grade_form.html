@@ -392,14 +392,17 @@ function toggleFullscreen() {
   if (sqlEditor) sqlEditor.setOption("fullScreen", !sqlEditor.getOption("fullScreen"));
 }
 
-document.getElementById('gradeForm').addEventListener('submit', e => {
-  if (sqlEditor && sqlEditor.getValue().trim() === '') {
-    e.preventDefault();
-    showToast('Please enter a SQL query.', 'error');
-    return;
-  }
-  showLoadingOverlay();
-});
+const gradeForm = document.getElementById('gradeForm');
+if (gradeForm) {
+  gradeForm.addEventListener('submit', e => {
+    if (sqlEditor && sqlEditor.getValue().trim() === '') {
+      e.preventDefault();
+      showToast('Please enter a SQL query.', 'error');
+      return;
+    }
+    showLoadingOverlay();
+  });
+}
 
 function showLoadingOverlay() {
   const overlay = document.getElementById('loadingOverlay');

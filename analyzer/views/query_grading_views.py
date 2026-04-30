@@ -24,28 +24,29 @@ from ..query_analyzer import analyze_query
 from ..query_optimizer import optimize_query_from_analysis
 from ..ml.analysis.unified_analyzer import UnifiedQueryAnalyzer, AnalysisRequest
 from ..performance import PerformanceMonitor
-from .utils import get_client_ip
+from .utils import get_client_ip, anon_trial_state
 from .constants import (
     GRADE_COLORS,
     ANON_ANALYSIS_SESSION_KEY,
     ANON_TRIAL_COUNT_KEY,
     ANON_ANALYSIS_HISTORY_LIMIT,
+    QUERY_RATE_LIMIT,
+    ANON_QUERY_RATE_LIMIT,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def _anon_trial_state(request):
-    """Compute anonymous trial counters from session."""
-    cap = getattr(settings, 'ANON_TRIAL_CAP', 3)
-    count = request.session.get(ANON_TRIAL_COUNT_KEY, 0)
-    remaining = max(0, cap - count)
-    return cap, count, remaining
+def _anon_ip_key(group, request):
+    """Rate-limit key: returns the client IP for anonymous users, None for authenticated (skip)."""
+    if request.user.is_authenticated:
+        return None
+    return get_client_ip(request)
 
 
 @transaction.non_atomic_requests
-@ratelimit(key='ip', rate='5/m', method='POST', block=True)
-@ratelimit(key='user', rate='20/m', method='POST', block=True)
+@ratelimit(key=_anon_ip_key, rate=ANON_QUERY_RATE_LIMIT, method='POST', block=True)
+@ratelimit(key='user', rate=QUERY_RATE_LIMIT, method='POST', block=True)
 @PerformanceMonitor.time_function("grade_query_view")
 def grade_query(request):
     """
@@ -55,7 +56,7 @@ def grade_query(request):
     authenticated users get full ML analysis, history, and feedback features.
     """
     is_anon = not request.user.is_authenticated
-    cap, count, remaining = _anon_trial_state(request)
+    cap, count, remaining = anon_trial_state(request)
 
     if request.method == 'POST':
         if is_anon and remaining <= 0:
@@ -157,6 +158,7 @@ def grade_query(request):
                     'form': form,
                     'recent_queries': [],
                     'is_anonymous_trial': is_anon,
+                    'trial_exhausted': is_anon and remaining <= 0,
                     'trial_cap': cap,
                     'trial_remaining': remaining,
                 })
@@ -168,6 +170,7 @@ def grade_query(request):
                     'form': form,
                     'recent_queries': [],
                     'is_anonymous_trial': is_anon,
+                    'trial_exhausted': is_anon and remaining <= 0,
                     'trial_cap': cap,
                     'trial_remaining': remaining,
                 })

@@ -117,7 +117,7 @@ class AnonymousTrialTestCase(TransactionTestCase):
             'sql_query': SIMPLE_QUERY,
             'database_type': 'mysql',
         })
-        analysis_id = QueryAnalysis.objects.first().id
+        analysis_id = int(post.url.rstrip('/').split('/')[-1])
         self.client.logout()
 
         # Now as anon, attempt to view
