@@ -16,33 +16,59 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django_ratelimit.decorators import ratelimit
 
+from django.conf import settings
+
 from ..forms import QueryGradeForm, QueryCompareForm, BatchQueryForm
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..query_analyzer import analyze_query
 from ..query_optimizer import optimize_query_from_analysis
 from ..ml.analysis.unified_analyzer import UnifiedQueryAnalyzer, AnalysisRequest
 from ..performance import PerformanceMonitor
-from .utils import get_client_ip
-from .constants import GRADE_COLORS
+from .utils import get_client_ip, anon_trial_state
+from .constants import (
+    GRADE_COLORS,
+    ANON_ANALYSIS_SESSION_KEY,
+    ANON_TRIAL_COUNT_KEY,
+    ANON_ANALYSIS_HISTORY_LIMIT,
+    QUERY_RATE_LIMIT,
+    ANON_QUERY_RATE_LIMIT,
+)
 
 logger = logging.getLogger(__name__)
 
 
-@login_required
+def _anon_ip_key(group, request):
+    """Rate-limit key: returns the client IP for anonymous users, None for authenticated (skip)."""
+    if request.user.is_authenticated:
+        return None
+    return get_client_ip(request)
+
+
 @transaction.non_atomic_requests
-@ratelimit(key='user', rate='20/m', method='POST', block=True)
+@ratelimit(key=_anon_ip_key, rate=ANON_QUERY_RATE_LIMIT, method='POST', block=True)
+@ratelimit(key='user', rate=QUERY_RATE_LIMIT, method='POST', block=True)
 @PerformanceMonitor.time_function("grade_query_view")
 def grade_query(request):
     """
     Handles the SQL query grading interface.
 
-    Args:
-        request: The HTTP request object.
-
-    Returns:
-        HttpResponse: The HTTP response object.
+    Anonymous visitors may grade up to ANON_TRIAL_CAP queries per session;
+    authenticated users get full ML analysis, history, and feedback features.
     """
+    is_anon = not request.user.is_authenticated
+    cap, count, remaining = anon_trial_state(request)
+
     if request.method == 'POST':
+        if is_anon and remaining <= 0:
+            return render(request, 'analyzer/grade_form.html', {
+                'form': QueryGradeForm(),
+                'recent_queries': [],
+                'is_anonymous_trial': True,
+                'trial_exhausted': True,
+                'trial_cap': cap,
+                'trial_remaining': 0,
+            })
+
         form = QueryGradeForm(request.POST)
         if form.is_valid():
             sql_query = form.cleaned_data['sql_query']
@@ -51,12 +77,20 @@ def grade_query(request):
             use_case_notes = form.cleaned_data.get('use_case_notes', '')
 
             try:
-                # Analyze the query with both traditional and ML analysis
+                # Analyze the query (persists Query + QueryAnalysis with no user FK)
                 query, analysis = analyze_query(sql_query, database_type)
                 logger.info(f"Query created: ID={query.id}, Analysis created: ID={analysis.id}")
 
-                # Enhanced ML analysis
-                ml_analysis = None
+                if is_anon:
+                    # Track which analyses this anon visitor may view
+                    ids = list(request.session.get(ANON_ANALYSIS_SESSION_KEY, []))
+                    ids.append(analysis.id)
+                    request.session[ANON_ANALYSIS_SESSION_KEY] = ids[-ANON_ANALYSIS_HISTORY_LIMIT:]
+                    request.session[ANON_TRIAL_COUNT_KEY] = count + 1
+                    request.session.modified = True
+                    return redirect('grade_results', analysis_id=analysis.id)
+
+                # Authenticated path: ML enhancement + history persistence
                 try:
                     unified_analyzer = UnifiedQueryAnalyzer()
                     analysis_request = AnalysisRequest(
@@ -71,7 +105,6 @@ def grade_query(request):
                         }
                     )
 
-                    # Run async analysis in sync context
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
@@ -81,7 +114,6 @@ def grade_query(request):
                     finally:
                         loop.close()
 
-                    # Store ML analysis in session for results page
                     request.session['ml_analysis'] = {
                         'semantic_metrics': ml_analysis.semantic_metrics,
                         'performance_prediction': ml_analysis.performance_prediction,
@@ -95,9 +127,7 @@ def grade_query(request):
 
                 except Exception as ml_error:
                     logger.warning(f"ML analysis failed for user {request.user.username}: {ml_error}")
-                    # Continue with traditional analysis even if ML fails
 
-                # Create user history record
                 logger.info(f"About to create UserQueryHistory with query.id={query.id}, user={request.user}")
                 user_history = UserQueryHistory.objects.create(
                     user=request.user,
@@ -110,11 +140,9 @@ def grade_query(request):
                 )
                 logger.info(f"UserQueryHistory created: ID={user_history.id}")
 
-                # Redirect to enhanced results page
                 return redirect('enhanced_grade_results', analysis_id=analysis.id)
 
             except ValueError as e:
-                # Handle SQL syntax errors with specific feedback
                 error_msg = str(e)
                 if "typos in keywords" in error_msg:
                     messages.error(request, "SQL syntax error: Your query contains apparent typos in SQL keywords. Please check your spelling.")
@@ -124,16 +152,28 @@ def grade_query(request):
                     messages.error(request, "Invalid input: No SQL keywords detected. Please enter a valid SQL query.")
                 else:
                     messages.error(request, f"SQL error: {error_msg}")
-                logger.warning(f"SQL syntax error for user {request.user.username}: {e}")
-                return render(request, 'analyzer/grade_form.html', {'form': form})
+                who = 'anonymous' if is_anon else request.user.username
+                logger.warning(f"SQL syntax error for user {who}: {e}")
+                return render(request, 'analyzer/grade_form.html', {
+                    'form': form,
+                    'recent_queries': [],
+                    'is_anonymous_trial': is_anon,
+                    'trial_exhausted': is_anon and remaining <= 0,
+                    'trial_cap': cap,
+                    'trial_remaining': remaining,
+                })
             except Exception as e:
-                logger.error(f"Unexpected error analyzing query for user {request.user.username}: {e}")
-                # Temporarily disable re-raising to see debug output
-                # import sys
-                # if 'test' in sys.argv:
-                #     raise
+                who = 'anonymous' if is_anon else request.user.username
+                logger.error(f"Unexpected error analyzing query for user {who}: {e}")
                 messages.error(request, f"An unexpected error occurred: {str(e)}")
-                return render(request, 'analyzer/grade_form.html', {'form': form})
+                return render(request, 'analyzer/grade_form.html', {
+                    'form': form,
+                    'recent_queries': [],
+                    'is_anonymous_trial': is_anon,
+                    'trial_exhausted': is_anon and remaining <= 0,
+                    'trial_cap': cap,
+                    'trial_remaining': remaining,
+                })
         else:
             messages.error(request, "Please correct the errors in the form below.")
     else:
@@ -149,20 +189,20 @@ def grade_query(request):
     return render(request, 'analyzer/grade_form.html', {
         'form': form,
         'recent_queries': recent_queries,
+        'is_anonymous_trial': is_anon,
+        'trial_exhausted': is_anon and remaining <= 0,
+        'trial_cap': cap,
+        'trial_remaining': remaining,
     })
 
 
-@login_required
 def grade_results(request, analysis_id):
     """
     Display the grading results for a query analysis.
 
-    Args:
-        request: The HTTP request object.
-        analysis_id: ID of the QueryAnalysis object.
-
-    Returns:
-        HttpResponse: The HTTP response object.
+    Authenticated users access analyses they own (via UserQueryHistory).
+    Anonymous users access analyses created in their session (tracked in
+    session[ANON_ANALYSIS_SESSION_KEY]).
     """
     try:
         analysis = get_object_or_404(QueryAnalysis, id=analysis_id)
@@ -170,21 +210,31 @@ def grade_results(request, analysis_id):
         messages.error(request, "The requested analysis could not be found.")
         return redirect('grade_query')
 
-    # Check if the current user has access to this analysis
-    user_history = UserQueryHistory.objects.filter(
-        user=request.user,
-        query=analysis.query
-    ).order_by('-submitted_at').first()
-    if user_history is None:
-        logger.warning(f"User {request.user.username} attempted to access analysis {analysis_id} without permission")
-        messages.error(request, "You don't have permission to view this analysis.")
-        return redirect('grade_query')
+    is_anon = not request.user.is_authenticated
+    user_history = None
+    database_type = ''
+
+    if is_anon:
+        allowed_ids = request.session.get(ANON_ANALYSIS_SESSION_KEY, [])
+        if analysis_id not in allowed_ids:
+            logger.warning(f"Anonymous visitor attempted to access analysis {analysis_id} without session grant")
+            messages.error(request, "Please register or sign in to view this analysis.")
+            return redirect('index')
+    else:
+        user_history = UserQueryHistory.objects.filter(
+            user=request.user,
+            query=analysis.query
+        ).order_by('-submitted_at').first()
+        if user_history is None:
+            logger.warning(f"User {request.user.username} attempted to access analysis {analysis_id} without permission")
+            messages.error(request, "You don't have permission to view this analysis.")
+            return redirect('grade_query')
+        database_type = user_history.database_type or ''
 
     # Generate optimization suggestions if there are issues
     optimization_result = None
     if analysis.issues_found and len(analysis.issues_found) > 0:
         try:
-            database_type = user_history.database_type if user_history.database_type else ''
             optimization_result = optimize_query_from_analysis(
                 analysis.query.sql_text,
                 analysis.issues_found,
@@ -198,7 +248,9 @@ def grade_results(request, analysis_id):
         'query': analysis.query,
         'user_history': user_history,
         'optimization_result': optimization_result,
-        'grade_colors': GRADE_COLORS
+        'grade_colors': GRADE_COLORS,
+        'is_anonymous': is_anon,
+        'show_upgrade_cta': is_anon,
     }
 
     return render(request, 'analyzer/grade_results.html', context)

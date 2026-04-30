@@ -403,6 +403,9 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 RATELIMIT_ENABLE = os.environ.get('RATELIMIT_ENABLE', 'False').lower() in ('true', '1', 'yes', 'on')
 RATELIMIT_USE_CACHE = 'default'
 
+# Anonymous trial: per-session cap on free query grades for unauthenticated visitors
+ANON_TRIAL_CAP = int(os.environ.get('ANON_TRIAL_CAP', '3'))
+
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB

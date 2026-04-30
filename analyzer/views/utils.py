@@ -2,7 +2,18 @@
 Utility functions shared across view modules.
 """
 
+from django.conf import settings
 from django.shortcuts import render
+
+from .constants import ANON_TRIAL_COUNT_KEY
+
+
+def anon_trial_state(request):
+    """Return (cap, count, remaining) for the anonymous trial system."""
+    cap = getattr(settings, 'ANON_TRIAL_CAP', 3)
+    count = request.session.get(ANON_TRIAL_COUNT_KEY, 0)
+    remaining = max(0, cap - count)
+    return cap, count, remaining
 
 
 def get_client_ip(request):
