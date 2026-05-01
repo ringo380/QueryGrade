@@ -268,6 +268,7 @@ ML_PERFORMANCE_THRESHOLD = 0.7         # Min accuracy threshold
 - Postgres `default_transaction_isolation=read_committed` needs no override; the server default is already correct.
 - `BASE_DIR/logs/` must be `mkdir -p`'d at settings import time — Railway containers have no `logs/` dir, RotatingFileHandler crashes Django setup otherwise.
 - Manual deploy: `railway up --service querygrade --detach` (uploads local working tree, bypasses GitHub).
+- Set env var without triggering deploy: `railway variables --service querygrade --set "KEY=VAL" --skip-deploys`.
 - `railway add -d postgres` needs a TTY: `script -q /dev/null railway add -d postgres`.
 - Slim/worker split: `requirements-prod.txt` (web, no tensorflow/torch/transformers) + `requirements-worker.txt` (full ML). ML imports gated to `analyzer/ml/ensemble/multi_model.py`.
 - Check live deploy status: `railway status --json | python3 -c "import json,sys; d=json.load(sys.stdin); [print(e['node']['serviceName'], '->', e['node']['latestDeployment']['status']) for e in d['environments']['edges'][0]['node']['serviceInstances']['edges']]"`
@@ -528,15 +529,47 @@ class SecurityAnalyzer(BaseAnalyzer):
 
 ## UI Patterns (Tailwind, post-#14)
 
+- Django template escaping: use `|escapejs` only inside JS string literals (e.g. `var x = "{{ val|escapejs }}"`). For HTML `data-*` attributes, Django's default auto-escaping is correct — it converts `"` to `&quot;` which browsers decode properly when JS reads `dataset.*`. `|escapejs` on an attribute would produce `\"` and break attribute parsing.
 - All templates extend `'analyzer/base.html'` (NOT `'base.html'`). Loads Tailwind CDN + Inter font.
 - `getCsrfToken()` and `showToast(msg, type)` are global helpers from `base.html` — use these in new JS rather than rolling your own.
 - Form widgets get input classes auto-applied via `base.html` `DOMContentLoaded` hook; no need to add Tailwind classes manually to Django form output.
 - Grade pill convention: A=emerald, B=lime, C=amber, D=orange, F=red (`bg-{color}-100 text-{color}-700`). See `account.html` and `grade_results.html` for the canonical pattern.
 - URL prefix: `analyzer/urls.py` is mounted at root in `querygrade/urls.py`. Fetch from `/ml/api/...` NOT `/analyzer/ml/api/...`.
+- Read-only SQL display: use `<textarea class="sql-display">` converted by CodeMirror (readOnly, material-darker). See `compare_results.html` / `batch_results.html` for the pattern. Never use `<pre><code>` for SQL display.
+- Copy functions (`copyFullReport`, `copyAllRecommendations`, `copyRewriteSuggestions`) read from DOM elements — use `el.value || el.textContent` for textareas, `el.textContent` for code/span. When changing element types, audit all copy functions.
+- CodeMirror in hidden tabs: always call `refresh()` inside `setTimeout(0)` after unhiding, so the browser repaints before CodeMirror remeasures.
+
+## Known Issues
+
+- `enhanced_grade_results.html` renders `{{ analysis.issues_found|safe }}` into JS — pre-existing XSS risk; don't widen this pattern. (`grade_results.html` was fixed: now uses `{{ analysis.issues_found|json_script:"issues-json" }}` + `JSON.parse(document.getElementById('issues-json').textContent)`.)
+
+## Form Validation
+
+- `analyzer/forms/validators.py:validate_sql_query()` is the single input gate for all query entry points (single grade, compare, batch). Changes here affect all three.
+- Analyzer pipeline (`analyzer/analyzers/`) is SELECT-optimized — non-SELECT queries no-op through most analyzers and get a `performance_notes` warning added in `base.py`.
+
+## Analytics (GA4)
+
+- GA4 property `QueryGrade` (`G-YXW6942WVH`) is live in production. Env var `GA4_MEASUREMENT_ID` controls activation — empty → no script tag rendered (local dev default). Set in Railway, not in `.env`.
+- Tracked events: `query_graded` (grade, score, analysis_type), `feedback_submitted` (feedback_type, was_helpful), `sign_up` (one-shot via `?signup=1` redirect, checked in `base.html`). Custom dimensions: `grade`, `analysis_type`, `user_type`, `feedback_type`.
+- Adding any third-party JS endpoint (analytics, error tracking, external API) requires updating `CSP_SCRIPT_SRC` and/or `CSP_CONNECT_SRC` in `querygrade/settings.py` — `connect-src` defaults to `'self'` only and silently blocks otherwise.
+- Global template vars belong in `analyzer/context_processors.py` (registered in `settings.TEMPLATES[0]['OPTIONS']['context_processors']`), not in every view. `ga4_settings` is the existing example.
+- One-shot post-redirect client events use the `?<flag>=1` query-param pattern: view sets it on redirect, base.html checks `request.GET.<flag>` to fire `gtag('event', ...)` exactly once.
+
+## Anonymous trial system
+
+- Anonymous visitors may grade up to `ANON_TRIAL_CAP` (default 3, env-configurable) queries per session. Cap/count/remaining are computed by `anon_trial_state(request)` in `analyzer/views/utils.py` — import from there, do not duplicate inline.
+- Anonymous results are tracked in `session[ANON_ANALYSIS_SESSION_KEY]` (list of `analysis.id` ints). Access check in `grade_results`: `analysis_id not in session[ANON_ANALYSIS_SESSION_KEY]` — IDs are stored and compared as integers.
+- All `grade_form.html` render paths must include `trial_exhausted` in context (the template gates the entire `<form>` on it). Missing it renders the form even for exhausted anon users.
+- `grade_query()` has **4 render paths**: exhausted-trial early return, ValueError catch, generic Exception catch, and the bottom GET/failed-validation render. Any new context var (e.g. `db_versions_json`) must be added to all paths the form actually renders in.
+- JS that references `#gradeForm` must guard with `const f = document.getElementById('gradeForm'); if (f) { ... }` — the element is absent when `trial_exhausted` is true.
+- Rate-limit stacking: use a callable key (`_anon_ip_key`) that returns `None` for authenticated users so the IP-keyed anon limit doesn't accidentally cap auth users on shared/NAT IPs. `django-ratelimit` skips the check when the key function returns `None`.
 
 ## View context conventions (gotchas)
 
 - `grade_results`, `compare_results`, `batch_results`: result objects expose `result.analysis.grade` / `.issues_found` / `.recommendations` (NOT `result.grade` / `.issues` / `.suggestions`).
+- `QueryAnalysis` uses `OneToOneField(Query, related_name='analysis')` — access via `query.analysis.grade`, NOT `query.queryanalysis_set.last`. There is no `queryanalysis_set`.
+- `UserQueryHistory` timestamp field is `submitted_at` (NOT `created_at`). Order by `-submitted_at`.
 - `compare_results` / `batch_results`: `result.query_text` (string) and `result.query` (Query model instance) — not interchangeable.
 - `feedback_analytics`: stats wrapped in a `statistics` dict (`statistics.total_feedback`, `statistics.avg_accuracy`, etc.).
 - `ml_dashboard`: requires `is_staff_or_superuser`; API endpoints under `/ml/api/*` are decorated with `@cache_page(60 * 5)` — bust by deploying or stripping cache.
