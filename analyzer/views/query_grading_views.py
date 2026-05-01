@@ -9,6 +9,7 @@ This module handles the core query grading functionality including:
 - Batch analysis
 """
 import asyncio
+import json
 import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -19,6 +20,7 @@ from django_ratelimit.decorators import ratelimit
 from django.conf import settings
 
 from ..forms import QueryGradeForm, QueryCompareForm, BatchQueryForm
+from ..db_versions import DATABASE_VERSIONS
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..query_analyzer import analyze_query
 from ..query_optimizer import optimize_query_from_analysis
@@ -161,6 +163,7 @@ def grade_query(request):
                     'trial_exhausted': is_anon and remaining <= 0,
                     'trial_cap': cap,
                     'trial_remaining': remaining,
+                    'db_versions_json': json.dumps(DATABASE_VERSIONS),
                 })
             except Exception as e:
                 who = 'anonymous' if is_anon else request.user.username
@@ -173,6 +176,7 @@ def grade_query(request):
                     'trial_exhausted': is_anon and remaining <= 0,
                     'trial_cap': cap,
                     'trial_remaining': remaining,
+                    'db_versions_json': json.dumps(DATABASE_VERSIONS),
                 })
         else:
             messages.error(request, "Please correct the errors in the form below.")
@@ -193,6 +197,7 @@ def grade_query(request):
         'trial_exhausted': is_anon and remaining <= 0,
         'trial_cap': cap,
         'trial_remaining': remaining,
+        'db_versions_json': json.dumps(DATABASE_VERSIONS),
     })
 
 

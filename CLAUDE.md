@@ -538,6 +538,7 @@ class SecurityAnalyzer(BaseAnalyzer):
 - Read-only SQL display: use `<textarea class="sql-display">` converted by CodeMirror (readOnly, material-darker). See `compare_results.html` / `batch_results.html` for the pattern. Never use `<pre><code>` for SQL display.
 - Copy functions (`copyFullReport`, `copyAllRecommendations`, `copyRewriteSuggestions`) read from DOM elements — use `el.value || el.textContent` for textareas, `el.textContent` for code/span. When changing element types, audit all copy functions.
 - CodeMirror in hidden tabs: always call `refresh()` inside `setTimeout(0)` after unhiding, so the browser repaints before CodeMirror remeasures.
+- Typeahead inputs that must preserve free-form entry: use `<datalist>` (not a `<select>` swap). Centralize option data in a Python module (e.g. `analyzer/db_versions.py`) and pass the dict directly to the template via `{{ var|json_script:"id" }}` + `JSON.parse(document.getElementById('id').textContent)`. Wire a `change` listener on the source `<select>` to rebuild `<datalist>` options and toggle the `list` attribute. See the `database_type` → `database_version` integration in `grade_form.html`.
 
 ## Known Issues
 
@@ -561,7 +562,7 @@ class SecurityAnalyzer(BaseAnalyzer):
 - Anonymous visitors may grade up to `ANON_TRIAL_CAP` (default 3, env-configurable) queries per session. Cap/count/remaining are computed by `anon_trial_state(request)` in `analyzer/views/utils.py` — import from there, do not duplicate inline.
 - Anonymous results are tracked in `session[ANON_ANALYSIS_SESSION_KEY]` (list of `analysis.id` ints). Access check in `grade_results`: `analysis_id not in session[ANON_ANALYSIS_SESSION_KEY]` — IDs are stored and compared as integers.
 - All `grade_form.html` render paths must include `trial_exhausted` in context (the template gates the entire `<form>` on it). Missing it renders the form even for exhausted anon users.
-- `grade_query()` has **4 render paths**: exhausted-trial early return, ValueError catch, generic Exception catch, and the bottom GET/failed-validation render. Any new context var (e.g. `db_versions_json`) must be added to all paths the form actually renders in.
+- `grade_query()` has **4 render paths**: exhausted-trial early return, ValueError catch, generic Exception catch, and the bottom GET/failed-validation render. Any new context var (e.g. `db_versions`) must be added to all paths the form actually renders in.
 - JS that references `#gradeForm` must guard with `const f = document.getElementById('gradeForm'); if (f) { ... }` — the element is absent when `trial_exhausted` is true.
 - Rate-limit stacking: use a callable key (`_anon_ip_key`) that returns `None` for authenticated users so the IP-keyed anon limit doesn't accidentally cap auth users on shared/NAT IPs. `django-ratelimit` skips the check when the key function returns `None`.
 
