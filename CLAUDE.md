@@ -573,3 +573,17 @@ class SecurityAnalyzer(BaseAnalyzer):
 - `compare_results` / `batch_results`: `result.query_text` (string) and `result.query` (Query model instance) — not interchangeable.
 - `feedback_analytics`: stats wrapped in a `statistics` dict (`statistics.total_feedback`, `statistics.avg_accuracy`, etc.).
 - `ml_dashboard`: requires `is_staff_or_superuser`; API endpoints under `/ml/api/*` are decorated with `@cache_page(60 * 5)` — bust by deploying or stripping cache.
+
+## ML Subsystem (bootstrapped 2026-04-30)
+
+- Feature count is **45**, not 41 — the "41+ features" figure in this file is wrong.
+- Model files live at **`ml_models/`** (project root), not `analyzer/ml/models/`.
+- Model files are saved as a dict bundle `{'model', 'scaler', 'feature_names', 'config', 'timestamp'}` — must unwrap before calling `.predict()`.
+- `TrainingConfig.model_type` must be `'HYBRID_SCORER'` — that's what `hybrid_grader.py` queries. `'QUERY_GRADER'` breaks the model lookup silently.
+- `TrainingData` has `features_json`, `target_score`, `feedback_weight` (added in migration 0003). Seed via `python manage.py seed_training_data`.
+- Bootstrap + train: `python manage.py seed_training_data && python manage.py train_ml_model --algorithm random_forest --force` — auto-deploy requires val_accuracy ≥ 0.7; manually set `MLModel.status='ACTIVE'` for a bootstrap model below that threshold.
+- Two ML paths in `query_grading_views.py`: (1) `analyze_query()` → `HybridQueryGrader` runs for all users (blended rule + ML score); (2) `UnifiedQueryAnalyzer` async runs for authenticated users only (result stored in session as `ml_analysis`).
+
+## Pre-existing test failures (do not fix unless tackling separately)
+
+17 failures in the `analyzer` suite unrelated to ML work: template says `Welcome back` but tests assert `Welcome Back`; `sqlparse.keywords` has no `Keyword` attribute; `PassiveAggressiveRegressor.partial_fit` rejects `sample_weight` argument.

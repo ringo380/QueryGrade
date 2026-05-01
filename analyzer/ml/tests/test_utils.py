@@ -7,6 +7,7 @@ the QueryGrade application.
 
 import numpy as np
 from django.contrib.auth.models import User
+from django.utils import timezone
 from analyzer.models import Query, QueryFeedback, UserQueryHistory
 from analyzer.models import MLModel, TrainingData, LearningMetrics, FeedbackLearning
 
@@ -92,26 +93,23 @@ class MLTestDataFactory:
     @staticmethod
     def create_ml_model(
         name='test_model',
-        model_type='QUERY_GRADER',
+        model_type='HYBRID_SCORER',
         version='1.0.0',
         is_active=True,
-        performance_metrics=None
+        training_accuracy=0.85,
+        validation_accuracy=0.82,
+        training_samples=100,
     ):
         """Create test ML model."""
-        if performance_metrics is None:
-            performance_metrics = {
-                'accuracy': 0.85,
-                'precision': 0.82,
-                'recall': 0.88
-            }
-
         return MLModel.objects.create(
             name=name,
             model_type=model_type,
             version=version,
             file_path=f'/tmp/{name}.pkl',
-            is_active=is_active,
-            performance_metrics=performance_metrics
+            status='ACTIVE' if is_active else 'TRAINING',
+            training_accuracy=training_accuracy,
+            validation_accuracy=validation_accuracy,
+            training_samples=training_samples,
         )
 
     @staticmethod
@@ -136,21 +134,31 @@ class MLTestDataFactory:
 
     @staticmethod
     def create_learning_metrics(
-        model_version='1.0.0',
-        training_accuracy=0.85,
-        validation_accuracy=0.82,
-        feedback_correlation=0.75,
-        user_satisfaction_avg=3.5,
-        total_feedback_count=100
+        model=None,
+        accuracy=0.85,
+        precision=0.82,
+        recall=0.88,
+        f1_score=0.85,
+        user_agreement_rate=0.75,
+        avg_user_rating=3.5,
+        avg_prediction_time_ms=10.0,
     ):
         """Create test learning metrics."""
+        if model is None:
+            model = MLTestDataFactory.create_ml_model()
+
+        now = timezone.now()
         return LearningMetrics.objects.create(
-            model_version=model_version,
-            training_accuracy=training_accuracy,
-            validation_accuracy=validation_accuracy,
-            feedback_correlation=feedback_correlation,
-            user_satisfaction_avg=user_satisfaction_avg,
-            total_feedback_count=total_feedback_count
+            model=model,
+            accuracy=accuracy,
+            precision=precision,
+            recall=recall,
+            f1_score=f1_score,
+            user_agreement_rate=user_agreement_rate,
+            avg_user_rating=avg_user_rating,
+            avg_prediction_time_ms=avg_prediction_time_ms,
+            measurement_period_start=now,
+            measurement_period_end=now,
         )
 
     @staticmethod
@@ -161,7 +169,6 @@ class MLTestDataFactory:
         user_feedback_score=4,
         agreement_level='HIGH',
         learning_weight=0.8,
-        model_version='1.0.0'
     ):
         """Create test feedback learning record."""
         return FeedbackLearning.objects.create(
@@ -171,7 +178,6 @@ class MLTestDataFactory:
             user_feedback_score=user_feedback_score,
             agreement_level=agreement_level,
             learning_weight=learning_weight,
-            model_version=model_version
         )
 
 

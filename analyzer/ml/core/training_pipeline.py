@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainingConfig:
     """Configuration for training pipeline."""
-    model_type: str = 'QUERY_GRADER'
+    model_type: str = 'HYBRID_SCORER'
     model_name: str = 'query_grader'
     algorithm: str = 'random_forest'  # random_forest, gradient_boosting, neural_network
     test_size: float = 0.2
@@ -219,7 +219,7 @@ class TrainingPipelineManager:
 
         if recent_models.exists():
             latest_model = recent_models.first()
-            if latest_model.performance_metrics.get('validation_accuracy', 0) >= self.config.performance_threshold:
+            if (latest_model.validation_accuracy or 0) >= self.config.performance_threshold:
                 return True
 
         return False
@@ -231,17 +231,16 @@ class TrainingPipelineManager:
         ).order_by('-created_at').first()
 
         if latest_model:
-            metrics = latest_model.performance_metrics
             return TrainingResult(
                 success=True,
                 model_version=latest_model.version,
-                training_accuracy=metrics.get('training_accuracy', 0.0),
-                validation_accuracy=metrics.get('validation_accuracy', 0.0),
-                test_accuracy=metrics.get('test_accuracy', 0.0),
-                feature_importance=metrics.get('feature_importance', {}),
+                training_accuracy=latest_model.training_accuracy or 0.0,
+                validation_accuracy=latest_model.validation_accuracy or 0.0,
+                test_accuracy=0.0,
+                feature_importance={},
                 training_time=0.0,
                 model_path=latest_model.file_path,
-                metrics=metrics
+                metrics={}
             )
 
         return TrainingResult(
@@ -258,7 +257,7 @@ class TrainingPipelineManager:
 
     def _prepare_training_data(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Dict[str, Any]]:
         """Prepare training data from collected feedback."""
-        training_data = TrainingData.objects.all().order_by('-created_date')
+        training_data = TrainingData.objects.all().order_by('-created_at')
 
         if self.config.max_training_samples:
             training_data = training_data[:self.config.max_training_samples]
@@ -363,58 +362,65 @@ class TrainingPipelineManager:
                                 validation_accuracy: float, test_accuracy: float,
                                 cv_scores: np.ndarray, metadata: Dict[str, Any]):
         """Record training metrics in database."""
+        import hashlib as _hashlib
+        model_path = os.path.join(self.model_dir, f"{model_version}.pkl")
+
+        # Compute file size and checksum
+        try:
+            file_size = os.path.getsize(model_path)
+            with open(model_path, 'rb') as f:
+                checksum = _hashlib.sha256(f.read()).hexdigest()
+        except OSError:
+            file_size = 0
+            checksum = ''
+
         with transaction.atomic():
-            # Create MLModel record
             model_record = MLModel.objects.create(
                 name=self.config.model_name,
                 model_type=self.config.model_type,
                 version=model_version,
-                file_path=os.path.join(self.model_dir, f"{model_version}.pkl"),
-                is_active=False,  # Not active until deployed
-                description=f"Trained with {self.config.algorithm} algorithm",
-                performance_metrics={
-                    'training_accuracy': training_accuracy,
-                    'validation_accuracy': validation_accuracy,
-                    'test_accuracy': test_accuracy,
-                    'cv_mean': float(np.mean(cv_scores)),
-                    'cv_std': float(np.std(cv_scores)),
-                    'algorithm': self.config.algorithm,
-                    'training_samples': metadata.get('total_samples', 0)
-                },
-                training_data_count=metadata.get('total_samples', 0),
-                last_trained=timezone.now()
-            )
-
-            # Create LearningMetrics record
-            LearningMetrics.objects.create(
-                model_version=model_version,
+                status='TRAINING',
+                file_path=model_path,
+                file_size_bytes=file_size,
+                checksum=checksum,
                 training_accuracy=training_accuracy,
                 validation_accuracy=validation_accuracy,
-                feedback_correlation=0.0,  # To be calculated separately
-                user_satisfaction_avg=0.0,  # To be calculated from feedback
-                total_feedback_count=metadata.get('total_samples', 0)
+                training_samples=metadata.get('total_samples', 0),
+            )
+
+            now = timezone.now()
+            LearningMetrics.objects.create(
+                model=model_record,
+                accuracy=max(0.0, training_accuracy),
+                precision=0.0,
+                recall=0.0,
+                f1_score=0.0,
+                user_agreement_rate=0.0,
+                avg_user_rating=0.0,
+                avg_prediction_time_ms=0.0,
+                error_rate=0.0,
+                measurement_period_start=now,
+                measurement_period_end=now,
             )
 
     def _deploy_model(self, model_version: str):
         """Deploy model by setting it as active."""
         with transaction.atomic():
-            # Deactivate all existing models of this type
             MLModel.objects.filter(
                 model_type=self.config.model_type,
-                is_active=True
-            ).update(is_active=False)
+                status='ACTIVE',
+            ).update(status='DEPRECATED')
 
-            # Activate the new model
             MLModel.objects.filter(
                 version=model_version,
-                model_type=self.config.model_type
-            ).update(is_active=True)
+                model_type=self.config.model_type,
+            ).update(status='ACTIVE', deployed_at=timezone.now())
 
         logger.info(f"Model {model_version} deployed successfully")
 
     def _get_data_collection_period(self, training_data) -> Dict[str, str]:
         """Get information about data collection period."""
-        dates = [data.created_date for data in training_data if data.created_date]
+        dates = [data.created_at for data in training_data if data.created_at]
 
         if dates:
             return {
@@ -439,8 +445,11 @@ class TrainingPipelineManager:
         return {
             'latest_model': {
                 'version': latest_model.version if latest_model else None,
-                'is_active': latest_model.is_active if latest_model else False,
-                'performance': latest_model.performance_metrics if latest_model else {},
+                'status': latest_model.status if latest_model else None,
+                'performance': {
+                    'training_accuracy': latest_model.training_accuracy,
+                    'validation_accuracy': latest_model.validation_accuracy,
+                } if latest_model else {},
                 'created_at': latest_model.created_at.isoformat() if latest_model else None
             },
             'training_data': {
@@ -463,8 +472,7 @@ class TrainingPipelineManager:
         """Clean up old model files and database records."""
         old_models = MLModel.objects.filter(
             model_type=self.config.model_type,
-            is_active=False
-        ).order_by('-created_at')[keep_versions:]
+        ).exclude(status='ACTIVE').order_by('-created_at')[keep_versions:]
 
         for model in old_models:
             # Remove file if exists
@@ -507,10 +515,10 @@ class TrainingScheduler:
 
         # Check if model performance has degraded
         recent_metrics = LearningMetrics.objects.filter(
-            model_version=last_training.version
+            model=last_training
         ).first()
 
-        if recent_metrics and recent_metrics.validation_accuracy < 0.6:
+        if recent_metrics and recent_metrics.accuracy < 0.6:
             return True, "Model performance below threshold"
 
         # Check if model is too old

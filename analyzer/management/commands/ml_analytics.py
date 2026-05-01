@@ -157,14 +157,14 @@ class Command(BaseCommand):
         self.stdout.write('\n🤖 Model Status')
         self.stdout.write('-' * 15)
 
-        active_models = MLModel.objects.filter(is_active=True)
+        active_models = MLModel.objects.filter(status='ACTIVE')
         total_models = MLModel.objects.count()
 
         self.stdout.write(f'Total models: {total_models}')
         self.stdout.write(f'Active models: {active_models.count()}')
 
         for model in active_models:
-            accuracy = model.performance_metrics.get('validation_accuracy', 0)
+            accuracy = model.validation_accuracy or 0
             age = (timezone.now() - model.created_at).days
             self.stdout.write(f'  {model.model_type}: {model.version}')
             self.stdout.write(f'    Accuracy: {accuracy:.1%}')
@@ -204,13 +204,13 @@ class Command(BaseCommand):
         self.stdout.write('-' * 20)
 
         # Latest metrics
-        latest_metrics = LearningMetrics.objects.order_by('-created_date').first()
+        latest_metrics = LearningMetrics.objects.order_by('-created_at').first()
         if latest_metrics:
-            self.stdout.write(f'Latest model metrics ({latest_metrics.model_version}):')
-            self.stdout.write(f'  Training accuracy: {latest_metrics.training_accuracy:.1%}')
-            self.stdout.write(f'  Validation accuracy: {latest_metrics.validation_accuracy:.1%}')
-            self.stdout.write(f'  Feedback correlation: {latest_metrics.feedback_correlation:.3f}')
-            self.stdout.write(f'  User satisfaction: {latest_metrics.user_satisfaction_avg:.1f}/5.0')
+            self.stdout.write(f'Latest model metrics ({latest_metrics.model.version}):')
+            self.stdout.write(f'  Accuracy: {latest_metrics.accuracy:.1%}')
+            self.stdout.write(f'  F1 score: {latest_metrics.f1_score:.3f}')
+            self.stdout.write(f'  User agreement rate: {latest_metrics.user_agreement_rate:.3f}')
+            self.stdout.write(f'  Avg user rating: {latest_metrics.avg_user_rating:.1f}/5.0')
 
         # User satisfaction trend
         avg_satisfaction = QueryFeedback.objects.aggregate(
@@ -227,13 +227,13 @@ class Command(BaseCommand):
         recommendations = []
 
         # Check for low accuracy models
-        for model in MLModel.objects.filter(is_active=True):
-            accuracy = model.performance_metrics.get('validation_accuracy', 0)
+        for model in MLModel.objects.filter(status='ACTIVE'):
+            accuracy = model.validation_accuracy or 0
             if accuracy < 0.7:
                 alerts.append(f'Model {model.version} has low accuracy: {accuracy:.1%}')
 
         # Check for old models
-        for model in MLModel.objects.filter(is_active=True):
+        for model in MLModel.objects.filter(status='ACTIVE'):
             age = (timezone.now() - model.created_at).days
             if age > 30:
                 recommendations.append(f'Consider retraining {model.version} (age: {age} days)')
@@ -273,7 +273,7 @@ class Command(BaseCommand):
         if model_version:
             models = MLModel.objects.filter(version=model_version)
         else:
-            models = MLModel.objects.filter(is_active=True)
+            models = MLModel.objects.filter(status='ACTIVE')
 
         for model in models:
             self._analyze_single_model(model, days)
@@ -284,23 +284,12 @@ class Command(BaseCommand):
         self.stdout.write('-' * (12 + len(model.version)))
 
         # Basic metrics
-        metrics = model.performance_metrics or {}
-        self.stdout.write(f'Training accuracy: {metrics.get("training_accuracy", "N/A")}')
-        self.stdout.write(f'Validation accuracy: {metrics.get("validation_accuracy", "N/A")}')
-        self.stdout.write(f'Test accuracy: {metrics.get("test_accuracy", "N/A")}')
-
-        # Feature importance
-        if 'feature_importance' in metrics:
-            self.stdout.write('\nTop 5 most important features:')
-            feature_importance = metrics['feature_importance']
-            sorted_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)
-            for feature, importance in sorted_features[:5]:
-                self.stdout.write(f'  {feature}: {importance:.3f}')
+        self.stdout.write(f'Training accuracy: {model.training_accuracy if model.training_accuracy is not None else "N/A"}')
+        self.stdout.write(f'Validation accuracy: {model.validation_accuracy if model.validation_accuracy is not None else "N/A"}')
 
         # Recent performance
         cutoff_date = timezone.now() - timedelta(days=days)
         recent_feedback = FeedbackLearning.objects.filter(
-            model_version=model.version,
             created_at__gte=cutoff_date
         )
 
@@ -319,14 +308,17 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Feature Analysis'))
         self.stdout.write('=' * 20)
 
-        # Get feature importance from latest active model
-        active_model = MLModel.objects.filter(is_active=True).first()
-        if not active_model or 'feature_importance' not in active_model.performance_metrics:
-            self.stdout.write(self.style.WARNING('No feature importance data available'))
+        # Feature importance is no longer persisted on MLModel; surface a clear message.
+        active_model = MLModel.objects.filter(status='ACTIVE').first()
+        if not active_model:
+            self.stdout.write(self.style.WARNING('No active model found'))
             return
 
-        feature_importance = active_model.performance_metrics['feature_importance']
-        sorted_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)
+        self.stdout.write(self.style.WARNING(
+            'Feature importance is not persisted in the current MLModel schema; '
+            'retrain to populate (or load directly from the .pkl bundle).'
+        ))
+        return
 
         self.stdout.write('Feature importance ranking:')
         for i, (feature, importance) in enumerate(sorted_features, 1):
@@ -452,7 +444,7 @@ class Command(BaseCommand):
             'total_feedback': QueryFeedback.objects.count(),
             'total_training_data': TrainingData.objects.count(),
             'total_models': MLModel.objects.count(),
-            'active_models': MLModel.objects.filter(is_active=True).count()
+            'active_models': MLModel.objects.filter(status='ACTIVE').count()
         }
 
     def _get_model_metrics(self):
@@ -462,8 +454,9 @@ class Command(BaseCommand):
             models.append({
                 'version': model.version,
                 'type': model.model_type,
-                'is_active': model.is_active,
-                'performance_metrics': model.performance_metrics,
+                'status': model.status,
+                'training_accuracy': model.training_accuracy,
+                'validation_accuracy': model.validation_accuracy,
                 'created_at': model.created_at.isoformat()
             })
         return models
@@ -513,20 +506,16 @@ class Command(BaseCommand):
         self.stdout.write(f'{"Metric":<25} {" | ".join(f"{m.version[:15]:<15}" for m in models)}')
         self.stdout.write('-' * (25 + len(models) * 18))
 
-        metrics_to_compare = [
-            'training_accuracy',
-            'validation_accuracy',
-            'test_accuracy'
-        ]
+        metrics_to_compare = ['training_accuracy', 'validation_accuracy']
 
         for metric in metrics_to_compare:
             values = []
             for model in models:
-                value = model.performance_metrics.get(metric, 'N/A')
+                value = getattr(model, metric, None)
                 if isinstance(value, float):
                     values.append(f'{value:.3f}')
                 else:
-                    values.append(str(value))
+                    values.append(str(value) if value is not None else 'N/A')
 
             self.stdout.write(f'{metric:<25} {" | ".join(f"{v:<15}" for v in values)}')
 

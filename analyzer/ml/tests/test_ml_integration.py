@@ -171,7 +171,7 @@ class MLIntegrationTestCase(TransactionTestCase):
         # Create initial model record
         model = MLModel.objects.create(
             name='test_lifecycle_model',
-            model_type='QUERY_GRADER',
+            model_type='HYBRID_SCORER',
             version='1.0.0',
             file_path='/tmp/test_model.pkl',
             status='TRAINING',
@@ -205,7 +205,7 @@ class MLIntegrationTestCase(TransactionTestCase):
 
         # Verify model is ready for use
         active_models = MLModel.objects.filter(
-            model_type='QUERY_GRADER',
+            model_type='HYBRID_SCORER',
             status='ACTIVE'
         )
         self.assertGreater(active_models.count(), 0)
@@ -231,7 +231,7 @@ class MLIntegrationTestCase(TransactionTestCase):
         # Create a model for metrics tracking
         test_model = MLModel.objects.create(
             name='test_metrics_model',
-            model_type='QUERY_GRADER',
+            model_type='HYBRID_SCORER',
             version='1.0.0',
             file_path='/tmp/test.pkl',
             status='ACTIVE',

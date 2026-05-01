@@ -200,7 +200,7 @@ class Command(BaseCommand):
         latest = status['latest_model']
         if latest['version']:
             self.stdout.write(f'  Latest model: {latest["version"]}')
-            self.stdout.write(f'  Active: {latest["is_active"]}')
+            self.stdout.write(f'  Status: {latest["status"]}')
             if latest['performance']:
                 accuracy = latest['performance'].get('validation_accuracy', 'N/A')
                 self.stdout.write(f'  Validation accuracy: {accuracy}')
@@ -255,7 +255,7 @@ class Command(BaseCommand):
     def _create_sample_config(self):
         """Create a sample configuration file."""
         sample_config = {
-            "model_type": "QUERY_GRADER",
+            "model_type": "HYBRID_SCORER",
             "model_name": "query_grader",
             "algorithm": "random_forest",
             "test_size": 0.2,

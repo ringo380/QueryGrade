@@ -120,7 +120,7 @@ class Command(BaseCommand):
         queryset = MLModel.objects.all()
 
         if options['active_only']:
-            queryset = queryset.filter(is_active=True)
+            queryset = queryset.filter(status='ACTIVE')
 
         if options['model_type']:
             queryset = queryset.filter(model_type=options['model_type'])
@@ -135,17 +135,16 @@ class Command(BaseCommand):
         self.stdout.write('')
 
         # Table header
-        self.stdout.write(f'{"Version":<30} {"Type":<15} {"Active":<8} {"Accuracy":<10} {"Created":<20}')
-        self.stdout.write('-' * 85)
+        self.stdout.write(f'{"Version":<30} {"Type":<15} {"Status":<12} {"Accuracy":<10} {"Created":<20}')
+        self.stdout.write('-' * 89)
 
         # Table rows
         for model in models:
             version = model.version[:28] + '...' if len(model.version) > 30 else model.version
-            active = '✓' if model.is_active else '✗'
-            accuracy = f"{model.performance_metrics.get('validation_accuracy', 0):.3f}" if model.performance_metrics else 'N/A'
+            accuracy = f"{model.validation_accuracy:.3f}" if model.validation_accuracy is not None else 'N/A'
             created = model.created_at.strftime('%Y-%m-%d %H:%M')
 
-            self.stdout.write(f'{version:<30} {model.model_type:<15} {active:<8} {accuracy:<10} {created:<20}')
+            self.stdout.write(f'{version:<30} {model.model_type:<15} {model.status:<12} {accuracy:<10} {created:<20}')
 
     def handle_status(self, options):
         """Show ML system status."""
@@ -156,7 +155,7 @@ class Command(BaseCommand):
         model_types = MLModel.objects.values_list('model_type', flat=True).distinct()
         for model_type in model_types:
             total = MLModel.objects.filter(model_type=model_type).count()
-            active = MLModel.objects.filter(model_type=model_type, is_active=True).count()
+            active = MLModel.objects.filter(model_type=model_type, status='ACTIVE').count()
             self.stdout.write(f'{model_type}: {total} total, {active} active')
 
         # Training data status
@@ -170,12 +169,12 @@ class Command(BaseCommand):
         self.stdout.write(f'Models created last 7 days: {recent_models}')
 
         # Active models details
-        active_models = MLModel.objects.filter(is_active=True).order_by('model_type')
+        active_models = MLModel.objects.filter(status='ACTIVE').order_by('model_type')
         if active_models.exists():
             self.stdout.write('')
             self.stdout.write('Active Models:')
             for model in active_models:
-                accuracy = model.performance_metrics.get('validation_accuracy', 'N/A')
+                accuracy = model.validation_accuracy if model.validation_accuracy is not None else 'N/A'
                 self.stdout.write(f'  {model.model_type}: {model.version} (accuracy: {accuracy})')
 
         # Storage usage
@@ -203,12 +202,13 @@ class Command(BaseCommand):
             # Deactivate all other models of the same type
             MLModel.objects.filter(
                 model_type=model.model_type,
-                is_active=True
-            ).update(is_active=False)
+                status='ACTIVE'
+            ).update(status='DEPRECATED')
 
             # Activate the target model
-            model.is_active = True
-            model.save()
+            model.status = 'ACTIVE'
+            model.deployed_at = timezone.now()
+            model.save(update_fields=['status', 'deployed_at'])
 
         self.stdout.write(
             self.style.SUCCESS(f'Model {model_version} activated successfully')
@@ -223,8 +223,8 @@ class Command(BaseCommand):
         except MLModel.DoesNotExist:
             raise CommandError(f'Model not found: {model_version}')
 
-        model.is_active = False
-        model.save()
+        model.status = 'DEPRECATED'
+        model.save(update_fields=['status'])
 
         self.stdout.write(
             self.style.SUCCESS(f'Model {model_version} deactivated successfully')
@@ -239,7 +239,7 @@ class Command(BaseCommand):
         except MLModel.DoesNotExist:
             raise CommandError(f'Model not found: {model_version}')
 
-        if model.is_active and not options['confirm']:
+        if model.status == 'ACTIVE' and not options['confirm']:
             if not self._confirm_action(f'Model {model_version} is currently active. Delete anyway?'):
                 self.stdout.write('Deletion cancelled')
                 return
@@ -282,8 +282,7 @@ class Command(BaseCommand):
             # Get old models (keep the most recent ones)
             old_models = MLModel.objects.filter(
                 model_type=model_type,
-                is_active=False
-            ).order_by('-created_at')[keep_count:]
+            ).exclude(status='ACTIVE').order_by('-created_at')[keep_count:]
 
             if not old_models:
                 continue
@@ -340,11 +339,12 @@ class Command(BaseCommand):
                 'version': model.version,
                 'name': model.name,
                 'model_type': model.model_type,
-                'is_active': model.is_active,
-                'performance_metrics': model.performance_metrics,
+                'status': model.status,
+                'training_accuracy': model.training_accuracy,
+                'validation_accuracy': model.validation_accuracy,
                 'created_at': model.created_at.isoformat(),
-                'file_size': model.file_size,
-                'training_data_count': model.training_data_count,
+                'file_size_bytes': model.file_size_bytes,
+                'training_samples': model.training_samples,
             })
 
         with open(output_file, 'w') as f:
@@ -359,23 +359,22 @@ class Command(BaseCommand):
 
             # Header
             writer.writerow([
-                'Version', 'Name', 'Type', 'Active', 'Validation Accuracy',
+                'Version', 'Name', 'Type', 'Status', 'Validation Accuracy',
                 'Training Accuracy', 'Created', 'File Size', 'Training Samples'
             ])
 
             # Data rows
             for model in models:
-                metrics = model.performance_metrics or {}
                 writer.writerow([
                     model.version,
                     model.name,
                     model.model_type,
-                    model.is_active,
-                    metrics.get('validation_accuracy', ''),
-                    metrics.get('training_accuracy', ''),
+                    model.status,
+                    model.validation_accuracy if model.validation_accuracy is not None else '',
+                    model.training_accuracy if model.training_accuracy is not None else '',
                     model.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                    model.file_size or '',
-                    model.training_data_count or ''
+                    model.file_size_bytes or '',
+                    model.training_samples or ''
                 ])
 
     def _confirm_action(self, message):

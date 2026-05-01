@@ -302,7 +302,10 @@ class ModelManager:
                 confidence=model_record.validation_accuracy or 0.5,
                 file_path=model_file_path,
                 created_at=model_record.created_at,
-                performance_metrics=model_record.performance_metrics or {},
+                performance_metrics={
+                    'training_accuracy': model_record.training_accuracy,
+                    'validation_accuracy': model_record.validation_accuracy,
+                },
                 load_time=load_time
             )
 
@@ -359,10 +362,10 @@ class ModelManager:
                 model_type=model_type,
                 version=version,
                 file_path=filename,  # Store relative path
-                performance_metrics=performance_metrics,
-                validation_accuracy=performance_metrics.get('validation_accuracy', 0.0),
-                description=description or f"Auto-saved {model_type} model",
-                status='ACTIVE' if activate else 'INACTIVE'
+                training_accuracy=performance_metrics.get('training_accuracy'),
+                validation_accuracy=performance_metrics.get('validation_accuracy'),
+                training_samples=performance_metrics.get('training_samples', 0),
+                status='ACTIVE' if activate else 'TRAINING',
             )
 
             # If activating, deactivate other models of same type
@@ -525,7 +528,11 @@ class ModelManager:
                 'accuracy': record.validation_accuracy,
                 'created_at': record.created_at,
                 'file_path': record.file_path,
-                'metrics': record.performance_metrics
+                'metrics': {
+                    'training_accuracy': record.training_accuracy,
+                    'validation_accuracy': record.validation_accuracy,
+                    'training_samples': record.training_samples,
+                }
             })
 
         return models
