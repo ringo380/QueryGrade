@@ -85,7 +85,7 @@ class TrainingData(models.Model):
     clarity_rating_avg = models.FloatField(null=True, blank=True)
 
     # ML training fields
-    features_json = models.JSONField(null=True, blank=True, help_text="41-dim feature vector extracted from query")
+    features_json = models.JSONField(null=True, blank=True, help_text="45-dim feature vector extracted from query")
     target_score = models.FloatField(null=True, blank=True, help_text="Target score for training (0-100)")
     feedback_weight = models.FloatField(default=1.0, help_text="Sample importance weight for training")
 

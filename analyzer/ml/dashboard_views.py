@@ -57,7 +57,7 @@ def dashboard_api_overview(request):
         total_queries = Query.objects.count()
         total_feedback = QueryFeedback.objects.count()
         total_training_data = TrainingData.objects.count()
-        active_models = MLModel.objects.filter(is_active=True).count()
+        active_models = MLModel.objects.filter(status='ACTIVE').count()
 
         # Recent activity (last 7 days)
         seven_days_ago = timezone.now() - timedelta(days=7)
@@ -78,10 +78,8 @@ def dashboard_api_overview(request):
         )['avg'] or 0
 
         # Model performance
-        latest_model = MLModel.objects.filter(is_active=True).first()
-        model_accuracy = 0
-        if latest_model and latest_model.performance_metrics:
-            model_accuracy = latest_model.performance_metrics.get('validation_accuracy', 0)
+        latest_model = MLModel.objects.filter(status='ACTIVE').first()
+        model_accuracy = (latest_model.validation_accuracy or 0) if latest_model else 0
 
         return JsonResponse({
             'success': True,
@@ -121,11 +119,8 @@ def dashboard_api_models(request):
         models_data = []
 
         for model in MLModel.objects.all().order_by('-created_at'):
-            metrics = model.performance_metrics or {}
-
             # Get recent feedback for this model
             recent_feedback = FeedbackLearning.objects.filter(
-                model_version=model.version,
                 created_at__gte=timezone.now() - timedelta(days=30)
             )
 
@@ -137,14 +132,14 @@ def dashboard_api_models(request):
                 'version': model.version,
                 'name': model.name,
                 'type': model.model_type,
-                'is_active': model.is_active,
+                'status': model.status,
+                'is_active': model.status == 'ACTIVE',
                 'created_at': model.created_at.isoformat(),
-                'training_accuracy': metrics.get('training_accuracy', 0),
-                'validation_accuracy': metrics.get('validation_accuracy', 0),
-                'test_accuracy': metrics.get('test_accuracy', 0),
+                'training_accuracy': model.training_accuracy or 0,
+                'validation_accuracy': model.validation_accuracy or 0,
                 'user_satisfaction': round(user_satisfaction, 2),
-                'training_samples': model.training_data_count or 0,
-                'file_size_mb': round((model.file_size or 0) / (1024 * 1024), 2)
+                'training_samples': model.training_samples or 0,
+                'file_size_mb': round((model.file_size_bytes or 0) / (1024 * 1024), 2)
             })
 
         return JsonResponse({
@@ -239,7 +234,7 @@ def dashboard_api_training(request):
         # Recent training data creation
         thirty_days_ago = timezone.now() - timedelta(days=30)
         recent_training_data = TrainingData.objects.filter(
-            created_date__gte=thirty_days_ago.date()
+            created_at__gte=thirty_days_ago
         ).count()
 
         # Training data quality metrics
@@ -255,18 +250,20 @@ def dashboard_api_training(request):
         }
 
         # Learning metrics history
-        learning_metrics = LearningMetrics.objects.order_by('-created_date')[:10]
+        learning_metrics = LearningMetrics.objects.select_related('model').order_by('-created_at')[:10]
         metrics_history = []
 
         for metric in learning_metrics:
             metrics_history.append({
-                'model_version': metric.model_version,
-                'date': metric.created_date.isoformat(),
-                'training_accuracy': metric.training_accuracy,
-                'validation_accuracy': metric.validation_accuracy,
-                'feedback_correlation': metric.feedback_correlation,
-                'user_satisfaction': metric.user_satisfaction_avg,
-                'feedback_count': metric.total_feedback_count
+                'model_version': metric.model.version,
+                'date': metric.created_at.isoformat(),
+                'accuracy': metric.accuracy,
+                'precision': metric.precision,
+                'recall': metric.recall,
+                'f1_score': metric.f1_score,
+                'user_agreement_rate': metric.user_agreement_rate,
+                'avg_user_rating': metric.avg_user_rating,
+                'prediction_count': metric.prediction_count,
             })
 
         return JsonResponse({
@@ -305,7 +302,7 @@ def dashboard_api_realtime(request):
 
         # System health indicators
         system_health = {
-            'ml_system_active': MLModel.objects.filter(is_active=True).exists(),
+            'ml_system_active': MLModel.objects.filter(status='ACTIVE').exists(),
             'recent_errors': 0,  # This would come from error logging
             'cache_hit_rate': 0.95,  # This would come from cache metrics
             'avg_response_time': 0.250  # This would come from performance monitoring
@@ -315,9 +312,9 @@ def dashboard_api_realtime(request):
         alerts = []
 
         # Check for performance issues
-        latest_model = MLModel.objects.filter(is_active=True).first()
+        latest_model = MLModel.objects.filter(status='ACTIVE').first()
         if latest_model:
-            accuracy = latest_model.performance_metrics.get('validation_accuracy', 0)
+            accuracy = latest_model.validation_accuracy or 0
             if accuracy < 0.7:
                 alerts.append({
                     'type': 'warning',
@@ -384,16 +381,21 @@ def dashboard_api_trigger_training(request):
 def dashboard_api_feature_importance(request):
     """API endpoint for feature importance data."""
     try:
-        # Get feature importance from active model
-        active_model = MLModel.objects.filter(is_active=True).first()
+        # Feature importance is no longer persisted on MLModel directly.
+        active_model = MLModel.objects.filter(status='ACTIVE').first()
 
-        if not active_model or 'feature_importance' not in active_model.performance_metrics:
+        if not active_model:
             return JsonResponse({
                 'success': False,
-                'error': 'No feature importance data available'
+                'error': 'No active model found'
             })
 
-        feature_importance = active_model.performance_metrics['feature_importance']
+        return JsonResponse({
+            'success': False,
+            'error': 'Feature importance not persisted in current schema; load from model bundle to surface.'
+        })
+
+        feature_importance = {}
 
         # Sort by importance
         sorted_features = sorted(

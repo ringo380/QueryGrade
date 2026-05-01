@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name="features_json",
             field=models.JSONField(
                 blank=True,
-                help_text="41-dim feature vector extracted from query",
+                help_text="45-dim feature vector extracted from query",
                 null=True,
             ),
         ),

@@ -56,7 +56,7 @@ class HybridQueryGrader:
         # Model management
         self.current_model = None
         self.model_confidence = 0.5
-        self.model_path = os.path.join(settings.BASE_DIR, 'analyzer', 'ml', 'models')
+        self.model_path = os.path.join(settings.BASE_DIR, 'ml_models')
         self.cache = caches['default']
 
         # Training thresholds

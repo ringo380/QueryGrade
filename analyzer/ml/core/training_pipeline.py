@@ -219,7 +219,7 @@ class TrainingPipelineManager:
 
         if recent_models.exists():
             latest_model = recent_models.first()
-            if latest_model.performance_metrics.get('validation_accuracy', 0) >= self.config.performance_threshold:
+            if (latest_model.validation_accuracy or 0) >= self.config.performance_threshold:
                 return True
 
         return False
@@ -231,17 +231,16 @@ class TrainingPipelineManager:
         ).order_by('-created_at').first()
 
         if latest_model:
-            metrics = latest_model.performance_metrics
             return TrainingResult(
                 success=True,
                 model_version=latest_model.version,
-                training_accuracy=metrics.get('training_accuracy', 0.0),
-                validation_accuracy=metrics.get('validation_accuracy', 0.0),
-                test_accuracy=metrics.get('test_accuracy', 0.0),
-                feature_importance=metrics.get('feature_importance', {}),
+                training_accuracy=latest_model.training_accuracy or 0.0,
+                validation_accuracy=latest_model.validation_accuracy or 0.0,
+                test_accuracy=0.0,
+                feature_importance={},
                 training_time=0.0,
                 model_path=latest_model.file_path,
-                metrics=metrics
+                metrics={}
             )
 
         return TrainingResult(
@@ -446,8 +445,11 @@ class TrainingPipelineManager:
         return {
             'latest_model': {
                 'version': latest_model.version if latest_model else None,
-                'is_active': latest_model.is_active if latest_model else False,
-                'performance': latest_model.performance_metrics if latest_model else {},
+                'status': latest_model.status if latest_model else None,
+                'performance': {
+                    'training_accuracy': latest_model.training_accuracy,
+                    'validation_accuracy': latest_model.validation_accuracy,
+                } if latest_model else {},
                 'created_at': latest_model.created_at.isoformat() if latest_model else None
             },
             'training_data': {
@@ -470,8 +472,7 @@ class TrainingPipelineManager:
         """Clean up old model files and database records."""
         old_models = MLModel.objects.filter(
             model_type=self.config.model_type,
-            is_active=False
-        ).order_by('-created_at')[keep_versions:]
+        ).exclude(status='ACTIVE').order_by('-created_at')[keep_versions:]
 
         for model in old_models:
             # Remove file if exists
@@ -514,10 +515,10 @@ class TrainingScheduler:
 
         # Check if model performance has degraded
         recent_metrics = LearningMetrics.objects.filter(
-            model_version=last_training.version
+            model=last_training
         ).first()
 
-        if recent_metrics and recent_metrics.validation_accuracy < 0.6:
+        if recent_metrics and recent_metrics.accuracy < 0.6:
             return True, "Model performance below threshold"
 
         # Check if model is too old

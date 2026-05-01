@@ -66,7 +66,7 @@ SEED_QUERIES = [
     "SELECT * FROM audit_log WHERE CAST(user_id AS VARCHAR) = '42'",
 
     # --- Grade F queries (severe issues) ---
-    "SELECT * FROM users",
+    "SELECT * FROM users WHERE UPPER(email) LIKE '%@%' ORDER BY RAND()",
     "SELECT *, (SELECT name FROM categories WHERE id = p.category_id) FROM products p",
     "SELECT * FROM orders o WHERE o.user_id IN (SELECT id FROM users WHERE country IN (SELECT id FROM countries WHERE region = 'EU'))",
     "SELECT * FROM big_table WHERE LIKE_PATTERN LIKE '%search_term%' ORDER BY RAND()",
