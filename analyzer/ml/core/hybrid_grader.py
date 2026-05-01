@@ -130,8 +130,14 @@ class HybridQueryGrader:
             if features is None:
                 return None
 
-            # Make prediction
-            prediction = self.current_model.predict([features])[0]
+            # Apply scaler if one was saved with the model
+            import numpy as np
+            feature_array = np.array([features])
+            scaler = getattr(self, '_model_scaler', None)
+            if scaler is not None:
+                feature_array = scaler.transform(feature_array)
+
+            prediction = self.current_model.predict(feature_array)[0]
 
             # Ensure prediction is in valid range (0-100)
             prediction = max(0, min(100, prediction))
@@ -235,8 +241,14 @@ class HybridQueryGrader:
                 logger.error(f"Model file not found: {model_file_path}")
                 return None
 
-            # Load the model
-            model = joblib.load(model_file_path)
+            # Load the model — file may be a raw estimator or a dict bundle
+            model_data = joblib.load(model_file_path)
+            if isinstance(model_data, dict):
+                self._model_scaler = model_data.get('scaler')
+                model = model_data['model']
+            else:
+                self._model_scaler = None
+                model = model_data
             self.model_confidence = active_model.validation_accuracy or 0.5
 
             logger.info(f"Loaded ML model: {active_model.name} v{active_model.version}")

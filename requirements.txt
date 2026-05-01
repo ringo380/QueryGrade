@@ -21,12 +21,6 @@ django-ratelimit==4.1.0
 python-decouple>=3.8
 
 # Machine Learning Dependencies
-tensorflow>=2.10.0
-torch>=1.13.0
-transformers>=4.25.0
-sentence-transformers>=2.2.0
-xgboost>=1.7.0
-lightgbm>=3.3.0
 joblib>=1.2.0
 
 # Documentation Loading Dependencies
