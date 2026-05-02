@@ -543,6 +543,7 @@ class SecurityAnalyzer(BaseAnalyzer):
 ## Known Issues
 
 - `enhanced_grade_results.html` renders `{{ analysis.issues_found|safe }}` into JS — pre-existing XSS risk; don't widen this pattern. (`grade_results.html` was fixed: now uses `{{ analysis.issues_found|json_script:"issues-json" }}` + `JSON.parse(document.getElementById('issues-json').textContent)`.)
+- All `hashlib.md5()` calls in `analyzer/` use `usedforsecurity=False` — they're cache keys / query hashes / dedup IDs, not cryptographic. Keep the kwarg when adding new calls (Bandit B324 will flag bare md5).
 
 ## Form Validation
 
@@ -578,6 +579,7 @@ class SecurityAnalyzer(BaseAnalyzer):
 ## ML Subsystem (bootstrapped 2026-04-30)
 
 - Feature count is **45**, not 41 — the "41+ features" figure in this file is wrong.
+- All MLModel/LearningMetrics callers (`training_pipeline.py`, `model_manager.py`, `dashboard_views.py`, `ml_analytics.py`, `manage_ml_models.py`, `train_ml_model.py`, ML test factories) are aligned with migration 0002's schema. Do NOT re-introduce `is_active=`, `performance_metrics=`, `training_data_count=`, `created_date=`, or `LearningMetrics.model_version=` kwargs — use `status=` (`'TRAINING'|'ACTIVE'|'DEPRECATED'|'ARCHIVED'`), `training_accuracy`/`validation_accuracy`/`training_samples` direct fields, `created_at`, and FK `LearningMetrics.model` instead.
 - Model files live at **`ml_models/`** (project root), not `analyzer/ml/models/`.
 - Model files are saved as a dict bundle `{'model', 'scaler', 'feature_names', 'config', 'timestamp'}` — must unwrap before calling `.predict()`.
 - `TrainingConfig.model_type` must be `'HYBRID_SCORER'` — that's what `hybrid_grader.py` queries. `'QUERY_GRADER'` breaks the model lookup silently.
@@ -588,3 +590,7 @@ class SecurityAnalyzer(BaseAnalyzer):
 ## Pre-existing test failures (do not fix unless tackling separately)
 
 17 failures in the `analyzer` suite unrelated to ML work: template says `Welcome back` but tests assert `Welcome Back`; `sqlparse.keywords` has no `Keyword` attribute; `PassiveAggressiveRegressor.partial_fit` rejects `sample_weight` argument.
+
+## Automation
+
+- Weekly black/isort/flake8 sweep runs on a remote routine (Mondays 9am Pacific, repo `https://github.com/ringo380/QueryGrade`) and opens `chore(lint): weekly black/isort/flake8 sweep` PRs when reformatting is needed. Don't manually run codebase-wide black/isort sweeps — they'll just race the routine.
