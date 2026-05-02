@@ -171,6 +171,28 @@
     });
   </script>
 
+  {% if GA4_MEASUREMENT_ID %}
+  <!-- Web Vitals → GA4. Reports CLS/LCP/INP/FCP/TTFB once each per page. -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/web-vitals/4.2.4/web-vitals.iife.min.js"></script>
+  <script>
+    window.addEventListener('load', function() {
+      if (!window.webVitals || typeof gtag !== 'function') return;
+      function send(metric) {
+        gtag('event', 'web_vital', {
+          metric_name: metric.name,
+          metric_value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+          metric_rating: metric.rating,
+          metric_id: metric.id,
+          non_interaction: true
+        });
+      }
+      ['onCLS', 'onINP', 'onLCP', 'onFCP', 'onTTFB'].forEach(function(fn) {
+        if (typeof webVitals[fn] === 'function') webVitals[fn](send);
+      });
+    });
+  </script>
+  {% endif %}
+
   {% block extra_js %}{% endblock %}
   {% block extra_scripts %}{% endblock %}
 </body>

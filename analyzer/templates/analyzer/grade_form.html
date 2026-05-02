@@ -432,6 +432,7 @@ function toggleFullscreen() {
 }
 
 const gradeForm = document.getElementById('gradeForm');
+let _formSubmitted = false;
 if (gradeForm) {
   gradeForm.addEventListener('submit', e => {
     if (sqlEditor && sqlEditor.getValue().trim() === '') {
@@ -439,7 +440,25 @@ if (gradeForm) {
       showToast('Please enter a SQL query.', 'error');
       return;
     }
+    _formSubmitted = true;
     showLoadingOverlay();
+  });
+
+  // Form-abandonment tracking: fire `query_grade_abandoned` if the user typed
+  // SQL but leaves without submitting. Use visibilitychange (Beacon-friendly)
+  // since beforeunload is unreliable on mobile and gtag may not flush in time.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') return;
+    if (_formSubmitted) return;
+    if (!sqlEditor) return;
+    const len = sqlEditor.getValue().trim().length;
+    if (len < 10) return;  // Ignore trivial drafts
+    if (window._abandonReported) return;
+    window._abandonReported = true;
+    if (window.trackEvent) window.trackEvent('query_grade_abandoned', {
+      sql_length: len,
+      is_anonymous_trial: {% if is_anonymous_trial %}true{% else %}false{% endif %}
+    });
   });
 }
 

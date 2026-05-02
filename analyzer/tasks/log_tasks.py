@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.core.cache import caches
 from django.utils import timezone
 
+from ..analytics import send_ga4_event, synthetic_client_id
 from ..parser import process_general_log, process_slow_log
 
 logger = logging.getLogger(__name__)
@@ -60,14 +61,30 @@ def process_log_file_async(
 
         logger.info(f"Successfully processed log file for user {user.username}")
 
+        total_queries = len(results.get("anomalies", []))
+        anomaly_count = len(
+            [r for r in results.get("anomalies", []) if r.get("is_anomaly", False)]
+        )
+        processing_time = results.get("processing_time", 0)
+
+        send_ga4_event(
+            client_id=synthetic_client_id(user_id),
+            event_name="log_analysis_completed",
+            params={
+                "log_type": log_type,
+                "total_queries": total_queries,
+                "anomaly_count": anomaly_count,
+                "processing_time_ms": int(processing_time * 1000),
+            },
+            user_id=user_id,
+        )
+
         return {
             "status": "success",
             "cache_key": cache_key,
-            "total_queries": len(results.get("anomalies", [])),
-            "anomaly_count": len(
-                [r for r in results.get("anomalies", []) if r.get("is_anomaly", False)]
-            ),
-            "processing_time": results.get("processing_time", 0),
+            "total_queries": total_queries,
+            "anomaly_count": anomaly_count,
+            "processing_time": processing_time,
             "timestamp": timezone.now().isoformat(),
         }
 
@@ -87,6 +104,13 @@ def process_log_file_async(
                 f"Retrying task in 60 seconds (attempt {self.request.retries + 1})"
             )
             raise self.retry(countdown=60, exc=exc)
+
+        send_ga4_event(
+            client_id=synthetic_client_id(user_id),
+            event_name="log_analysis_failed",
+            params={"log_type": log_type, "error_class": type(exc).__name__},
+            user_id=user_id,
+        )
 
         return {
             "status": "error",

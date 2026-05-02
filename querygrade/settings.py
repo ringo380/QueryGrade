@@ -194,6 +194,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Google Analytics 4 — empty disables instrumentation entirely (no script tag rendered).
 GA4_MEASUREMENT_ID = config("GA4_MEASUREMENT_ID", default="")
+# Measurement Protocol secret for server-side events (Celery tasks, scheduled jobs).
+# Empty disables MP (analyzer.analytics.send_ga4_event becomes a no-op).
+GA4_API_SECRET = config("GA4_API_SECRET", default="")
 
 # Enhanced Cache configuration for performance optimization
 CACHES = {
