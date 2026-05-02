@@ -5,46 +5,51 @@ This module personalizes feedback based on user preferences, skill level,
 learning style, and historical interaction patterns.
 """
 
-import logging
 import json
-from typing import Dict, List, Tuple, Optional, Any, Set
+import logging
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from enum import Enum
 from datetime import datetime, timedelta
-from collections import defaultdict, Counter
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import numpy as np
 
 
 class LearningStyle(Enum):
     """Different learning style preferences"""
-    VISUAL = "visual"          # Prefers diagrams, examples, visual aids
+
+    VISUAL = "visual"  # Prefers diagrams, examples, visual aids
     KINESTHETIC = "kinesthetic"  # Learns by doing, hands-on practice
-    AUDITORY = "auditory"      # Prefers explanations, discussions
-    READING = "reading"        # Prefers text-based information
-    MIXED = "mixed"           # Combination of styles
+    AUDITORY = "auditory"  # Prefers explanations, discussions
+    READING = "reading"  # Prefers text-based information
+    MIXED = "mixed"  # Combination of styles
 
 
 class FeedbackStyle(Enum):
     """Feedback delivery preferences"""
-    DIRECT = "direct"          # Straightforward, concise feedback
-    DETAILED = "detailed"      # Comprehensive explanations
+
+    DIRECT = "direct"  # Straightforward, concise feedback
+    DETAILED = "detailed"  # Comprehensive explanations
     ENCOURAGING = "encouraging"  # Positive, motivational tone
-    TECHNICAL = "technical"    # Focus on technical details
-    BUSINESS = "business"      # Focus on business impact
+    TECHNICAL = "technical"  # Focus on technical details
+    BUSINESS = "business"  # Focus on business impact
 
 
 class UserPersonality(Enum):
     """User personality types for feedback adaptation"""
+
     PERFECTIONIST = "perfectionist"  # Wants comprehensive analysis
-    PRAGMATIST = "pragmatist"       # Wants practical, actionable advice
-    EXPLORER = "explorer"           # Enjoys learning new concepts
-    RESULTS_FOCUSED = "results"     # Cares about performance metrics
-    COLLABORATIVE = "collaborative" # Values team and sharing aspects
+    PRAGMATIST = "pragmatist"  # Wants practical, actionable advice
+    EXPLORER = "explorer"  # Enjoys learning new concepts
+    RESULTS_FOCUSED = "results"  # Cares about performance metrics
+    COLLABORATIVE = "collaborative"  # Values team and sharing aspects
 
 
 @dataclass
 class UserProfile:
     """Comprehensive user profile for personalization"""
+
     user_id: str
     skill_level: str  # beginner, intermediate, advanced, expert
     learning_style: LearningStyle
@@ -82,6 +87,7 @@ class UserProfile:
 @dataclass
 class PersonalizedFeedback:
     """Personalized feedback tailored to user profile"""
+
     user_id: str
     content: Dict[str, Any]  # The actual feedback content
     personalization_applied: List[str]  # What personalizations were used
@@ -104,137 +110,165 @@ class FeedbackPersonalizationEngine:
         """Initialize feedback templates for different styles"""
 
         return {
-            'encouraging': {
-                'greeting': ["Great work!", "Nice job!", "You're making progress!"],
-                'improvement_intro': ["Here are some ways to make your query even better:",
-                                     "Let's enhance this query together:",
-                                     "Consider these improvements:"],
-                'tone_modifiers': ["gentle", "supportive", "motivating"]
+            "encouraging": {
+                "greeting": ["Great work!", "Nice job!", "You're making progress!"],
+                "improvement_intro": [
+                    "Here are some ways to make your query even better:",
+                    "Let's enhance this query together:",
+                    "Consider these improvements:",
+                ],
+                "tone_modifiers": ["gentle", "supportive", "motivating"],
             },
-            'direct': {
-                'greeting': ["Analysis complete.", "Query reviewed.", ""],
-                'improvement_intro': ["Issues found:", "Optimizations needed:", "Changes required:"],
-                'tone_modifiers': ["concise", "factual", "straightforward"]
+            "direct": {
+                "greeting": ["Analysis complete.", "Query reviewed.", ""],
+                "improvement_intro": [
+                    "Issues found:",
+                    "Optimizations needed:",
+                    "Changes required:",
+                ],
+                "tone_modifiers": ["concise", "factual", "straightforward"],
             },
-            'detailed': {
-                'greeting': ["Comprehensive analysis follows:", "Detailed review:", "In-depth analysis:"],
-                'improvement_intro': ["The following detailed analysis reveals several optimization opportunities:",
-                                     "A thorough examination shows these areas for improvement:",
-                                     "Comprehensive review identifies these enhancements:"],
-                'tone_modifiers': ["comprehensive", "thorough", "educational"]
+            "detailed": {
+                "greeting": [
+                    "Comprehensive analysis follows:",
+                    "Detailed review:",
+                    "In-depth analysis:",
+                ],
+                "improvement_intro": [
+                    "The following detailed analysis reveals several optimization opportunities:",
+                    "A thorough examination shows these areas for improvement:",
+                    "Comprehensive review identifies these enhancements:",
+                ],
+                "tone_modifiers": ["comprehensive", "thorough", "educational"],
             },
-            'technical': {
-                'greeting': ["Technical analysis:", "Performance review:", "Optimization analysis:"],
-                'improvement_intro': ["Technical optimizations identified:",
-                                     "Performance bottlenecks detected:",
-                                     "System-level improvements available:"],
-                'tone_modifiers': ["technical", "precise", "analytical"]
+            "technical": {
+                "greeting": [
+                    "Technical analysis:",
+                    "Performance review:",
+                    "Optimization analysis:",
+                ],
+                "improvement_intro": [
+                    "Technical optimizations identified:",
+                    "Performance bottlenecks detected:",
+                    "System-level improvements available:",
+                ],
+                "tone_modifiers": ["technical", "precise", "analytical"],
             },
-            'business': {
-                'greeting': ["Business impact analysis:", "Cost-benefit review:", "ROI assessment:"],
-                'improvement_intro': ["Business-critical optimizations:",
-                                     "Cost-saving opportunities:",
-                                     "Performance improvements with business impact:"],
-                'tone_modifiers': ["business-focused", "roi-oriented", "practical"]
-            }
+            "business": {
+                "greeting": [
+                    "Business impact analysis:",
+                    "Cost-benefit review:",
+                    "ROI assessment:",
+                ],
+                "improvement_intro": [
+                    "Business-critical optimizations:",
+                    "Cost-saving opportunities:",
+                    "Performance improvements with business impact:",
+                ],
+                "tone_modifiers": ["business-focused", "roi-oriented", "practical"],
+            },
         }
 
     def _initialize_rules(self) -> Dict[str, Any]:
         """Initialize personalization rules"""
 
         return {
-            'skill_level_adjustments': {
-                'beginner': {
-                    'explanation_depth': 'high',
-                    'technical_jargon': 'minimal',
-                    'examples_needed': 'many',
-                    'step_by_step': True,
-                    'analogies': True
+            "skill_level_adjustments": {
+                "beginner": {
+                    "explanation_depth": "high",
+                    "technical_jargon": "minimal",
+                    "examples_needed": "many",
+                    "step_by_step": True,
+                    "analogies": True,
                 },
-                'intermediate': {
-                    'explanation_depth': 'medium',
-                    'technical_jargon': 'moderate',
-                    'examples_needed': 'some',
-                    'step_by_step': False,
-                    'analogies': False
+                "intermediate": {
+                    "explanation_depth": "medium",
+                    "technical_jargon": "moderate",
+                    "examples_needed": "some",
+                    "step_by_step": False,
+                    "analogies": False,
                 },
-                'advanced': {
-                    'explanation_depth': 'low',
-                    'technical_jargon': 'high',
-                    'examples_needed': 'few',
-                    'step_by_step': False,
-                    'analogies': False
+                "advanced": {
+                    "explanation_depth": "low",
+                    "technical_jargon": "high",
+                    "examples_needed": "few",
+                    "step_by_step": False,
+                    "analogies": False,
                 },
-                'expert': {
-                    'explanation_depth': 'minimal',
-                    'technical_jargon': 'maximum',
-                    'examples_needed': 'none',
-                    'step_by_step': False,
-                    'analogies': False
-                }
+                "expert": {
+                    "explanation_depth": "minimal",
+                    "technical_jargon": "maximum",
+                    "examples_needed": "none",
+                    "step_by_step": False,
+                    "analogies": False,
+                },
             },
-            'learning_style_adaptations': {
+            "learning_style_adaptations": {
                 LearningStyle.VISUAL: {
-                    'include_diagrams': True,
-                    'use_formatting': 'extensive',
-                    'code_highlighting': True,
-                    'visual_metaphors': True
+                    "include_diagrams": True,
+                    "use_formatting": "extensive",
+                    "code_highlighting": True,
+                    "visual_metaphors": True,
                 },
                 LearningStyle.KINESTHETIC: {
-                    'hands_on_exercises': True,
-                    'interactive_examples': True,
-                    'practice_suggestions': 'many',
-                    'try_it_sections': True
+                    "hands_on_exercises": True,
+                    "interactive_examples": True,
+                    "practice_suggestions": "many",
+                    "try_it_sections": True,
                 },
                 LearningStyle.AUDITORY: {
-                    'conversational_tone': True,
-                    'explanatory_language': 'verbose',
-                    'discussion_prompts': True,
-                    'reasoning_emphasis': True
+                    "conversational_tone": True,
+                    "explanatory_language": "verbose",
+                    "discussion_prompts": True,
+                    "reasoning_emphasis": True,
                 },
                 LearningStyle.READING: {
-                    'detailed_documentation': True,
-                    'reference_links': 'many',
-                    'comprehensive_text': True,
-                    'structured_content': True
-                }
+                    "detailed_documentation": True,
+                    "reference_links": "many",
+                    "comprehensive_text": True,
+                    "structured_content": True,
+                },
             },
-            'personality_adaptations': {
+            "personality_adaptations": {
                 UserPersonality.PERFECTIONIST: {
-                    'completeness_emphasis': True,
-                    'edge_case_coverage': True,
-                    'multiple_approaches': True,
-                    'quality_metrics': True
+                    "completeness_emphasis": True,
+                    "edge_case_coverage": True,
+                    "multiple_approaches": True,
+                    "quality_metrics": True,
                 },
                 UserPersonality.PRAGMATIST: {
-                    'practical_focus': True,
-                    'quick_wins_first': True,
-                    'implementation_ease': True,
-                    'real_world_examples': True
+                    "practical_focus": True,
+                    "quick_wins_first": True,
+                    "implementation_ease": True,
+                    "real_world_examples": True,
                 },
                 UserPersonality.EXPLORER: {
-                    'alternative_approaches': True,
-                    'deep_dive_links': True,
-                    'related_concepts': True,
-                    'curiosity_hooks': True
+                    "alternative_approaches": True,
+                    "deep_dive_links": True,
+                    "related_concepts": True,
+                    "curiosity_hooks": True,
                 },
                 UserPersonality.RESULTS_FOCUSED: {
-                    'performance_metrics': True,
-                    'before_after_comparisons': True,
-                    'quantified_benefits': True,
-                    'roi_calculations': True
+                    "performance_metrics": True,
+                    "before_after_comparisons": True,
+                    "quantified_benefits": True,
+                    "roi_calculations": True,
                 },
                 UserPersonality.COLLABORATIVE: {
-                    'team_considerations': True,
-                    'sharing_suggestions': True,
-                    'review_recommendations': True,
-                    'knowledge_transfer': True
-                }
-            }
+                    "team_considerations": True,
+                    "sharing_suggestions": True,
+                    "review_recommendations": True,
+                    "knowledge_transfer": True,
+                },
+            },
         }
 
-    def personalize_feedback(self, user_id: str, base_feedback: Dict[str, Any],
-                           context: Dict[str, Any] = None) -> PersonalizedFeedback:
+    def personalize_feedback(
+        self,
+        user_id: str,
+        base_feedback: Dict[str, Any],
+        context: Dict[str, Any] = None,
+    ) -> PersonalizedFeedback:
         """Personalize feedback for a specific user"""
 
         # Get or create user profile
@@ -259,14 +293,14 @@ class FeedbackPersonalizationEngine:
         personalizations_applied.extend(style_adaptations)
 
         # 3. Feedback style adaptation
-        personalized_content, feedback_adaptations = self._apply_feedback_style_adaptation(
-            personalized_content, profile
+        personalized_content, feedback_adaptations = (
+            self._apply_feedback_style_adaptation(personalized_content, profile)
         )
         personalizations_applied.extend(feedback_adaptations)
 
         # 4. Personality-based adaptation
-        personalized_content, personality_adaptations = self._apply_personality_adaptation(
-            personalized_content, profile
+        personalized_content, personality_adaptations = (
+            self._apply_personality_adaptation(personalized_content, profile)
         )
         personalizations_applied.extend(personality_adaptations)
 
@@ -293,7 +327,9 @@ class FeedbackPersonalizationEngine:
         follow_ups = self._generate_follow_ups(profile, personalized_content)
 
         # Create adaptation notes
-        adaptation_notes = self._create_adaptation_notes(profile, personalizations_applied)
+        adaptation_notes = self._create_adaptation_notes(
+            profile, personalizations_applied
+        )
 
         return PersonalizedFeedback(
             user_id=user_id,
@@ -302,46 +338,52 @@ class FeedbackPersonalizationEngine:
             estimated_engagement=estimated_engagement,
             recommended_focus_time=focus_time,
             follow_up_suggestions=follow_ups,
-            adaptation_notes=adaptation_notes
+            adaptation_notes=adaptation_notes,
         )
 
-    def _apply_skill_level_adaptation(self, content: Dict[str, Any],
-                                     profile: UserProfile) -> Tuple[Dict[str, Any], List[str]]:
+    def _apply_skill_level_adaptation(
+        self, content: Dict[str, Any], profile: UserProfile
+    ) -> Tuple[Dict[str, Any], List[str]]:
         """Adapt content based on user's skill level"""
 
         adaptations = []
-        rules = self.personalization_rules['skill_level_adjustments'][profile.skill_level]
+        rules = self.personalization_rules["skill_level_adjustments"][
+            profile.skill_level
+        ]
 
         # Adjust explanation depth
-        if rules['explanation_depth'] == 'high':
-            if 'explanations' in content:
-                content['explanations'] = self._expand_explanations(content['explanations'])
+        if rules["explanation_depth"] == "high":
+            if "explanations" in content:
+                content["explanations"] = self._expand_explanations(
+                    content["explanations"]
+                )
                 adaptations.append("Added detailed explanations for beginners")
 
         # Adjust technical jargon
-        if rules['technical_jargon'] == 'minimal':
+        if rules["technical_jargon"] == "minimal":
             content = self._reduce_technical_jargon(content)
             adaptations.append("Simplified technical language")
 
         # Add examples if needed
-        if rules['examples_needed'] == 'many':
+        if rules["examples_needed"] == "many":
             content = self._add_more_examples(content)
             adaptations.append("Added multiple examples")
 
         # Add step-by-step guidance
-        if rules['step_by_step']:
+        if rules["step_by_step"]:
             content = self._add_step_by_step_guidance(content)
             adaptations.append("Added step-by-step instructions")
 
         # Add analogies for beginners
-        if rules['analogies']:
+        if rules["analogies"]:
             content = self._add_analogies(content)
             adaptations.append("Added analogies for clarity")
 
         return content, adaptations
 
-    def _apply_learning_style_adaptation(self, content: Dict[str, Any],
-                                        profile: UserProfile) -> Tuple[Dict[str, Any], List[str]]:
+    def _apply_learning_style_adaptation(
+        self, content: Dict[str, Any], profile: UserProfile
+    ) -> Tuple[Dict[str, Any], List[str]]:
         """Adapt content based on user's learning style"""
 
         adaptations = []
@@ -364,8 +406,9 @@ class FeedbackPersonalizationEngine:
 
         return content, adaptations
 
-    def _apply_feedback_style_adaptation(self, content: Dict[str, Any],
-                                        profile: UserProfile) -> Tuple[Dict[str, Any], List[str]]:
+    def _apply_feedback_style_adaptation(
+        self, content: Dict[str, Any], profile: UserProfile
+    ) -> Tuple[Dict[str, Any], List[str]]:
         """Adapt content based on user's preferred feedback style"""
 
         adaptations = []
@@ -373,69 +416,78 @@ class FeedbackPersonalizationEngine:
         templates = self.feedback_templates[style.value]
 
         # Adjust greeting
-        if 'greeting' in content:
-            content['greeting'] = np.random.choice(templates['greeting'])
+        if "greeting" in content:
+            content["greeting"] = np.random.choice(templates["greeting"])
             adaptations.append(f"Applied {style.value} greeting style")
 
         # Adjust improvement introduction
-        if 'improvement_intro' in content:
-            content['improvement_intro'] = np.random.choice(templates['improvement_intro'])
+        if "improvement_intro" in content:
+            content["improvement_intro"] = np.random.choice(
+                templates["improvement_intro"]
+            )
             adaptations.append(f"Applied {style.value} introduction style")
 
         # Apply tone modifiers
-        content['tone'] = templates['tone_modifiers'][0]
+        content["tone"] = templates["tone_modifiers"][0]
         adaptations.append(f"Applied {style.value} tone")
 
         return content, adaptations
 
-    def _apply_personality_adaptation(self, content: Dict[str, Any],
-                                     profile: UserProfile) -> Tuple[Dict[str, Any], List[str]]:
+    def _apply_personality_adaptation(
+        self, content: Dict[str, Any], profile: UserProfile
+    ) -> Tuple[Dict[str, Any], List[str]]:
         """Adapt content based on user's personality type"""
 
         adaptations = []
-        rules = self.personalization_rules['personality_adaptations'][profile.personality_type]
+        rules = self.personalization_rules["personality_adaptations"][
+            profile.personality_type
+        ]
 
-        if rules.get('completeness_emphasis'):
+        if rules.get("completeness_emphasis"):
             content = self._emphasize_completeness(content)
             adaptations.append("Emphasized comprehensive coverage")
 
-        if rules.get('practical_focus'):
+        if rules.get("practical_focus"):
             content = self._focus_on_practical_aspects(content)
             adaptations.append("Focused on practical applications")
 
-        if rules.get('performance_metrics'):
+        if rules.get("performance_metrics"):
             content = self._add_performance_metrics(content)
             adaptations.append("Added performance metrics")
 
-        if rules.get('alternative_approaches'):
+        if rules.get("alternative_approaches"):
             content = self._add_alternative_approaches(content)
             adaptations.append("Added alternative approaches")
 
-        if rules.get('team_considerations'):
+        if rules.get("team_considerations"):
             content = self._add_team_considerations(content)
             adaptations.append("Added team collaboration aspects")
 
         return content, adaptations
 
-    def _apply_behavior_adaptation(self, content: Dict[str, Any],
-                                  profile: UserProfile) -> Tuple[Dict[str, Any], List[str]]:
+    def _apply_behavior_adaptation(
+        self, content: Dict[str, Any], profile: UserProfile
+    ) -> Tuple[Dict[str, Any], List[str]]:
         """Adapt content based on user's historical behavior"""
 
         adaptations = []
 
         # Filter out previously ignored suggestions
-        if 'suggestions' in content:
-            original_count = len(content['suggestions'])
-            content['suggestions'] = [
-                s for s in content['suggestions']
-                if s.get('type') not in profile.ignored_suggestions
+        if "suggestions" in content:
+            original_count = len(content["suggestions"])
+            content["suggestions"] = [
+                s
+                for s in content["suggestions"]
+                if s.get("type") not in profile.ignored_suggestions
             ]
-            if len(content['suggestions']) < original_count:
+            if len(content["suggestions"]) < original_count:
                 adaptations.append("Filtered out previously ignored suggestion types")
 
         # Emphasize suggestions user typically acts on
         if profile.completed_actions:
-            content = self._emphasize_actionable_items(content, profile.completed_actions)
+            content = self._emphasize_actionable_items(
+                content, profile.completed_actions
+            )
             adaptations.append("Emphasized previously successful suggestions")
 
         # Adjust content length based on attention span
@@ -450,37 +502,45 @@ class FeedbackPersonalizationEngine:
 
         return content, adaptations
 
-    def _apply_context_adaptation(self, content: Dict[str, Any], profile: UserProfile,
-                                 context: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    def _apply_context_adaptation(
+        self, content: Dict[str, Any], profile: UserProfile, context: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[str]]:
         """Adapt content based on current context"""
 
         adaptations = []
 
         # Time-based adaptations
-        if context.get('time_pressure', False):
+        if context.get("time_pressure", False):
             content = self._prioritize_urgent_items(content)
             adaptations.append("Prioritized urgent items due to time pressure")
 
         # Environment-based adaptations
-        if context.get('environment') == 'production':
+        if context.get("environment") == "production":
             content = self._emphasize_safety(content)
             adaptations.append("Emphasized safety for production environment")
 
         # Team context adaptations
-        if context.get('team_size', 1) > 1:
+        if context.get("team_size", 1) > 1:
             content = self._add_collaboration_notes(content)
             adaptations.append("Added collaboration considerations")
 
         # Database-specific adaptations
-        if context.get('database_type'):
-            content = self._add_database_specific_advice(content, context['database_type'])
+        if context.get("database_type"):
+            content = self._add_database_specific_advice(
+                content, context["database_type"]
+            )
             adaptations.append(f"Added {context['database_type']}-specific advice")
 
         return content, adaptations
 
-    def update_user_profile(self, user_id: str, feedback_reaction: str,
-                           time_spent: float, actions_taken: List[str],
-                           ignored_items: List[str]):
+    def update_user_profile(
+        self,
+        user_id: str,
+        feedback_reaction: str,
+        time_spent: float,
+        actions_taken: List[str],
+        ignored_items: List[str],
+    ):
         """Update user profile based on interaction feedback"""
 
         profile = self.get_user_profile(user_id)
@@ -488,7 +548,9 @@ class FeedbackPersonalizationEngine:
             return
 
         # Update feedback reactions
-        profile.feedback_reactions[feedback_reaction] = profile.feedback_reactions.get(feedback_reaction, 0) + 1
+        profile.feedback_reactions[feedback_reaction] = (
+            profile.feedback_reactions.get(feedback_reaction, 0) + 1
+        )
 
         # Update time spent
         profile.time_spent_on_feedback.append(time_spent)
@@ -514,7 +576,7 @@ class FeedbackPersonalizationEngine:
             profile.attention_span = np.mean(recent_times) / 60  # Convert to minutes
 
         # Recalculate complexity tolerance
-        positive_reactions = profile.feedback_reactions.get('positive', 0)
+        positive_reactions = profile.feedback_reactions.get("positive", 0)
         total_reactions = sum(profile.feedback_reactions.values())
         if total_reactions > 0:
             satisfaction_rate = positive_reactions / total_reactions
@@ -531,22 +593,24 @@ class FeedbackPersonalizationEngine:
         """Get user profile by ID"""
         return self.user_profiles.get(user_id)
 
-    def _create_default_profile(self, user_id: str, context: Dict[str, Any]) -> UserProfile:
+    def _create_default_profile(
+        self, user_id: str, context: Dict[str, Any]
+    ) -> UserProfile:
         """Create a default user profile"""
 
         return UserProfile(
             user_id=user_id,
-            skill_level=context.get('skill_level', 'intermediate'),
+            skill_level=context.get("skill_level", "intermediate"),
             learning_style=LearningStyle.MIXED,
             feedback_style=FeedbackStyle.DETAILED,
             personality_type=UserPersonality.PRAGMATIST,
             preferred_detail_level=0.7,
-            preferred_example_types=['code', 'explanations'],
-            motivation_triggers=['progress', 'achievement'],
-            role=context.get('role', 'developer'),
-            experience_years=context.get('experience_years', 3),
-            primary_database=context.get('database', 'mysql'),
-            work_context=context.get('work_context', 'enterprise'),
+            preferred_example_types=["code", "explanations"],
+            motivation_triggers=["progress", "achievement"],
+            role=context.get("role", "developer"),
+            experience_years=context.get("experience_years", 3),
+            primary_database=context.get("database", "mysql"),
+            work_context=context.get("work_context", "enterprise"),
             feedback_reactions={},
             ignored_suggestions=set(),
             completed_actions=set(),
@@ -556,10 +620,12 @@ class FeedbackPersonalizationEngine:
             mastered_concepts=set(),
             attention_span=5.0,  # 5 minutes default
             complexity_tolerance=0.7,
-            change_resistance=0.3
+            change_resistance=0.3,
         )
 
-    def _predict_engagement(self, profile: UserProfile, content: Dict[str, Any]) -> float:
+    def _predict_engagement(
+        self, profile: UserProfile, content: Dict[str, Any]
+    ) -> float:
         """Predict user engagement with the personalized content"""
 
         base_engagement = 0.5
@@ -579,19 +645,28 @@ class FeedbackPersonalizationEngine:
             base_engagement -= 0.15
 
         # Adjust based on past reactions
-        positive_rate = profile.feedback_reactions.get('positive', 0) / max(sum(profile.feedback_reactions.values()), 1)
+        positive_rate = profile.feedback_reactions.get("positive", 0) / max(
+            sum(profile.feedback_reactions.values()), 1
+        )
         base_engagement += (positive_rate - 0.5) * 0.2
 
         return max(0.0, min(1.0, base_engagement))
 
-    def _calculate_focus_time(self, profile: UserProfile, content: Dict[str, Any]) -> int:
+    def _calculate_focus_time(
+        self, profile: UserProfile, content: Dict[str, Any]
+    ) -> int:
         """Calculate recommended focus time in minutes"""
 
         # Base time based on content length
         base_time = len(str(content)) / 800  # ~800 characters per minute reading
 
         # Adjust for skill level
-        skill_multipliers = {'beginner': 1.5, 'intermediate': 1.0, 'advanced': 0.8, 'expert': 0.6}
+        skill_multipliers = {
+            "beginner": 1.5,
+            "intermediate": 1.0,
+            "advanced": 0.8,
+            "expert": 0.6,
+        }
         base_time *= skill_multipliers.get(profile.skill_level, 1.0)
 
         # Adjust for attention span
@@ -599,7 +674,9 @@ class FeedbackPersonalizationEngine:
 
         return max(1, int(recommended_time))
 
-    def _generate_follow_ups(self, profile: UserProfile, content: Dict[str, Any]) -> List[str]:
+    def _generate_follow_ups(
+        self, profile: UserProfile, content: Dict[str, Any]
+    ) -> List[str]:
         """Generate follow-up suggestions"""
 
         follow_ups = []
@@ -616,16 +693,18 @@ class FeedbackPersonalizationEngine:
             follow_ups.append("Schedule code review session")
 
         # Based on skill level
-        if profile.skill_level == 'beginner':
+        if profile.skill_level == "beginner":
             follow_ups.append("Practice with simplified examples")
             follow_ups.append("Review SQL fundamentals")
-        elif profile.skill_level == 'expert':
+        elif profile.skill_level == "expert":
             follow_ups.append("Consider teaching others")
             follow_ups.append("Contribute to optimization guidelines")
 
         return follow_ups[:3]  # Limit to 3 follow-ups
 
-    def _create_adaptation_notes(self, profile: UserProfile, adaptations: List[str]) -> str:
+    def _create_adaptation_notes(
+        self, profile: UserProfile, adaptations: List[str]
+    ) -> str:
         """Create notes explaining the personalization applied"""
 
         if not adaptations:
@@ -680,7 +759,9 @@ class FeedbackPersonalizationEngine:
         # Implementation would enhance language
         return content
 
-    def _add_comprehensive_documentation(self, content: Dict[str, Any]) -> Dict[str, Any]:
+    def _add_comprehensive_documentation(
+        self, content: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Add comprehensive documentation for reading learners"""
         # Implementation would add documentation
         return content
@@ -710,7 +791,9 @@ class FeedbackPersonalizationEngine:
         # Implementation would add team aspects
         return content
 
-    def _emphasize_actionable_items(self, content: Dict[str, Any], completed_actions: Set[str]) -> Dict[str, Any]:
+    def _emphasize_actionable_items(
+        self, content: Dict[str, Any], completed_actions: Set[str]
+    ) -> Dict[str, Any]:
         """Emphasize items user typically acts on"""
         # Implementation would prioritize actionable items
         return content
@@ -740,7 +823,9 @@ class FeedbackPersonalizationEngine:
         # Implementation would add team notes
         return content
 
-    def _add_database_specific_advice(self, content: Dict[str, Any], database_type: str) -> Dict[str, Any]:
+    def _add_database_specific_advice(
+        self, content: Dict[str, Any], database_type: str
+    ) -> Dict[str, Any]:
         """Add database-specific advice"""
         # Implementation would add DB-specific content
         return content
@@ -755,7 +840,13 @@ class FeedbackPersonalizationEngine:
 
         content_str = str(content)
         # Technical terms increase complexity
-        technical_terms = ['optimization', 'algorithm', 'execution plan', 'index', 'performance']
+        technical_terms = [
+            "optimization",
+            "algorithm",
+            "execution plan",
+            "index",
+            "performance",
+        ]
         for term in technical_terms:
             complexity += content_str.lower().count(term) * 0.05
 
@@ -789,7 +880,7 @@ if __name__ == "__main__":
         mastered_concepts={"basic_queries", "simple_joins"},
         attention_span=4.0,
         complexity_tolerance=0.7,
-        change_resistance=0.2
+        change_resistance=0.2,
     )
 
     personalizer.user_profiles["user_123"] = user_profile
@@ -802,19 +893,20 @@ if __name__ == "__main__":
         "suggestions": [
             {"type": "index_creation", "description": "Add index on customer_id"},
             {"type": "query_rewrite", "description": "Replace subquery with JOIN"},
-            {"type": "advanced_optimization", "description": "Consider query plan hints"}
+            {
+                "type": "advanced_optimization",
+                "description": "Consider query plan hints",
+            },
         ],
-        "explanations": {
-            "index_creation": "Indexes improve lookup performance"
-        },
-        "next_steps": ["Test changes", "Monitor performance"]
+        "explanations": {"index_creation": "Indexes improve lookup performance"},
+        "next_steps": ["Test changes", "Monitor performance"],
     }
 
     # Personalize feedback
     personalized = personalizer.personalize_feedback(
         "user_123",
         base_feedback,
-        context={"time_pressure": False, "environment": "development"}
+        context={"time_pressure": False, "environment": "development"},
     )
 
     print("=== Personalized Feedback ===")

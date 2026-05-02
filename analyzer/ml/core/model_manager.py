@@ -6,19 +6,19 @@ Consolidates model loading logic from hybrid_grader.py, multi_model_ensemble.py,
 and training_pipeline.py into a single, reusable service.
 """
 
+import hashlib
 import logging
 import os
-import hashlib
-import joblib
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
+import joblib
 from django.conf import settings
-from django.utils import timezone
 from django.core.cache import cache
+from django.utils import timezone
 
 from ...models import MLModel
 
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class ModelType(str, Enum):
     """Types of ML models in the system."""
+
     HYBRID_SCORER = "HYBRID_SCORER"
     QUERY_GRADER = "QUERY_GRADER"
     RANDOM_FOREST = "RANDOM_FOREST"
@@ -38,6 +39,7 @@ class ModelType(str, Enum):
 
 class ModelStatus(str, Enum):
     """Model deployment status."""
+
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     TRAINING = "TRAINING"
@@ -48,6 +50,7 @@ class ModelStatus(str, Enum):
 @dataclass
 class LoadedModel:
     """Container for loaded model with metadata."""
+
     model: Any  # The actual ML model object
     model_id: int
     model_type: str
@@ -62,6 +65,7 @@ class LoadedModel:
 @dataclass
 class ModelCacheEntry:
     """Cache entry for model with TTL tracking."""
+
     loaded_model: LoadedModel
     cached_at: datetime
     access_count: int = 0
@@ -85,7 +89,7 @@ class ModelManager:
         self,
         model_dir: Optional[str] = None,
         cache_ttl: int = 3600,  # 1 hour default cache TTL
-        enable_cache: bool = True
+        enable_cache: bool = True,
     ):
         """
         Initialize ModelManager.
@@ -96,8 +100,7 @@ class ModelManager:
             enable_cache: Whether to enable in-memory caching
         """
         self.model_dir = model_dir or os.path.join(
-            settings.BASE_DIR,
-            'analyzer', 'ml', 'models'
+            settings.BASE_DIR, "analyzer", "ml", "models"
         )
         self.cache_ttl = cache_ttl
         self.enable_cache = enable_cache
@@ -111,9 +114,7 @@ class ModelManager:
         logger.info(f"ModelManager initialized with model_dir: {self.model_dir}")
 
     def load_active_model(
-        self,
-        model_type: str,
-        use_cache: bool = True
+        self, model_type: str, use_cache: bool = True
     ) -> Optional[LoadedModel]:
         """
         Load the currently active model of specified type.
@@ -136,10 +137,11 @@ class ModelManager:
 
         try:
             # Query database for active model
-            active_model = MLModel.objects.filter(
-                model_type=model_type,
-                status='ACTIVE'
-            ).order_by('-created_at').first()
+            active_model = (
+                MLModel.objects.filter(model_type=model_type, status="ACTIVE")
+                .order_by("-created_at")
+                .first()
+            )
 
             if not active_model:
                 logger.info(f"No active model found for type: {model_type}")
@@ -155,13 +157,13 @@ class ModelManager:
             return loaded_model
 
         except Exception as e:
-            logger.error(f"Error loading active model {model_type}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error loading active model {model_type}: {str(e)}", exc_info=True
+            )
             return None
 
     def load_model_by_id(
-        self,
-        model_id: int,
-        use_cache: bool = True
+        self, model_id: int, use_cache: bool = True
     ) -> Optional[LoadedModel]:
         """
         Load a specific model by database ID.
@@ -198,10 +200,7 @@ class ModelManager:
             return None
 
     def load_model_by_version(
-        self,
-        model_type: str,
-        version: str,
-        use_cache: bool = True
+        self, model_type: str, version: str, use_cache: bool = True
     ) -> Optional[LoadedModel]:
         """
         Load a specific model version.
@@ -223,8 +222,7 @@ class ModelManager:
 
         try:
             model_record = MLModel.objects.filter(
-                model_type=model_type,
-                version=version
+                model_type=model_type, version=version
             ).first()
 
             if not model_record:
@@ -239,7 +237,9 @@ class ModelManager:
             return loaded_model
 
         except Exception as e:
-            logger.error(f"Error loading model {model_type} v{version}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error loading model {model_type} v{version}: {str(e)}", exc_info=True
+            )
             return None
 
     def load_all_active_models(self) -> Dict[str, LoadedModel]:
@@ -252,7 +252,7 @@ class ModelManager:
         active_models = {}
 
         try:
-            model_records = MLModel.objects.filter(status='ACTIVE')
+            model_records = MLModel.objects.filter(status="ACTIVE")
 
             for record in model_records:
                 loaded_model = self._load_model_from_db(record)
@@ -303,10 +303,10 @@ class ModelManager:
                 file_path=model_file_path,
                 created_at=model_record.created_at,
                 performance_metrics={
-                    'training_accuracy': model_record.training_accuracy,
-                    'validation_accuracy': model_record.validation_accuracy,
+                    "training_accuracy": model_record.training_accuracy,
+                    "validation_accuracy": model_record.validation_accuracy,
                 },
-                load_time=load_time
+                load_time=load_time,
             )
 
             logger.info(
@@ -318,7 +318,10 @@ class ModelManager:
             return loaded_model
 
         except Exception as e:
-            logger.error(f"Error loading model file {model_record.file_path}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error loading model file {model_record.file_path}: {str(e)}",
+                exc_info=True,
+            )
             return None
 
     def save_model(
@@ -329,7 +332,7 @@ class ModelManager:
         performance_metrics: Dict[str, Any],
         name: Optional[str] = None,
         description: Optional[str] = None,
-        activate: bool = False
+        activate: bool = False,
     ) -> Optional[int]:
         """
         Save a trained model to disk and database.
@@ -362,10 +365,10 @@ class ModelManager:
                 model_type=model_type,
                 version=version,
                 file_path=filename,  # Store relative path
-                training_accuracy=performance_metrics.get('training_accuracy'),
-                validation_accuracy=performance_metrics.get('validation_accuracy'),
-                training_samples=performance_metrics.get('training_samples', 0),
-                status='ACTIVE' if activate else 'TRAINING',
+                training_accuracy=performance_metrics.get("training_accuracy"),
+                validation_accuracy=performance_metrics.get("validation_accuracy"),
+                training_samples=performance_metrics.get("training_samples", 0),
+                status="ACTIVE" if activate else "TRAINING",
             )
 
             # If activating, deactivate other models of same type
@@ -389,13 +392,12 @@ class ModelManager:
         """
         try:
             # Deactivate all other models of this type
-            MLModel.objects.filter(
-                model_type=model_type,
-                status='ACTIVE'
-            ).exclude(id=model_id).update(status='INACTIVE')
+            MLModel.objects.filter(model_type=model_type, status="ACTIVE").exclude(
+                id=model_id
+            ).update(status="INACTIVE")
 
             # Activate the target model
-            MLModel.objects.filter(id=model_id).update(status='ACTIVE')
+            MLModel.objects.filter(id=model_id).update(status="ACTIVE")
 
             # Clear cache for this model type
             cache_key = f"active_model_{model_type}"
@@ -443,9 +445,7 @@ class ModelManager:
             loaded_model: LoadedModel to cache
         """
         cache_entry = ModelCacheEntry(
-            loaded_model=loaded_model,
-            cached_at=timezone.now(),
-            access_count=0
+            loaded_model=loaded_model, cached_at=timezone.now(), access_count=0
         )
         self._model_cache[cache_key] = cache_entry
 
@@ -459,8 +459,7 @@ class ModelManager:
         if model_type:
             # Clear specific model type
             keys_to_delete = [
-                key for key in self._model_cache.keys()
-                if model_type in key
+                key for key in self._model_cache.keys() if model_type in key
             ]
             for key in keys_to_delete:
                 del self._model_cache[key]
@@ -486,17 +485,15 @@ class ModelManager:
             entries_by_type[model_type] = entries_by_type.get(model_type, 0) + 1
 
         return {
-            'total_cached_models': total_entries,
-            'total_cache_hits': total_access,
-            'models_by_type': entries_by_type,
-            'cache_ttl_seconds': self.cache_ttl,
-            'cache_enabled': self.enable_cache
+            "total_cached_models": total_entries,
+            "total_cache_hits": total_access,
+            "models_by_type": entries_by_type,
+            "cache_ttl_seconds": self.cache_ttl,
+            "cache_enabled": self.enable_cache,
         }
 
     def list_available_models(
-        self,
-        model_type: Optional[str] = None,
-        status: Optional[str] = None
+        self, model_type: Optional[str] = None, status: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         List available models with metadata.
@@ -515,33 +512,32 @@ class ModelManager:
         if status:
             queryset = queryset.filter(status=status)
 
-        queryset = queryset.order_by('-created_at')
+        queryset = queryset.order_by("-created_at")
 
         models = []
         for record in queryset:
-            models.append({
-                'id': record.id,
-                'name': record.name,
-                'type': record.model_type,
-                'version': record.version,
-                'status': record.status,
-                'accuracy': record.validation_accuracy,
-                'created_at': record.created_at,
-                'file_path': record.file_path,
-                'metrics': {
-                    'training_accuracy': record.training_accuracy,
-                    'validation_accuracy': record.validation_accuracy,
-                    'training_samples': record.training_samples,
+            models.append(
+                {
+                    "id": record.id,
+                    "name": record.name,
+                    "type": record.model_type,
+                    "version": record.version,
+                    "status": record.status,
+                    "accuracy": record.validation_accuracy,
+                    "created_at": record.created_at,
+                    "file_path": record.file_path,
+                    "metrics": {
+                        "training_accuracy": record.training_accuracy,
+                        "validation_accuracy": record.validation_accuracy,
+                        "training_samples": record.training_samples,
+                    },
                 }
-            })
+            )
 
         return models
 
     def cleanup_old_models(
-        self,
-        model_type: str,
-        keep_count: int = 5,
-        dry_run: bool = True
+        self, model_type: str, keep_count: int = 5, dry_run: bool = True
     ) -> Tuple[int, int]:
         """
         Clean up old inactive models, keeping only recent ones.
@@ -557,15 +553,16 @@ class ModelManager:
         try:
             # Get inactive models, ordered by creation date
             old_models = MLModel.objects.filter(
-                model_type=model_type,
-                status='INACTIVE'
-            ).order_by('-created_at')[keep_count:]
+                model_type=model_type, status="INACTIVE"
+            ).order_by("-created_at")[keep_count:]
 
             models_to_delete = list(old_models)
             files_deleted = 0
 
             if dry_run:
-                logger.info(f"DRY RUN: Would delete {len(models_to_delete)} old {model_type} models")
+                logger.info(
+                    f"DRY RUN: Would delete {len(models_to_delete)} old {model_type} models"
+                )
                 return len(models_to_delete), 0
 
             # Delete model files and database records
@@ -580,7 +577,9 @@ class ModelManager:
                 # Delete database record
                 model.delete()
 
-            logger.info(f"Cleaned up {len(models_to_delete)} old models, deleted {files_deleted} files")
+            logger.info(
+                f"Cleaned up {len(models_to_delete)} old models, deleted {files_deleted} files"
+            )
             return len(models_to_delete), files_deleted
 
         except Exception as e:

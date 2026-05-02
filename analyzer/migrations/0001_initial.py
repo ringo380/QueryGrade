@@ -16,86 +16,285 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Query',
+            name="Query",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('sql_text', models.TextField(help_text='The SQL query text')),
-                ('query_type', models.CharField(choices=[('SELECT', 'Select'), ('INSERT', 'Insert'), ('UPDATE', 'Update'), ('DELETE', 'Delete'), ('CREATE', 'Create'), ('ALTER', 'Alter'), ('DROP', 'Drop'), ('UNKNOWN', 'Unknown')], default='UNKNOWN', max_length=10)),
-                ('query_hash', models.CharField(db_index=True, help_text='MD5 hash of normalized query', max_length=64)),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('estimated_complexity', models.IntegerField(default=0, help_text='Complexity score (0-100)')),
-                ('table_count', models.IntegerField(default=0)),
-                ('join_count', models.IntegerField(default=0)),
-                ('where_conditions', models.IntegerField(default=0)),
-                ('subquery_count', models.IntegerField(default=0)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("sql_text", models.TextField(help_text="The SQL query text")),
+                (
+                    "query_type",
+                    models.CharField(
+                        choices=[
+                            ("SELECT", "Select"),
+                            ("INSERT", "Insert"),
+                            ("UPDATE", "Update"),
+                            ("DELETE", "Delete"),
+                            ("CREATE", "Create"),
+                            ("ALTER", "Alter"),
+                            ("DROP", "Drop"),
+                            ("UNKNOWN", "Unknown"),
+                        ],
+                        default="UNKNOWN",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "query_hash",
+                    models.CharField(
+                        db_index=True,
+                        help_text="MD5 hash of normalized query",
+                        max_length=64,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "estimated_complexity",
+                    models.IntegerField(
+                        default=0, help_text="Complexity score (0-100)"
+                    ),
+                ),
+                ("table_count", models.IntegerField(default=0)),
+                ("join_count", models.IntegerField(default=0)),
+                ("where_conditions", models.IntegerField(default=0)),
+                ("subquery_count", models.IntegerField(default=0)),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['query_hash'], name='analyzer_qu_query_h_28b65f_idx'), models.Index(fields=['query_type'], name='analyzer_qu_query_t_2447f2_idx'), models.Index(fields=['created_at'], name='analyzer_qu_created_58239a_idx')],
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["query_hash"], name="analyzer_qu_query_h_28b65f_idx"
+                    ),
+                    models.Index(
+                        fields=["query_type"], name="analyzer_qu_query_t_2447f2_idx"
+                    ),
+                    models.Index(
+                        fields=["created_at"], name="analyzer_qu_created_58239a_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
-            name='UserQueryHistory',
+            name="UserQueryHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('submitted_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
-                ('user_agent', models.CharField(blank=True, max_length=255)),
-                ('database_type', models.CharField(blank=True, help_text='e.g., MySQL, PostgreSQL', max_length=50)),
-                ('database_version', models.CharField(blank=True, max_length=50)),
-                ('use_case_notes', models.TextField(blank=True, help_text="User's notes about the query purpose")),
-                ('was_helpful', models.BooleanField(blank=True, help_text='User feedback on analysis quality', null=True)),
-                ('feedback_comments', models.TextField(blank=True)),
-                ('query', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='analyzer.query')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='query_history', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "submitted_at",
+                    models.DateTimeField(default=django.utils.timezone.now),
+                ),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.CharField(blank=True, max_length=255)),
+                (
+                    "database_type",
+                    models.CharField(
+                        blank=True, help_text="e.g., MySQL, PostgreSQL", max_length=50
+                    ),
+                ),
+                ("database_version", models.CharField(blank=True, max_length=50)),
+                (
+                    "use_case_notes",
+                    models.TextField(
+                        blank=True, help_text="User's notes about the query purpose"
+                    ),
+                ),
+                (
+                    "was_helpful",
+                    models.BooleanField(
+                        blank=True,
+                        help_text="User feedback on analysis quality",
+                        null=True,
+                    ),
+                ),
+                ("feedback_comments", models.TextField(blank=True)),
+                (
+                    "query",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="analyzer.query"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="query_history",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'User query histories',
-                'ordering': ['-submitted_at'],
+                "verbose_name_plural": "User query histories",
+                "ordering": ["-submitted_at"],
             },
         ),
         migrations.CreateModel(
-            name='QueryFeedback',
+            name="QueryFeedback",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('accuracy_rating', models.IntegerField(blank=True, choices=[(1, '1 - Very Poor'), (2, '2 - Poor'), (3, '3 - Average'), (4, '4 - Good'), (5, '5 - Excellent')], null=True)),
-                ('usefulness_rating', models.IntegerField(blank=True, choices=[(1, '1 - Very Poor'), (2, '2 - Poor'), (3, '3 - Average'), (4, '4 - Good'), (5, '5 - Excellent')], null=True)),
-                ('clarity_rating', models.IntegerField(blank=True, choices=[(1, '1 - Very Poor'), (2, '2 - Poor'), (3, '3 - Average'), (4, '4 - Good'), (5, '5 - Excellent')], null=True)),
-                ('suggestions', models.TextField(blank=True, help_text='User suggestions for improvement')),
-                ('would_recommend', models.BooleanField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('user_history', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='detailed_feedback', to='analyzer.userqueryhistory')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "accuracy_rating",
+                    models.IntegerField(
+                        blank=True,
+                        choices=[
+                            (1, "1 - Very Poor"),
+                            (2, "2 - Poor"),
+                            (3, "3 - Average"),
+                            (4, "4 - Good"),
+                            (5, "5 - Excellent"),
+                        ],
+                        null=True,
+                    ),
+                ),
+                (
+                    "usefulness_rating",
+                    models.IntegerField(
+                        blank=True,
+                        choices=[
+                            (1, "1 - Very Poor"),
+                            (2, "2 - Poor"),
+                            (3, "3 - Average"),
+                            (4, "4 - Good"),
+                            (5, "5 - Excellent"),
+                        ],
+                        null=True,
+                    ),
+                ),
+                (
+                    "clarity_rating",
+                    models.IntegerField(
+                        blank=True,
+                        choices=[
+                            (1, "1 - Very Poor"),
+                            (2, "2 - Poor"),
+                            (3, "3 - Average"),
+                            (4, "4 - Good"),
+                            (5, "5 - Excellent"),
+                        ],
+                        null=True,
+                    ),
+                ),
+                (
+                    "suggestions",
+                    models.TextField(
+                        blank=True, help_text="User suggestions for improvement"
+                    ),
+                ),
+                ("would_recommend", models.BooleanField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "user_history",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="detailed_feedback",
+                        to="analyzer.userqueryhistory",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='QueryAnalysis',
+            name="QueryAnalysis",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('grade', models.CharField(choices=[('A', 'A - Excellent'), ('B', 'B - Good'), ('C', 'C - Average'), ('D', 'D - Poor'), ('F', 'F - Failing')], max_length=1)),
-                ('score', models.FloatField(help_text='Numeric score (0-100)')),
-                ('issues_found', models.JSONField(default=list, help_text='List of issues identified')),
-                ('recommendations', models.JSONField(default=list, help_text='List of improvement recommendations')),
-                ('performance_notes', models.TextField(blank=True, help_text='Performance analysis notes')),
-                ('analysis_version', models.CharField(default='1.0', max_length=10)),
-                ('execution_time_ms', models.IntegerField(default=0, help_text='Analysis execution time in milliseconds')),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('query', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='analysis', to='analyzer.query')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "grade",
+                    models.CharField(
+                        choices=[
+                            ("A", "A - Excellent"),
+                            ("B", "B - Good"),
+                            ("C", "C - Average"),
+                            ("D", "D - Poor"),
+                            ("F", "F - Failing"),
+                        ],
+                        max_length=1,
+                    ),
+                ),
+                ("score", models.FloatField(help_text="Numeric score (0-100)")),
+                (
+                    "issues_found",
+                    models.JSONField(
+                        default=list, help_text="List of issues identified"
+                    ),
+                ),
+                (
+                    "recommendations",
+                    models.JSONField(
+                        default=list, help_text="List of improvement recommendations"
+                    ),
+                ),
+                (
+                    "performance_notes",
+                    models.TextField(
+                        blank=True, help_text="Performance analysis notes"
+                    ),
+                ),
+                ("analysis_version", models.CharField(default="1.0", max_length=10)),
+                (
+                    "execution_time_ms",
+                    models.IntegerField(
+                        default=0, help_text="Analysis execution time in milliseconds"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "query",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="analysis",
+                        to="analyzer.query",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['grade'], name='analyzer_qu_grade_117739_idx'), models.Index(fields=['score'], name='analyzer_qu_score_4e7ee4_idx')],
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(fields=["grade"], name="analyzer_qu_grade_117739_idx"),
+                    models.Index(fields=["score"], name="analyzer_qu_score_4e7ee4_idx"),
+                ],
             },
         ),
         migrations.AddIndex(
-            model_name='userqueryhistory',
-            index=models.Index(fields=['user', '-submitted_at'], name='analyzer_us_user_id_3e23a4_idx'),
+            model_name="userqueryhistory",
+            index=models.Index(
+                fields=["user", "-submitted_at"], name="analyzer_us_user_id_3e23a4_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='userqueryhistory',
-            index=models.Index(fields=['submitted_at'], name='analyzer_us_submitt_fa1be9_idx'),
+            model_name="userqueryhistory",
+            index=models.Index(
+                fields=["submitted_at"], name="analyzer_us_submitt_fa1be9_idx"
+            ),
         ),
     ]

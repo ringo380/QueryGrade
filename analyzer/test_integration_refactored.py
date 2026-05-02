@@ -32,22 +32,25 @@ Common Pitfalls to Avoid:
 - ❌ Missing cache clear in setUp() (test contamination)
 - ❌ Forgetting tearDown() cleanup (data leakage between tests)
 """
-from django.test import TransactionTestCase, Client, override_settings
-from django.contrib.auth.models import User
-from django.urls import reverse
-from django.db import transaction
-from analyzer.models import Query, QueryAnalysis, UserQueryHistory
+
 import json
+
+from django.contrib.auth.models import User
+from django.db import transaction
+from django.test import Client, TransactionTestCase, override_settings
+from django.urls import reverse
+
+from analyzer.models import Query, QueryAnalysis, UserQueryHistory
 
 
 # Factory methods for creating test objects
-def create_test_user(username='testuser', password='testpass123', email='test@example.com'):
+def create_test_user(
+    username="testuser", password="testpass123", email="test@example.com"
+):
     """Factory method to create a test user."""
     with transaction.atomic():
         user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
+            username=username, email=email, password=password
         )
     return user
 
@@ -55,19 +58,19 @@ def create_test_user(username='testuser', password='testpass123', email='test@ex
 @override_settings(
     RATELIMIT_ENABLE=False,
     CACHES={
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'query_analysis_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "query_analysis_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'process_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        "process_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         },
-        'template_cache': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        }
-    }
+        "template_cache": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        },
+    },
 )
 class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
     """
@@ -82,24 +85,30 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         self.client = Client(enforce_csrf_checks=False)
 
         # Reinitialize query_cache with DummyCache to prevent stale data
-        from analyzer.performance import query_cache
         from django.core.cache import caches
 
+        from analyzer.performance import query_cache
+
         # Force query_cache to use the test cache backend
-        query_cache.cache = caches['query_analysis_cache']
+        query_cache.cache = caches["query_analysis_cache"]
 
         # Clear all caches
-        for cache_name in ['default', 'query_analysis_cache', 'process_cache', 'template_cache']:
+        for cache_name in [
+            "default",
+            "query_analysis_cache",
+            "process_cache",
+            "template_cache",
+        ]:
             try:
                 caches[cache_name].clear()
-            except:
+            except Exception:
                 pass  # Cache might not exist
 
         # Create user with explicit transaction
         self.test_user = create_test_user(
-            username='integrationuser',
-            email='integration@example.com',
-            password='testpass123'
+            username="integrationuser",
+            email="integration@example.com",
+            password="testpass123",
         )
 
         # Force login
@@ -117,12 +126,12 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         """Test the complete workflow using explicit transaction management."""
 
         # Step 1: Verify user is logged in
-        self.assertTrue(self.client.session.get('_auth_user_id'))
+        self.assertTrue(self.client.session.get("_auth_user_id"))
 
         # Step 2: Access grade query page
-        grade_page = self.client.get(reverse('grade_query'))
+        grade_page = self.client.get(reverse("grade_query"))
         self.assertEqual(grade_page.status_code, 200)
-        self.assertContains(grade_page, 'SQL Query Grader')
+        self.assertContains(grade_page, "SQL Query Grader")
 
         # Step 3: Submit a query for grading
         test_query = """
@@ -136,23 +145,28 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         """
 
         # Execute the grading request (ATOMIC_REQUESTS handles transaction)
-        grade_response = self.client.post(reverse('grade_query'), {
-            'sql_query': test_query,
-            'database_type': 'mysql'
-        })
+        grade_response = self.client.post(
+            reverse("grade_query"), {"sql_query": test_query, "database_type": "mysql"}
+        )
 
         # Should redirect to results page
         self.assertEqual(grade_response.status_code, 302)
         self.assertTrue(
-            grade_response.url.startswith('/grade/results/') or
-            grade_response.url.startswith('/grade/enhanced/'),
-            f"Expected redirect to results page but got: {grade_response.url}"
+            grade_response.url.startswith("/grade/results/")
+            or grade_response.url.startswith("/grade/enhanced/"),
+            f"Expected redirect to results page but got: {grade_response.url}",
         )
 
         # Step 4: Verify objects were created (check after transaction commits)
-        self.assertEqual(Query.objects.count(), 1, "Expected 1 Query object to be created")
-        self.assertEqual(QueryAnalysis.objects.count(), 1, "Expected 1 QueryAnalysis object")
-        self.assertEqual(UserQueryHistory.objects.count(), 1, "Expected 1 UserQueryHistory object")
+        self.assertEqual(
+            Query.objects.count(), 1, "Expected 1 Query object to be created"
+        )
+        self.assertEqual(
+            QueryAnalysis.objects.count(), 1, "Expected 1 QueryAnalysis object"
+        )
+        self.assertEqual(
+            UserQueryHistory.objects.count(), 1, "Expected 1 UserQueryHistory object"
+        )
 
         # Step 5: Verify the analysis results
         query = Query.objects.first()
@@ -169,11 +183,11 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         self.assertEqual(history.user, self.test_user)
 
         # Verify query content
-        self.assertIn('SELECT', query.sql_text)
-        self.assertEqual(query.query_type, 'SELECT')
+        self.assertIn("SELECT", query.sql_text)
+        self.assertEqual(query.query_type, "SELECT")
 
         # Verify analysis has grade
-        self.assertIn(analysis.grade, ['A', 'B', 'C', 'D', 'F'])
+        self.assertIn(analysis.grade, ["A", "B", "C", "D", "F"])
         self.assertGreaterEqual(analysis.score, 0)
         self.assertLessEqual(analysis.score, 100)
 
@@ -181,12 +195,12 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         results_url = grade_response.url
         results_response = self.client.get(results_url)
         self.assertEqual(results_response.status_code, 200)
-        self.assertContains(results_response, 'Query Analysis')
+        self.assertContains(results_response, "Query Analysis")
 
         # Step 7: Verify query history page shows the query
-        history_response = self.client.get(reverse('query_history'))
+        history_response = self.client.get(reverse("query_history"))
         self.assertEqual(history_response.status_code, 200)
-        self.assertContains(history_response, 'Query history')
+        self.assertContains(history_response, "Query history")
 
     def test_multiple_queries_with_transaction_management(self):
         """Test that user can grade multiple queries using explicit transactions."""
@@ -194,21 +208,25 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         queries = [
             "SELECT * FROM users WHERE id = 1",
             "SELECT id, name FROM products ORDER BY name",
-            "SELECT COUNT(*) FROM orders"
+            "SELECT COUNT(*) FROM orders",
         ]
 
         for i, query_text in enumerate(queries, 1):
-            response = self.client.post(reverse('grade_query'), {
-                'sql_query': query_text,
-                'database_type': 'postgresql'
-            })
+            response = self.client.post(
+                reverse("grade_query"),
+                {"sql_query": query_text, "database_type": "postgresql"},
+            )
 
             self.assertEqual(response.status_code, 302, f"Query {i} should redirect")
 
             # Verify objects count increases
             self.assertEqual(Query.objects.count(), i, f"Should have {i} Query objects")
-            self.assertEqual(QueryAnalysis.objects.count(), i, f"Should have {i} Analysis objects")
-            self.assertEqual(UserQueryHistory.objects.count(), i, f"Should have {i} History objects")
+            self.assertEqual(
+                QueryAnalysis.objects.count(), i, f"Should have {i} Analysis objects"
+            )
+            self.assertEqual(
+                UserQueryHistory.objects.count(), i, f"Should have {i} History objects"
+            )
 
         # Verify all queries belong to the same user
         all_history = UserQueryHistory.objects.all()
@@ -221,37 +239,39 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
 
         # Create another user
         other_user = create_test_user(
-            username='otheruser',
-            password='otherpass123',
-            email='other@example.com'
+            username="otheruser", password="otherpass123", email="other@example.com"
         )
 
         # Submit query as first user
-        self.client.post(reverse('grade_query'), {
-            'sql_query': "SELECT * FROM users",
-            'database_type': 'mysql'
-        })
+        self.client.post(
+            reverse("grade_query"),
+            {"sql_query": "SELECT * FROM users", "database_type": "mysql"},
+        )
 
         # Verify first user's query was created
-        self.assertEqual(UserQueryHistory.objects.filter(user=self.test_user).count(), 1)
+        self.assertEqual(
+            UserQueryHistory.objects.filter(user=self.test_user).count(), 1
+        )
         self.assertEqual(UserQueryHistory.objects.filter(user=other_user).count(), 0)
 
         # Switch to other user
         self.client.force_login(other_user)
 
         # Submit query as second user
-        self.client.post(reverse('grade_query'), {
-            'sql_query': "SELECT * FROM products",
-            'database_type': 'postgresql'
-        })
+        self.client.post(
+            reverse("grade_query"),
+            {"sql_query": "SELECT * FROM products", "database_type": "postgresql"},
+        )
 
         # Verify both users have their own queries
-        self.assertEqual(UserQueryHistory.objects.filter(user=self.test_user).count(), 1)
+        self.assertEqual(
+            UserQueryHistory.objects.filter(user=self.test_user).count(), 1
+        )
         self.assertEqual(UserQueryHistory.objects.filter(user=other_user).count(), 1)
 
         # Verify first user can only see their own history
         self.client.force_login(self.test_user)
-        history_response = self.client.get(reverse('query_history'))
+        history_response = self.client.get(reverse("query_history"))
         self.assertEqual(history_response.status_code, 200)
 
     def test_query_complexity_tracking_with_transactions(self):
@@ -272,29 +292,29 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         """
 
         # Submit simple query
-        simple_response = self.client.post(reverse('grade_query'), {
-            'sql_query': simple_query,
-            'database_type': 'mysql'
-        })
+        simple_response = self.client.post(
+            reverse("grade_query"),
+            {"sql_query": simple_query, "database_type": "mysql"},
+        )
 
         self.assertEqual(simple_response.status_code, 302)
 
         # Get the query ID from the response URL and fetch explicitly
         # Response URL format: /grade/enhanced/<analysis_id>/
-        simple_analysis_id = int(simple_response.url.split('/')[-2])
+        simple_analysis_id = int(simple_response.url.split("/")[-2])
         simple_analysis = QueryAnalysis.objects.get(id=simple_analysis_id)
         simple_query_obj = simple_analysis.query
 
         # Submit complex query
-        complex_response = self.client.post(reverse('grade_query'), {
-            'sql_query': complex_query,
-            'database_type': 'mysql'
-        })
+        complex_response = self.client.post(
+            reverse("grade_query"),
+            {"sql_query": complex_query, "database_type": "mysql"},
+        )
 
         self.assertEqual(complex_response.status_code, 302)
 
         # Get the query ID from the response URL and fetch explicitly
-        complex_analysis_id = int(complex_response.url.split('/')[-2])
+        complex_analysis_id = int(complex_response.url.split("/")[-2])
         complex_analysis = QueryAnalysis.objects.get(id=complex_analysis_id)
         complex_query_obj = complex_analysis.query
 
@@ -304,20 +324,19 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
         self.assertGreater(
             complex_query_obj.estimated_complexity,
             simple_query_obj.estimated_complexity,
-            "Complex query should have higher complexity score"
+            "Complex query should have higher complexity score",
         )
 
     def test_empty_query_handling_with_transactions(self):
         """Test handling of empty queries."""
 
-        response = self.client.post(reverse('grade_query'), {
-            'sql_query': '',
-            'database_type': 'mysql'
-        })
+        response = self.client.post(
+            reverse("grade_query"), {"sql_query": "", "database_type": "mysql"}
+        )
 
         # Should not redirect (form invalid)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'This field is required')
+        self.assertContains(response, "This field is required")
 
         # No objects should be created
         self.assertEqual(Query.objects.count(), 0)
@@ -326,6 +345,6 @@ class RefactoredQueryGradingIntegrationTestCase(TransactionTestCase):
 
     def test_grade_form_includes_recent_queries_context(self):
         """GET /grade/ passes recent_queries in context for authenticated users."""
-        response = self.client.get(reverse('grade_query'))
+        response = self.client.get(reverse("grade_query"))
         self.assertEqual(response.status_code, 200)
-        self.assertIn('recent_queries', response.context)
+        self.assertIn("recent_queries", response.context)

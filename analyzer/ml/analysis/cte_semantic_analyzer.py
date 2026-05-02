@@ -9,16 +9,17 @@ Advanced analysis of Common Table Expressions (CTEs) with semantic understanding
 - CTE dependency graphs
 """
 
-import re
 import logging
-from typing import Dict, List, Set, Optional, Tuple, NamedTuple
+import re
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from collections import defaultdict
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 
 class CTEPurpose(Enum):
     """Classification of CTE purposes"""
+
     DATA_PREPARATION = "data_preparation"  # Filtering, transforming base data
     AGGREGATION = "aggregation"  # Summary statistics, GROUP BY operations
     HIERARCHY = "hierarchy"  # Tree/hierarchy traversal (recursive)
@@ -32,6 +33,7 @@ class CTEPurpose(Enum):
 
 class CTEComplexity(Enum):
     """CTE complexity levels"""
+
     SIMPLE = "simple"  # Single table, basic filtering
     MODERATE = "moderate"  # Joins, aggregations
     COMPLEX = "complex"  # Multiple levels, recursion
@@ -41,6 +43,7 @@ class CTEComplexity(Enum):
 @dataclass
 class CTEDefinition:
     """Represents a single CTE definition"""
+
     name: str
     query_text: str
     purpose: CTEPurpose = CTEPurpose.UNKNOWN
@@ -50,7 +53,9 @@ class CTEDefinition:
     usage_count: int = 0  # How many times used in query
     is_used: bool = False
     references_tables: List[str] = field(default_factory=list)
-    references_ctes: List[str] = field(default_factory=list)  # Other CTEs this references
+    references_ctes: List[str] = field(
+        default_factory=list
+    )  # Other CTEs this references
     join_count: int = 0
     aggregate_count: int = 0
     window_function_count: int = 0
@@ -62,14 +67,19 @@ class CTEDefinition:
 @dataclass
 class CTEAnalysis:
     """Complete analysis of all CTEs in a query"""
+
     total_cte_count: int = 0
     cte_definitions: List[CTEDefinition] = field(default_factory=list)
     cte_purposes: Dict[str, int] = field(default_factory=dict)  # purpose -> count
-    cte_complexity_distribution: Dict[str, int] = field(default_factory=dict)  # complexity -> count
+    cte_complexity_distribution: Dict[str, int] = field(
+        default_factory=dict
+    )  # complexity -> count
     recursive_cte_count: int = 0
     max_recursion_depth: int = 0
     unused_cte_count: int = 0  # CTEs defined but not used
-    cte_dependency_graph: Dict[str, List[str]] = field(default_factory=dict)  # cte_name -> [references]
+    cte_dependency_graph: Dict[str, List[str]] = field(
+        default_factory=dict
+    )  # cte_name -> [references]
     overall_complexity_score: float = 0.0
     has_recursive_cte: bool = False
     performance_risk_level: str = "low"  # low/medium/high/critical
@@ -87,45 +97,35 @@ class CTESemanticAnalyzer:
         """Compile regex patterns for CTE analysis"""
         # Match CTE definition
         self.cte_pattern = re.compile(
-            r'\bWITH\s+(?:RECURSIVE\s+)?(\w+)\s+(?:AS\s+)?\(\s*SELECT',
-            re.IGNORECASE
+            r"\bWITH\s+(?:RECURSIVE\s+)?(\w+)\s+(?:AS\s+)?\(\s*SELECT", re.IGNORECASE
         )
 
         # Match recursive CTE
-        self.recursive_pattern = re.compile(
-            r'\bWITH\s+RECURSIVE\b',
-            re.IGNORECASE
-        )
+        self.recursive_pattern = re.compile(r"\bWITH\s+RECURSIVE\b", re.IGNORECASE)
 
         # Match multiple CTEs
-        self.multi_cte_pattern = re.compile(
-            r'(\w+)\s*(?:AS\s*)?\(',
-            re.IGNORECASE
-        )
+        self.multi_cte_pattern = re.compile(r"(\w+)\s*(?:AS\s*)?\(", re.IGNORECASE)
 
         # Match CTE usage
         self.usage_pattern = re.compile(
-            r'\bFROM\s+(\w+)|\bJOIN\s+(\w+)|\bIN\s*\(\s*SELECT.*?FROM\s+(\w+)',
-            re.IGNORECASE | re.DOTALL
+            r"\bFROM\s+(\w+)|\bJOIN\s+(\w+)|\bIN\s*\(\s*SELECT.*?FROM\s+(\w+)",
+            re.IGNORECASE | re.DOTALL,
         )
 
         # Match aggregation functions
         self.aggregate_pattern = re.compile(
-            r'\b(COUNT|SUM|AVG|MAX|MIN|STDDEV|VARIANCE|GROUP_CONCAT|STRING_AGG)\s*\(',
-            re.IGNORECASE
+            r"\b(COUNT|SUM|AVG|MAX|MIN|STDDEV|VARIANCE|GROUP_CONCAT|STRING_AGG)\s*\(",
+            re.IGNORECASE,
         )
 
         # Match window functions
         self.window_pattern = re.compile(
-            r'\b(ROW_NUMBER|RANK|DENSE_RANK|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE)\s*\(',
-            re.IGNORECASE
+            r"\b(ROW_NUMBER|RANK|DENSE_RANK|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE)\s*\(",
+            re.IGNORECASE,
         )
 
         # Match UNION in CTE
-        self.union_pattern = re.compile(
-            r'\bUNION(?:\s+ALL)?\b',
-            re.IGNORECASE
-        )
+        self.union_pattern = re.compile(r"\bUNION(?:\s+ALL)?\b", re.IGNORECASE)
 
     def analyze_ctes(self, query: str) -> CTEAnalysis:
         """Analyze all CTEs in a query"""
@@ -133,7 +133,7 @@ class CTESemanticAnalyzer:
             analysis = CTEAnalysis()
 
             # Check if query has CTEs
-            if 'WITH' not in query.upper():
+            if "WITH" not in query.upper():
                 return analysis
 
             # Check for recursive
@@ -158,11 +158,14 @@ class CTESemanticAnalyzer:
 
                 # Collect statistics
                 purpose_name = cte_def.purpose.value
-                analysis.cte_purposes[purpose_name] = analysis.cte_purposes.get(purpose_name, 0) + 1
+                analysis.cte_purposes[purpose_name] = (
+                    analysis.cte_purposes.get(purpose_name, 0) + 1
+                )
 
                 complexity_name = cte_def.complexity.value
-                analysis.cte_complexity_distribution[complexity_name] = \
+                analysis.cte_complexity_distribution[complexity_name] = (
                     analysis.cte_complexity_distribution.get(complexity_name, 0) + 1
+                )
 
                 if cte_def.is_recursive:
                     analysis.recursive_cte_count += 1
@@ -177,9 +180,15 @@ class CTESemanticAnalyzer:
             analysis.cte_dependency_graph = self._build_dependency_graph(cte_defs)
 
             # Calculate overall metrics
-            analysis.overall_complexity_score = self._calculate_overall_complexity(cte_defs)
-            analysis.performance_risk_level = self._assess_performance_risk(analysis, cte_defs)
-            analysis.optimization_opportunities = self._generate_recommendations(analysis, cte_defs)
+            analysis.overall_complexity_score = self._calculate_overall_complexity(
+                cte_defs
+            )
+            analysis.performance_risk_level = self._assess_performance_risk(
+                analysis, cte_defs
+            )
+            analysis.optimization_opportunities = self._generate_recommendations(
+                analysis, cte_defs
+            )
 
             return analysis
 
@@ -192,24 +201,28 @@ class CTESemanticAnalyzer:
         definitions = []
 
         # Find WITH clause
-        with_match = re.search(r'\bWITH\s+(?:RECURSIVE\s+)?', query, re.IGNORECASE)
+        with_match = re.search(r"\bWITH\s+(?:RECURSIVE\s+)?", query, re.IGNORECASE)
         if not with_match:
             return definitions
 
         # Find the main query start (after CTEs)
         with_start = with_match.end()
-        main_select = re.search(r'\bSELECT\b', query[with_start:], re.IGNORECASE)
+        main_select = re.search(r"\bSELECT\b", query[with_start:], re.IGNORECASE)
         if not main_select:
             return definitions
 
-        with_section = query[with_start:with_start + main_select.start()]
+        with_section = query[with_start : with_start + main_select.start()]
 
         # Split by comma at top level (not in parentheses)
         cte_strings = self._split_cte_definitions(with_section)
 
         for cte_str in cte_strings:
             # Extract CTE name and query
-            match = re.match(r'(\w+)\s+(?:AS\s+)?\((.*)\)\s*$', cte_str.strip(), re.IGNORECASE | re.DOTALL)
+            match = re.match(
+                r"(\w+)\s+(?:AS\s+)?\((.*)\)\s*$",
+                cte_str.strip(),
+                re.IGNORECASE | re.DOTALL,
+            )
             if match:
                 name = match.group(1)
                 cte_query = match.group(2)
@@ -217,16 +230,24 @@ class CTESemanticAnalyzer:
                 definition = CTEDefinition(
                     name=name,
                     query_text=cte_query,
-                    is_recursive=bool(re.search(r'\bWITH\s+RECURSIVE\b', cte_query, re.IGNORECASE))
+                    is_recursive=bool(
+                        re.search(r"\bWITH\s+RECURSIVE\b", cte_query, re.IGNORECASE)
+                    ),
                 )
 
                 # Analyze the CTE query
                 definition.references_tables = self._extract_table_references(cte_query)
                 definition.references_ctes = self._extract_cte_references(cte_query)
-                definition.join_count = len(re.findall(r'\bJOIN\b', cte_query, re.IGNORECASE))
-                definition.aggregate_count = len(self.aggregate_pattern.findall(cte_query))
-                definition.window_function_count = len(self.window_pattern.findall(cte_query))
-                definition.subquery_count = cte_query.upper().count('SELECT') - 1
+                definition.join_count = len(
+                    re.findall(r"\bJOIN\b", cte_query, re.IGNORECASE)
+                )
+                definition.aggregate_count = len(
+                    self.aggregate_pattern.findall(cte_query)
+                )
+                definition.window_function_count = len(
+                    self.window_pattern.findall(cte_query)
+                )
+                definition.subquery_count = cte_query.upper().count("SELECT") - 1
 
                 definitions.append(definition)
 
@@ -239,11 +260,11 @@ class CTESemanticAnalyzer:
         paren_depth = 0
 
         for char in cte_section:
-            if char == '(':
+            if char == "(":
                 paren_depth += 1
-            elif char == ')':
+            elif char == ")":
                 paren_depth -= 1
-            elif char == ',' and paren_depth == 0:
+            elif char == "," and paren_depth == 0:
                 ctes.append(current.strip())
                 current = ""
                 continue
@@ -261,12 +282,12 @@ class CTESemanticAnalyzer:
 
         # Recursive CTE - for hierarchy/iteration
         if cte_def.is_recursive:
-            if 'CONNECT BY' in query_upper or 'START WITH' in query_upper:
+            if "CONNECT BY" in query_upper or "START WITH" in query_upper:
                 return CTEPurpose.HIERARCHY
             return CTEPurpose.ITERATION
 
         # Aggregation CTE
-        if cte_def.aggregate_count > 0 and 'GROUP BY' in query_upper:
+        if cte_def.aggregate_count > 0 and "GROUP BY" in query_upper:
             return CTEPurpose.AGGREGATION
 
         # Window function CTE
@@ -278,11 +299,11 @@ class CTESemanticAnalyzer:
             return CTEPurpose.UNION_BASE
 
         # Deduplication (DISTINCT)
-        if 'DISTINCT' in query_upper:
+        if "DISTINCT" in query_upper:
             return CTEPurpose.DEDUPLICATION
 
         # Data preparation (filtering, basic transformations)
-        if 'WHERE' in query_upper:
+        if "WHERE" in query_upper:
             return CTEPurpose.DATA_PREPARATION
 
         # Default staging
@@ -356,15 +377,15 @@ class CTESemanticAnalyzer:
 
     def _detect_cte_usage(self, query: str, cte_defs: List[CTEDefinition]):
         """Detect how CTEs are used in the main query"""
-        main_select_match = re.search(r'FROM\s+', query, re.IGNORECASE)
+        main_select_match = re.search(r"FROM\s+", query, re.IGNORECASE)
         if not main_select_match:
             return
 
-        main_query = query[main_select_match.start():]
+        main_query = query[main_select_match.start() :]
 
         # Count usage of each CTE
         for cte_def in cte_defs:
-            pattern = r'\b' + re.escape(cte_def.name) + r'\b'
+            pattern = r"\b" + re.escape(cte_def.name) + r"\b"
             matches = list(re.finditer(pattern, main_query, re.IGNORECASE))
             cte_def.usage_count = len(matches)
             cte_def.is_used = cte_def.usage_count > 0
@@ -372,7 +393,7 @@ class CTESemanticAnalyzer:
     def _extract_table_references(self, cte_query: str) -> List[str]:
         """Extract table references from CTE query"""
         tables = []
-        pattern = re.compile(r'\bFROM\s+(\w+)|\bJOIN\s+(\w+)', re.IGNORECASE)
+        pattern = re.compile(r"\bFROM\s+(\w+)|\bJOIN\s+(\w+)", re.IGNORECASE)
 
         for match in pattern.finditer(cte_query):
             table = match.group(1) or match.group(2)
@@ -387,7 +408,9 @@ class CTESemanticAnalyzer:
         # For now, return empty - this will be populated by the caller
         return []
 
-    def _build_dependency_graph(self, cte_defs: List[CTEDefinition]) -> Dict[str, List[str]]:
+    def _build_dependency_graph(
+        self, cte_defs: List[CTEDefinition]
+    ) -> Dict[str, List[str]]:
         """Build dependency graph showing which CTEs reference which"""
         graph = {}
 
@@ -411,7 +434,9 @@ class CTESemanticAnalyzer:
 
         return min(1.0, avg_score + multi_cte_penalty + unused_penalty)
 
-    def _assess_performance_risk(self, analysis: CTEAnalysis, cte_defs: List[CTEDefinition]) -> str:
+    def _assess_performance_risk(
+        self, analysis: CTEAnalysis, cte_defs: List[CTEDefinition]
+    ) -> str:
         """Assess overall performance risk of CTEs"""
         risk_score = 0.0
 
@@ -424,7 +449,11 @@ class CTESemanticAnalyzer:
             risk_score += 0.15
 
         # Complex CTE risk
-        complex_count = sum(1 for c in cte_defs if c.complexity in [CTEComplexity.COMPLEX, CTEComplexity.VERY_COMPLEX])
+        complex_count = sum(
+            1
+            for c in cte_defs
+            if c.complexity in [CTEComplexity.COMPLEX, CTEComplexity.VERY_COMPLEX]
+        )
         risk_score += min(0.3, complex_count * 0.1)
 
         # Many CTEs risk
@@ -441,7 +470,9 @@ class CTESemanticAnalyzer:
         else:
             return "low"
 
-    def _generate_recommendations(self, analysis: CTEAnalysis, cte_defs: List[CTEDefinition]) -> List[str]:
+    def _generate_recommendations(
+        self, analysis: CTEAnalysis, cte_defs: List[CTEDefinition]
+    ) -> List[str]:
         """Generate optimization recommendations"""
         recommendations = []
 
@@ -451,22 +482,32 @@ class CTESemanticAnalyzer:
 
         # Recursive CTE warning
         if analysis.recursive_cte_count > 0:
-            recommendations.append("Verify recursive CTE termination conditions to avoid infinite loops")
+            recommendations.append(
+                "Verify recursive CTE termination conditions to avoid infinite loops"
+            )
 
         # Too many CTEs
         if analysis.total_cte_count >= 5:
-            recommendations.append("Consider consolidating CTEs or breaking query into simpler parts")
+            recommendations.append(
+                "Consider consolidating CTEs or breaking query into simpler parts"
+            )
 
         # Complex CTE warning
-        complex_ctes = [c for c in cte_defs if c.complexity == CTEComplexity.VERY_COMPLEX]
+        complex_ctes = [
+            c for c in cte_defs if c.complexity == CTEComplexity.VERY_COMPLEX
+        ]
         if complex_ctes:
             names = ", ".join([c.name for c in complex_ctes])
-            recommendations.append(f"CTEs are very complex: {names} - consider breaking into smaller pieces")
+            recommendations.append(
+                f"CTEs are very complex: {names} - consider breaking into smaller pieces"
+            )
 
         # CTE with many joins
         high_join_ctes = [c for c in cte_defs if c.join_count >= 3]
         if high_join_ctes:
-            recommendations.append("Some CTEs have many JOINs - verify index usage for optimal performance")
+            recommendations.append(
+                "Some CTEs have many JOINs - verify index usage for optimal performance"
+            )
 
         return recommendations
 
@@ -476,10 +517,14 @@ class CTESemanticAnalyzer:
 
         for cte_def in analysis.cte_definitions:
             if not cte_def.is_used:
-                recommendations.append(f"CTE '{cte_def.name}' is defined but never used")
+                recommendations.append(
+                    f"CTE '{cte_def.name}' is defined but never used"
+                )
 
             if cte_def.complexity == CTEComplexity.VERY_COMPLEX:
-                recommendations.append(f"CTE '{cte_def.name}' is very complex - consider simplification")
+                recommendations.append(
+                    f"CTE '{cte_def.name}' is very complex - consider simplification"
+                )
 
             if cte_def.is_recursive and cte_def.recursion_depth_estimate > 10:
                 recommendations.append(

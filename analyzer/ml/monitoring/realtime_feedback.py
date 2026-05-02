@@ -6,40 +6,42 @@ immediately incorporates user feedback into the ML model's learning process thro
 streaming updates and incremental learning.
 """
 
-import logging
-import json
 import asyncio
-import time
-from typing import Dict, List, Optional, Tuple, Any, Callable
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
-import numpy as np
-from collections import deque
-import threading
-from queue import Queue, Empty
+import json
+import logging
 import pickle
+import threading
+import time
+from collections import deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from queue import Empty, Queue
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from django.core.cache import caches
-from django.utils import timezone
-from django.db import transaction
+import numpy as np
 from django.conf import settings
+from django.core.cache import caches
+from django.db import transaction
+from django.utils import timezone
 
 try:
+    import joblib
     from sklearn.base import BaseEstimator
     from sklearn.metrics import mean_squared_error
-    import joblib
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
-    logging.warning("scikit-learn not available. Real-time learning functionality will be limited.")
+    logging.warning(
+        "scikit-learn not available. Real-time learning functionality will be limited."
+    )
 
-from analyzer.models import (
-    Query, QueryAnalysis, UserQueryHistory, QueryFeedback,
-    TrainingData, MLModel, LearningMetrics, FeedbackLearning
-)
-from analyzer.ml.core.feedback_collector import FeedbackCollector
 from analyzer.ml.core.feature_extractor import FeatureExtractor
+from analyzer.ml.core.feedback_collector import FeedbackCollector
 from analyzer.ml.core.hybrid_grader import HybridQueryGrader
+from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
+                             QueryAnalysis, QueryFeedback, TrainingData,
+                             UserQueryHistory)
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FeedbackEvent:
     """Represents a feedback event in the real-time system."""
+
     event_id: str
     user_id: int
     query_id: int
@@ -63,6 +66,7 @@ class FeedbackEvent:
 @dataclass
 class ModelUpdateEvent:
     """Represents a model update event."""
+
     update_id: str
     trigger_type: str  # 'feedback_threshold', 'time_based', 'performance_drift'
     affected_samples: int
@@ -124,14 +128,13 @@ class OnlineLearningEngine:
         self.baseline_error = None
 
         # Cache for recent predictions and feedback
-        self.prediction_cache = caches['default']
+        self.prediction_cache = caches["default"]
 
     def load_current_model(self) -> bool:
         """Load the current active model for online learning."""
         try:
             active_model = MLModel.objects.filter(
-                model_type='HYBRID_SCORER',
-                status='ACTIVE'
+                model_type="HYBRID_SCORER", status="ACTIVE"
             ).first()
 
             if not active_model:
@@ -142,33 +145,37 @@ class OnlineLearningEngine:
             self.current_model = joblib.load(model_path)
             self.model_version = active_model.version
 
-            logger.info(f"Loaded model {active_model.name} v{self.model_version} for online learning")
+            logger.info(
+                f"Loaded model {active_model.name} v{self.model_version} for online learning"
+            )
             return True
 
         except Exception as e:
             logger.error(f"Error loading model for online learning: {e}")
             return False
 
-    def update_model_incremental(self, feedback_events: List[FeedbackEvent]) -> Dict[str, Any]:
+    def update_model_incremental(
+        self, feedback_events: List[FeedbackEvent]
+    ) -> Dict[str, Any]:
         """Update model incrementally with new feedback."""
         if not self.current_model or not SKLEARN_AVAILABLE:
-            return {'success': False, 'error': 'Model or sklearn not available'}
+            return {"success": False, "error": "Model or sklearn not available"}
 
         try:
             # Prepare training data from feedback events
             X, y, weights = self._prepare_incremental_data(feedback_events)
 
             if len(X) == 0:
-                return {'success': False, 'error': 'No valid training data'}
+                return {"success": False, "error": "No valid training data"}
 
             # Check if model supports partial_fit
-            if hasattr(self.current_model, 'partial_fit'):
+            if hasattr(self.current_model, "partial_fit"):
                 # Direct incremental update
                 self.current_model.partial_fit(X, y, sample_weight=weights)
-                update_method = 'partial_fit'
+                update_method = "partial_fit"
             else:
                 # Simulate incremental learning with weighted update
-                update_method = 'weighted_update'
+                update_method = "weighted_update"
                 self._simulate_incremental_update(X, y, weights)
 
             # Evaluate improvement
@@ -176,24 +183,33 @@ class OnlineLearningEngine:
 
             # Update performance tracking
             for event in feedback_events:
-                error = abs(event.feedback_data.get('corrected_score', event.original_score) - event.original_score)
+                error = abs(
+                    event.feedback_data.get("corrected_score", event.original_score)
+                    - event.original_score
+                )
                 self.recent_errors.append(error)
 
-            logger.info(f"Incremental update completed: {len(feedback_events)} samples, method: {update_method}")
+            logger.info(
+                f"Incremental update completed: {len(feedback_events)} samples, method: {update_method}"
+            )
 
             return {
-                'success': True,
-                'samples_processed': len(feedback_events),
-                'method': update_method,
-                'performance_improvement': improvement,
-                'avg_recent_error': np.mean(self.recent_errors) if self.recent_errors else 0
+                "success": True,
+                "samples_processed": len(feedback_events),
+                "method": update_method,
+                "performance_improvement": improvement,
+                "avg_recent_error": (
+                    np.mean(self.recent_errors) if self.recent_errors else 0
+                ),
             }
 
         except Exception as e:
             logger.error(f"Error in incremental model update: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
-    def _prepare_incremental_data(self, feedback_events: List[FeedbackEvent]) -> Tuple[List, List, List]:
+    def _prepare_incremental_data(
+        self, feedback_events: List[FeedbackEvent]
+    ) -> Tuple[List, List, List]:
         """Prepare training data from feedback events."""
         X, y, weights = [], [], []
 
@@ -207,12 +223,14 @@ class OnlineLearningEngine:
                     continue
 
                 # Get target value from feedback
-                if event.feedback_type == 'rating':
+                if event.feedback_type == "rating":
                     # Convert 1-5 rating to 0-100 score
-                    target_score = (event.feedback_data.get('rating', 3) - 1) * 25
-                elif event.feedback_type == 'correction':
+                    target_score = (event.feedback_data.get("rating", 3) - 1) * 25
+                elif event.feedback_type == "correction":
                     # Direct score correction
-                    target_score = event.feedback_data.get('corrected_score', event.original_score)
+                    target_score = event.feedback_data.get(
+                        "corrected_score", event.original_score
+                    )
                 else:
                     continue
 
@@ -240,17 +258,24 @@ class OnlineLearningEngine:
 
         # Feedback confidence based on type and data quality
         confidence_multiplier = 1.0
-        if event.feedback_type == 'rating':
-            rating = event.feedback_data.get('rating', 3)
-            confidence_multiplier = 0.8 if rating in [2, 4] else 1.0  # Less confident for middle ratings
-        elif event.feedback_type == 'correction':
+        if event.feedback_type == "rating":
+            rating = event.feedback_data.get("rating", 3)
+            confidence_multiplier = (
+                0.8 if rating in [2, 4] else 1.0
+            )  # Less confident for middle ratings
+        elif event.feedback_type == "correction":
             confidence_multiplier = 1.5  # Higher confidence for explicit corrections
 
         # Recency weight (more recent feedback gets higher weight)
         hours_old = (timezone.now() - event.timestamp).total_seconds() / 3600
         recency_multiplier = max(0.5, 1.0 - (hours_old * 0.01))
 
-        return base_weight * reliability_multiplier * confidence_multiplier * recency_multiplier
+        return (
+            base_weight
+            * reliability_multiplier
+            * confidence_multiplier
+            * recency_multiplier
+        )
 
     def _simulate_incremental_update(self, X: List, y: List, weights: List):
         """Simulate incremental learning for models that don't support partial_fit."""
@@ -308,8 +333,8 @@ class OnlineLearningEngine:
             return True
 
         # Check for concept drift (simplified)
-        first_half = list(self.recent_errors)[:self.adaptation_window//2]
-        second_half = list(self.recent_errors)[self.adaptation_window//2:]
+        first_half = list(self.recent_errors)[: self.adaptation_window // 2]
+        second_half = list(self.recent_errors)[self.adaptation_window // 2 :]
 
         if len(first_half) > 0 and len(second_half) > 0:
             drift_ratio = np.mean(second_half) / np.mean(first_half)
@@ -343,7 +368,7 @@ class RealTimeFeedbackProcessor:
         self.last_model_update = timezone.now()
 
         # Initialize cache
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
     def start_processing(self):
         """Start the real-time feedback processing system."""
@@ -380,8 +405,14 @@ class RealTimeFeedbackProcessor:
 
         logger.info("Real-time feedback processing stopped")
 
-    def submit_feedback(self, user_id: int, query_id: int, analysis_id: int,
-                       feedback_type: str, feedback_data: Dict[str, Any]) -> str:
+    def submit_feedback(
+        self,
+        user_id: int,
+        query_id: int,
+        analysis_id: int,
+        feedback_type: str,
+        feedback_data: Dict[str, Any],
+    ) -> str:
         """Submit feedback for real-time processing."""
         try:
             # Get original analysis for comparison
@@ -397,14 +428,16 @@ class RealTimeFeedbackProcessor:
                 feedback_data=feedback_data,
                 original_score=analysis.score,
                 original_grade=analysis.grade,
-                timestamp=timezone.now()
+                timestamp=timezone.now(),
             )
 
             # Add to buffer
             self.feedback_buffer.add_feedback(event)
 
             # Cache the event for immediate access
-            self.cache.set(f"feedback_event_{event.event_id}", asdict(event), timeout=3600)
+            self.cache.set(
+                f"feedback_event_{event.event_id}", asdict(event), timeout=3600
+            )
 
             logger.info(f"Feedback submitted: {event.event_id}")
             return event.event_id
@@ -436,7 +469,7 @@ class RealTimeFeedbackProcessor:
             start_time = time.time()
 
             # Immediate prediction update (if applicable)
-            if event.feedback_type == 'correction':
+            if event.feedback_type == "correction":
                 self._apply_immediate_correction(event)
 
             # Update traditional feedback collection
@@ -447,13 +480,15 @@ class RealTimeFeedbackProcessor:
             event.processing_time = time.time() - start_time
 
             # Update cache
-            self.cache.set(f"feedback_event_{event.event_id}", asdict(event), timeout=3600)
+            self.cache.set(
+                f"feedback_event_{event.event_id}", asdict(event), timeout=3600
+            )
 
             self.processed_events += 1
 
             # Check if model update should be triggered
             if self._should_trigger_model_update():
-                self.update_queue.put(('feedback_threshold', event))
+                self.update_queue.put(("feedback_threshold", event))
 
         except Exception as e:
             logger.error(f"Error processing feedback event {event.event_id}: {e}")
@@ -462,15 +497,15 @@ class RealTimeFeedbackProcessor:
     def _apply_immediate_correction(self, event: FeedbackEvent):
         """Apply immediate correction to model's understanding."""
         # This could involve updating cached predictions or model state
-        corrected_score = event.feedback_data.get('corrected_score')
+        corrected_score = event.feedback_data.get("corrected_score")
         if corrected_score is not None:
             # Update any cached predictions for this query
             cache_key = f"ml_prediction_{event.query_id}"
             cached_prediction = self.cache.get(cache_key)
 
             if cached_prediction:
-                cached_prediction['corrected_score'] = corrected_score
-                cached_prediction['correction_timestamp'] = timezone.now().isoformat()
+                cached_prediction["corrected_score"] = corrected_score
+                cached_prediction["correction_timestamp"] = timezone.now().isoformat()
                 self.cache.set(cache_key, cached_prediction, timeout=86400)
 
     def _model_updater_worker(self):
@@ -506,10 +541,10 @@ class RealTimeFeedbackProcessor:
                 update_id=f"upd_{int(time.time() * 1000000)}",
                 trigger_type=trigger_type,
                 affected_samples=len(events),
-                performance_improvement=result.get('performance_improvement', 0),
+                performance_improvement=result.get("performance_improvement", 0),
                 timestamp=timezone.now(),
-                success=result['success'],
-                error_message=result.get('error') if not result['success'] else None
+                success=result["success"],
+                error_message=result.get("error") if not result["success"] else None,
             )
 
             # Log update
@@ -534,9 +569,13 @@ class RealTimeFeedbackProcessor:
                     logger.debug(f"Feedback buffer size: {buffer_size}")
 
                 # Check for system health issues
-                error_rate = self.failed_events / max(1, self.processed_events + self.failed_events)
+                error_rate = self.failed_events / max(
+                    1, self.processed_events + self.failed_events
+                )
                 if error_rate > 0.1:  # 10% error rate
-                    logger.warning(f"High error rate in feedback processing: {error_rate:.2%}")
+                    logger.warning(
+                        f"High error rate in feedback processing: {error_rate:.2%}"
+                    )
 
                 time.sleep(30)  # Monitor every 30 seconds
 
@@ -580,15 +619,20 @@ class RealTimeFeedbackProcessor:
     def get_system_status(self) -> Dict[str, Any]:
         """Get current system status."""
         return {
-            'processing_active': self.processing_active,
-            'buffer_size': self.feedback_buffer.size(),
-            'processed_events': self.processed_events,
-            'failed_events': self.failed_events,
-            'error_rate': self.failed_events / max(1, self.processed_events + self.failed_events),
-            'last_model_update': self.last_model_update.isoformat(),
-            'worker_threads_alive': sum(1 for t in self.worker_threads if t.is_alive()),
-            'model_version': self.online_engine.model_version,
-            'recent_avg_error': np.mean(self.online_engine.recent_errors) if self.online_engine.recent_errors else 0
+            "processing_active": self.processing_active,
+            "buffer_size": self.feedback_buffer.size(),
+            "processed_events": self.processed_events,
+            "failed_events": self.failed_events,
+            "error_rate": self.failed_events
+            / max(1, self.processed_events + self.failed_events),
+            "last_model_update": self.last_model_update.isoformat(),
+            "worker_threads_alive": sum(1 for t in self.worker_threads if t.is_alive()),
+            "model_version": self.online_engine.model_version,
+            "recent_avg_error": (
+                np.mean(self.online_engine.recent_errors)
+                if self.online_engine.recent_errors
+                else 0
+            ),
         }
 
 
@@ -607,8 +651,13 @@ def stop_realtime_feedback():
     feedback_processor.stop_processing()
 
 
-def submit_user_feedback(user_id: int, query_id: int, analysis_id: int,
-                        feedback_type: str, feedback_data: Dict[str, Any]) -> str:
+def submit_user_feedback(
+    user_id: int,
+    query_id: int,
+    analysis_id: int,
+    feedback_type: str,
+    feedback_data: Dict[str, Any],
+) -> str:
     """Submit user feedback for real-time processing."""
     return feedback_processor.submit_feedback(
         user_id, query_id, analysis_id, feedback_type, feedback_data
@@ -631,8 +680,11 @@ if __name__ == "__main__":
         user_id=1,
         query_id=123,
         analysis_id=456,
-        feedback_type='correction',
-        feedback_data={'corrected_score': 85.0, 'comment': 'This query is actually efficient'}
+        feedback_type="correction",
+        feedback_data={
+            "corrected_score": 85.0,
+            "comment": "This query is actually efficient",
+        },
     )
 
     print(f"Submitted feedback: {feedback_id}")

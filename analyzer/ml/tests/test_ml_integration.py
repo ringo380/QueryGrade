@@ -6,17 +6,18 @@ they work together correctly in the QueryGrade system.
 """
 
 import unittest
-from django.test import TestCase, TransactionTestCase
-from django.contrib.auth.models import User
-from unittest.mock import patch, MagicMock
-import numpy as np
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
-from analyzer.models import Query, QueryFeedback, UserQueryHistory
-from analyzer.models import MLModel, TrainingData, LearningMetrics, FeedbackLearning
-from analyzer.ml.core.hybrid_grader import HybridQueryGrader
+import numpy as np
+from django.contrib.auth.models import User
+from django.test import TestCase, TransactionTestCase
+
 from analyzer.ml.core.feature_extractor import FeatureExtractor
 from analyzer.ml.core.feedback_collector import FeedbackCollector
+from analyzer.ml.core.hybrid_grader import HybridQueryGrader
+from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
+                             QueryFeedback, TrainingData, UserQueryHistory)
 from analyzer.query_analyzer import analyze_query
 
 
@@ -30,22 +31,20 @@ class MLIntegrationTestCase(TransactionTestCase):
     def setUp(self):
         """Set up integration test data."""
         self.user = User.objects.create_user(
-            username='mluser',
-            email='ml@example.com',
-            password='testpass'
+            username="mluser", email="ml@example.com", password="testpass"
         )
 
         # Create test queries
         self.queries = [
             Query.objects.create(
                 sql_text="SELECT id, name FROM users WHERE active = 1",
-                query_type='SELECT',
-                query_hash='simple_1',
+                query_type="SELECT",
+                query_hash="simple_1",
                 estimated_complexity=25,
                 table_count=1,
                 join_count=0,
                 where_conditions=1,
-                subquery_count=0
+                subquery_count=0,
             ),
             Query.objects.create(
                 sql_text="""
@@ -55,24 +54,24 @@ class MLIntegrationTestCase(TransactionTestCase):
                 LEFT JOIN comments c ON p.id = c.post_id
                 GROUP BY u.id, p.id
                 """,
-                query_type='SELECT',
-                query_hash='complex_1',
+                query_type="SELECT",
+                query_hash="complex_1",
                 estimated_complexity=65,
                 table_count=3,
                 join_count=2,
                 where_conditions=0,
-                subquery_count=0
+                subquery_count=0,
             ),
             Query.objects.create(
                 sql_text="UPDATE users SET last_login = NOW() WHERE id = ?",
-                query_type='UPDATE',
-                query_hash='update_1',
+                query_type="UPDATE",
+                query_hash="update_1",
                 estimated_complexity=35,
                 table_count=1,
                 join_count=0,
                 where_conditions=1,
-                subquery_count=0
-            )
+                subquery_count=0,
+            ),
         ]
 
     def test_feature_extraction_to_grading_pipeline(self):
@@ -88,7 +87,7 @@ class MLIntegrationTestCase(TransactionTestCase):
             # Use features in grading
             query_obj, analysis = grader.analyze_query(query.sql_text, use_ml=False)
             self.assertIsNotNone(analysis)
-            self.assertIn(analysis.grade, ['A', 'B', 'C', 'D', 'F'])
+            self.assertIn(analysis.grade, ["A", "B", "C", "D", "F"])
             self.assertIsInstance(analysis.score, float)
             self.assertGreaterEqual(analysis.score, 0.0)
             self.assertLessEqual(analysis.score, 100.0)
@@ -101,10 +100,7 @@ class MLIntegrationTestCase(TransactionTestCase):
         # Create feedback for each query
         for i, query in enumerate(self.queries):
             # Add user history
-            history = UserQueryHistory.objects.create(
-                user=self.user,
-                query=query
-            )
+            history = UserQueryHistory.objects.create(user=self.user, query=query)
 
             # Add feedback
             QueryFeedback.objects.create(
@@ -112,7 +108,7 @@ class MLIntegrationTestCase(TransactionTestCase):
                 accuracy_rating=4 if i % 2 == 0 else 2,
                 usefulness_rating=4 if i % 2 == 0 else 3,
                 clarity_rating=4,
-                suggestions=f"Test feedback {i}"
+                suggestions=f"Test feedback {i}",
             )
 
         # Collect feedback for training
@@ -130,21 +126,20 @@ class MLIntegrationTestCase(TransactionTestCase):
             analysis_results.append(analysis)
 
             # Record user history
-            UserQueryHistory.objects.create(
-                user=self.user,
-                query=query
-            )
+            UserQueryHistory.objects.create(user=self.user, query=query)
 
         # 2. Simulate user feedback
         feedback_scores = [5, 2, 4]  # Mix of positive and negative
-        histories = UserQueryHistory.objects.filter(query__in=self.queries).order_by('id')
+        histories = UserQueryHistory.objects.filter(query__in=self.queries).order_by(
+            "id"
+        )
         for i, history in enumerate(histories):
             QueryFeedback.objects.create(
                 user_history=history,
                 accuracy_rating=feedback_scores[i],
                 usefulness_rating=feedback_scores[i],
                 clarity_rating=4,
-                suggestions=f"Feedback for query {i}"
+                suggestions=f"Feedback for query {i}",
             )
 
         # 3. Collect feedback for training
@@ -170,12 +165,12 @@ class MLIntegrationTestCase(TransactionTestCase):
         """Test ML model creation, training, and deployment lifecycle."""
         # Create initial model record
         model = MLModel.objects.create(
-            name='test_lifecycle_model',
-            model_type='HYBRID_SCORER',
-            version='1.0.0',
-            file_path='/tmp/test_model.pkl',
-            status='TRAINING',
-            checksum='a' * 64
+            name="test_lifecycle_model",
+            model_type="HYBRID_SCORER",
+            version="1.0.0",
+            file_path="/tmp/test_model.pkl",
+            status="TRAINING",
+            checksum="a" * 64,
         )
 
         # Add training data
@@ -185,14 +180,14 @@ class MLIntegrationTestCase(TransactionTestCase):
                 user_grade_avg=3.5 + (i * 0.5),
                 user_grade_count=5 + i,
                 user_grade_stddev=0.5,
-                system_grade='B',
+                system_grade="B",
                 system_score=70 + i * 10,
                 accuracy_rating_avg=4.0,
                 usefulness_rating_avg=4.0,
                 clarity_rating_avg=4.0,
                 query_complexity=query.estimated_complexity,
                 table_count=query.table_count,
-                join_count=query.join_count
+                join_count=query.join_count,
             )
 
         # Test model training simulation
@@ -200,13 +195,12 @@ class MLIntegrationTestCase(TransactionTestCase):
 
         # Mock successful training - just verify the model can be activated
         # (actual training would require real ML infrastructure)
-        model.status = 'ACTIVE'
+        model.status = "ACTIVE"
         model.save()
 
         # Verify model is ready for use
         active_models = MLModel.objects.filter(
-            model_type='HYBRID_SCORER',
-            status='ACTIVE'
+            model_type="HYBRID_SCORER", status="ACTIVE"
         )
         self.assertGreater(active_models.count(), 0)
 
@@ -214,33 +208,32 @@ class MLIntegrationTestCase(TransactionTestCase):
         """Test that feedback learning is properly tracked."""
         # Create feedback learning records
         for i, query in enumerate(self.queries):
-            history = UserQueryHistory.objects.create(
-                user=self.user,
-                query=query
-            )
+            history = UserQueryHistory.objects.create(user=self.user, query=query)
             FeedbackLearning.objects.create(
                 user_history=history,
-                original_grade='B',
+                original_grade="B",
                 original_score=70 + i * 5,
                 original_confidence=0.8,
                 feedback_grade_equivalent=4 if i % 2 == 0 else 2,
                 grade_difference=5.0,
-                feedback_weight=0.8 if i % 2 == 0 else 0.3
+                feedback_weight=0.8 if i % 2 == 0 else 0.3,
             )
 
         # Create a model for metrics tracking
         test_model = MLModel.objects.create(
-            name='test_metrics_model',
-            model_type='HYBRID_SCORER',
-            version='1.0.0',
-            file_path='/tmp/test.pkl',
-            status='ACTIVE',
-            checksum='b' * 64
+            name="test_metrics_model",
+            model_type="HYBRID_SCORER",
+            version="1.0.0",
+            file_path="/tmp/test.pkl",
+            status="ACTIVE",
+            checksum="b" * 64,
         )
 
         # Create learning metrics
         from datetime import timedelta
+
         from django.utils import timezone as tz
+
         now = tz.now()
         LearningMetrics.objects.create(
             model=test_model,
@@ -253,7 +246,7 @@ class MLIntegrationTestCase(TransactionTestCase):
             prediction_count=len(self.queries),
             avg_prediction_time_ms=50.0,
             measurement_period_start=now - timedelta(days=7),
-            measurement_period_end=now
+            measurement_period_end=now,
         )
 
         # Verify metrics tracking
@@ -265,43 +258,33 @@ class MLIntegrationTestCase(TransactionTestCase):
         """Test user reliability scoring affects training weights."""
         # Create multiple users with different feedback patterns
         reliable_user = User.objects.create_user(
-            username='reliable',
-            email='reliable@example.com',
-            password='testpass'
+            username="reliable", email="reliable@example.com", password="testpass"
         )
 
         unreliable_user = User.objects.create_user(
-            username='unreliable',
-            email='unreliable@example.com',
-            password='testpass'
+            username="unreliable", email="unreliable@example.com", password="testpass"
         )
 
         # Add consistent feedback from reliable user
         for query in self.queries:
-            history = UserQueryHistory.objects.create(
-                user=reliable_user,
-                query=query
-            )
+            history = UserQueryHistory.objects.create(user=reliable_user, query=query)
             QueryFeedback.objects.create(
                 user_history=history,
                 accuracy_rating=5,
                 usefulness_rating=5,
                 clarity_rating=5,
-                suggestions="Consistently good feedback"
+                suggestions="Consistently good feedback",
             )
 
         # Add inconsistent feedback from unreliable user
         for i, query in enumerate(self.queries):
-            history = UserQueryHistory.objects.create(
-                user=unreliable_user,
-                query=query
-            )
+            history = UserQueryHistory.objects.create(user=unreliable_user, query=query)
             QueryFeedback.objects.create(
                 user_history=history,
                 accuracy_rating=1 if i % 2 else 5,
                 usefulness_rating=1 if i % 2 else 5,
                 clarity_rating=3,
-                suggestions="Inconsistent feedback"
+                suggestions="Inconsistent feedback",
             )
 
         # Test feedback collection considers user reliability
@@ -323,7 +306,9 @@ class MLIntegrationTestCase(TransactionTestCase):
             if features is not None:
                 # Validate features
                 is_valid = extractor.validate_features(features)
-                self.assertTrue(is_valid, f"Features invalid for query: {query.sql_text}")
+                self.assertTrue(
+                    is_valid, f"Features invalid for query: {query.sql_text}"
+                )
 
                 # Check feature count consistency
                 expected_count = extractor.get_feature_count()
@@ -331,15 +316,13 @@ class MLIntegrationTestCase(TransactionTestCase):
 
     def test_database_dialect_consistency(self):
         """Test consistency across different database dialects."""
-        dialects = ['mysql', 'postgresql', 'sqlite']
+        dialects = ["mysql", "postgresql", "sqlite"]
         grader = HybridQueryGrader()
 
         for dialect in dialects:
             for query in self.queries:
                 query_obj, analysis = grader.analyze_query(
-                    query.sql_text,
-                    database_type=dialect,
-                    use_ml=False
+                    query.sql_text, database_type=dialect, use_ml=False
                 )
 
                 self.assertIsNotNone(analysis)
@@ -382,8 +365,9 @@ class MLIntegrationTestCase(TransactionTestCase):
 
     def test_memory_usage_optimization(self):
         """Test memory usage remains reasonable during processing."""
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
@@ -399,8 +383,11 @@ class MLIntegrationTestCase(TransactionTestCase):
         memory_increase = final_memory - initial_memory
 
         # Memory increase should be reasonable (less than 100MB)
-        self.assertLess(memory_increase, 100 * 1024 * 1024,
-                       f"Memory usage increased by {memory_increase / 1024 / 1024:.2f}MB")
+        self.assertLess(
+            memory_increase,
+            100 * 1024 * 1024,
+            f"Memory usage increased by {memory_increase / 1024 / 1024:.2f}MB",
+        )
 
 
 class MLSystemPerformanceTestCase(TransactionTestCase):
@@ -412,16 +399,14 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
 
         # Create test data
         user = User.objects.create_user(
-            username='perfuser',
-            email='perf@example.com',
-            password='testpass'
+            username="perfuser", email="perf@example.com", password="testpass"
         )
 
         test_queries = [
             "SELECT * FROM users",
             "SELECT u.name, COUNT(o.id) FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id",
             "UPDATE users SET last_login = NOW() WHERE active = 1 AND created_at > '2023-01-01'",
-            "DELETE FROM logs WHERE level = 'DEBUG' AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            "DELETE FROM logs WHERE level = 'DEBUG' AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)",
         ]
 
         total_time = 0
@@ -438,14 +423,20 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
                 analysis_count += 1
 
                 # Individual query should complete in under 1 second
-                self.assertLess(analysis_time, 1.0,
-                               f"Query analysis took {analysis_time:.3f}s, exceeds 1s limit")
+                self.assertLess(
+                    analysis_time,
+                    1.0,
+                    f"Query analysis took {analysis_time:.3f}s, exceeds 1s limit",
+                )
 
         # Average analysis time should be under 0.5 seconds
         if analysis_count > 0:
             avg_time = total_time / analysis_count
-            self.assertLess(avg_time, 0.5,
-                           f"Average analysis time {avg_time:.3f}s exceeds 0.5s benchmark")
+            self.assertLess(
+                avg_time,
+                0.5,
+                f"Average analysis time {avg_time:.3f}s exceeds 0.5s benchmark",
+            )
 
     def test_bulk_feedback_processing_performance(self):
         """Test bulk feedback processing performance."""
@@ -453,9 +444,7 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
 
         # Create test data
         user = User.objects.create_user(
-            username='bulkuser',
-            email='bulk@example.com',
-            password='testpass'
+            username="bulkuser", email="bulk@example.com", password="testpass"
         )
 
         # Create multiple queries and feedback
@@ -463,27 +452,24 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
         for i in range(50):  # Test with 50 queries
             query = Query.objects.create(
                 sql_text=f"SELECT * FROM table_{i} WHERE id = {i}",
-                query_type='SELECT',
-                query_hash=f'bulk_test_{i}',
+                query_type="SELECT",
+                query_hash=f"bulk_test_{i}",
                 estimated_complexity=30 + i,
                 table_count=1,
                 join_count=0,
                 where_conditions=1,
-                subquery_count=0
+                subquery_count=0,
             )
             queries.append(query)
 
             # Add feedback
-            history = UserQueryHistory.objects.create(
-                user=user,
-                query=query
-            )
+            history = UserQueryHistory.objects.create(user=user, query=query)
             QueryFeedback.objects.create(
                 user_history=history,
                 accuracy_rating=3 + (i % 3),
                 usefulness_rating=3 + (i % 3),
                 clarity_rating=4,
-                suggestions=f"Bulk feedback {i}"
+                suggestions=f"Bulk feedback {i}",
             )
 
         # Test bulk feedback collection
@@ -500,8 +486,11 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
         processing_time = end_time - start_time
 
         # Bulk processing should complete in reasonable time
-        self.assertLess(processing_time, 10.0,
-                       f"Bulk feedback processing took {processing_time:.3f}s, exceeds 10s limit")
+        self.assertLess(
+            processing_time,
+            10.0,
+            f"Bulk feedback processing took {processing_time:.3f}s, exceeds 10s limit",
+        )
 
         # FeedbackCollector may have minimum feedback requirements
         # so success_rate of 0 is acceptable if no queries meet criteria
@@ -511,5 +500,5 @@ class MLSystemPerformanceTestCase(TransactionTestCase):
         # This is acceptable behavior for the collector's validation logic
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -9,16 +9,17 @@ Advanced analysis of multi-statement SQL queries with semantic understanding of:
 - Batch vs sequential execution patterns
 """
 
-import re
 import logging
-from typing import Dict, List, Set, Optional, Tuple, NamedTuple
+import re
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from collections import defaultdict
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 
 class StatementType(Enum):
     """Classification of SQL statement types"""
+
     SELECT = "select"  # Data retrieval
     INSERT = "insert"  # Data insertion
     UPDATE = "update"  # Data modification
@@ -37,6 +38,7 @@ class StatementType(Enum):
 
 class TransactionScope(Enum):
     """Transaction scope classification"""
+
     AUTO_COMMIT = "auto_commit"  # Individual statements auto-commit
     EXPLICIT = "explicit"  # BEGIN...COMMIT/ROLLBACK
     IMPLICIT = "implicit"  # Implicit transaction with auto-commit
@@ -46,6 +48,7 @@ class TransactionScope(Enum):
 @dataclass
 class SQLStatement:
     """Represents a single SQL statement in a batch"""
+
     statement_text: str
     position: int  # Position in batch (0-indexed)
     statement_type: StatementType = StatementType.UNKNOWN
@@ -61,6 +64,7 @@ class SQLStatement:
 @dataclass
 class ContextFlow:
     """Represents data flow between statements"""
+
     from_statement_idx: int
     to_statement_idx: int
     flow_type: str  # "read_after_write", "write_dependency", "data_dependency"
@@ -70,6 +74,7 @@ class ContextFlow:
 @dataclass
 class ContextWindowAnalysis:
     """Complete analysis of multi-statement query context"""
+
     total_statement_count: int = 0
     statements: List[SQLStatement] = field(default_factory=list)
     statement_types: Dict[str, int] = field(default_factory=dict)  # type -> count
@@ -95,24 +100,24 @@ class ContextWindowAnalyzer:
     def _compile_patterns(self):
         """Compile regex patterns for statement analysis"""
         # Statement type patterns
-        self.select_pattern = re.compile(r'^\s*SELECT\b', re.IGNORECASE)
-        self.insert_pattern = re.compile(r'^\s*INSERT\b', re.IGNORECASE)
-        self.update_pattern = re.compile(r'^\s*UPDATE\b', re.IGNORECASE)
-        self.delete_pattern = re.compile(r'^\s*DELETE\b', re.IGNORECASE)
-        self.create_pattern = re.compile(r'^\s*CREATE\b', re.IGNORECASE)
-        self.alter_pattern = re.compile(r'^\s*ALTER\b', re.IGNORECASE)
-        self.drop_pattern = re.compile(r'^\s*DROP\b', re.IGNORECASE)
-        self.truncate_pattern = re.compile(r'^\s*TRUNCATE\b', re.IGNORECASE)
-        self.begin_pattern = re.compile(r'^\s*BEGIN\b', re.IGNORECASE)
-        self.commit_pattern = re.compile(r'^\s*COMMIT\b', re.IGNORECASE)
-        self.rollback_pattern = re.compile(r'^\s*ROLLBACK\b', re.IGNORECASE)
-        self.declare_pattern = re.compile(r'^\s*DECLARE\b', re.IGNORECASE)
-        self.call_pattern = re.compile(r'^\s*CALL\b', re.IGNORECASE)
+        self.select_pattern = re.compile(r"^\s*SELECT\b", re.IGNORECASE)
+        self.insert_pattern = re.compile(r"^\s*INSERT\b", re.IGNORECASE)
+        self.update_pattern = re.compile(r"^\s*UPDATE\b", re.IGNORECASE)
+        self.delete_pattern = re.compile(r"^\s*DELETE\b", re.IGNORECASE)
+        self.create_pattern = re.compile(r"^\s*CREATE\b", re.IGNORECASE)
+        self.alter_pattern = re.compile(r"^\s*ALTER\b", re.IGNORECASE)
+        self.drop_pattern = re.compile(r"^\s*DROP\b", re.IGNORECASE)
+        self.truncate_pattern = re.compile(r"^\s*TRUNCATE\b", re.IGNORECASE)
+        self.begin_pattern = re.compile(r"^\s*BEGIN\b", re.IGNORECASE)
+        self.commit_pattern = re.compile(r"^\s*COMMIT\b", re.IGNORECASE)
+        self.rollback_pattern = re.compile(r"^\s*ROLLBACK\b", re.IGNORECASE)
+        self.declare_pattern = re.compile(r"^\s*DECLARE\b", re.IGNORECASE)
+        self.call_pattern = re.compile(r"^\s*CALL\b", re.IGNORECASE)
 
         # FROM/INTO pattern for table extraction
         self.table_pattern = re.compile(
-            r'\b(?:FROM|INTO|UPDATE|JOIN|DELETE\s+FROM)\s+(?:\w+\.)?(\w+)',
-            re.IGNORECASE
+            r"\b(?:FROM|INTO|UPDATE|JOIN|DELETE\s+FROM)\s+(?:\w+\.)?(\w+)",
+            re.IGNORECASE,
         )
 
     def analyze_context_window(self, query: str) -> ContextWindowAnalysis:
@@ -131,8 +136,8 @@ class ContextWindowAnalyzer:
                 stmt = SQLStatement(
                     statement_text=stmt_text,
                     position=idx,
-                    line_count=stmt_text.count('\n') + 1,
-                    character_count=len(stmt_text)
+                    line_count=stmt_text.count("\n") + 1,
+                    character_count=len(stmt_text),
                 )
 
                 # Classify type
@@ -157,24 +162,36 @@ class ContextWindowAnalyzer:
             # Collect statistics
             for stmt in analysis.statements:
                 type_name = stmt.statement_type.value
-                analysis.statement_types[type_name] = analysis.statement_types.get(type_name, 0) + 1
+                analysis.statement_types[type_name] = (
+                    analysis.statement_types.get(type_name, 0) + 1
+                )
 
             # Detect transaction scope
-            analysis.transaction_scope = self._detect_transaction_scope(analysis.statements)
-            analysis.has_explicit_transaction = analysis.transaction_scope == TransactionScope.EXPLICIT
+            analysis.transaction_scope = self._detect_transaction_scope(
+                analysis.statements
+            )
+            analysis.has_explicit_transaction = (
+                analysis.transaction_scope == TransactionScope.EXPLICIT
+            )
 
             # Build data flows
             analysis.data_flows = self._build_data_flows(analysis.statements)
 
             # Calculate overall complexity
-            analysis.overall_complexity_score = self._calculate_overall_complexity(analysis.statements)
+            analysis.overall_complexity_score = self._calculate_overall_complexity(
+                analysis.statements
+            )
 
             # Assess execution risk
             analysis.execution_risk_level = self._assess_execution_risk(analysis)
 
             # Generate recommendations
-            analysis.optimization_opportunities = self._generate_recommendations(analysis)
-            analysis.batch_vs_sequential_recommendation = self._recommend_execution_mode(analysis)
+            analysis.optimization_opportunities = self._generate_recommendations(
+                analysis
+            )
+            analysis.batch_vs_sequential_recommendation = (
+                self._recommend_execution_mode(analysis)
+            )
 
             return analysis
 
@@ -192,7 +209,7 @@ class ContextWindowAnalyzer:
 
         for i, char in enumerate(query):
             # Handle string literals
-            if char in ('"', "'") and (i == 0 or query[i-1] != '\\'):
+            if char in ('"', "'") and (i == 0 or query[i - 1] != "\\"):
                 if not in_string:
                     in_string = True
                     string_char = char
@@ -201,11 +218,11 @@ class ContextWindowAnalyzer:
 
             # Only process semicolon outside strings
             if not in_string:
-                if char == '(':
+                if char == "(":
                     paren_depth += 1
-                elif char == ')':
+                elif char == ")":
                     paren_depth -= 1
-                elif char == ';' and paren_depth == 0:
+                elif char == ";" and paren_depth == 0:
                     stmt = current.strip()
                     if stmt:
                         statements.append(stmt)
@@ -256,13 +273,17 @@ class ContextWindowAnalyzer:
 
     def _extract_read_tables(self, stmt_text: str) -> Set[str]:
         """Extract tables being read in SELECT/FROM"""
-        if 'SELECT' not in stmt_text.upper():
+        if "SELECT" not in stmt_text.upper():
             return set()
 
         tables = set()
         for match in self.table_pattern.finditer(stmt_text):
-            if 'FROM' in stmt_text.upper()[max(0, match.start()-20):match.start()].upper() or \
-               'JOIN' in stmt_text.upper()[max(0, match.start()-20):match.start()].upper():
+            if (
+                "FROM"
+                in stmt_text.upper()[max(0, match.start() - 20) : match.start()].upper()
+                or "JOIN"
+                in stmt_text.upper()[max(0, match.start() - 20) : match.start()].upper()
+            ):
                 tables.add(match.group(1))
 
         return tables
@@ -272,17 +293,17 @@ class ContextWindowAnalyzer:
         tables = set()
 
         # INSERT INTO table
-        insert_match = re.search(r'INSERT\s+INTO\s+(\w+)', stmt_text, re.IGNORECASE)
+        insert_match = re.search(r"INSERT\s+INTO\s+(\w+)", stmt_text, re.IGNORECASE)
         if insert_match:
             tables.add(insert_match.group(1))
 
         # UPDATE table
-        update_match = re.search(r'UPDATE\s+(\w+)', stmt_text, re.IGNORECASE)
+        update_match = re.search(r"UPDATE\s+(\w+)", stmt_text, re.IGNORECASE)
         if update_match:
             tables.add(update_match.group(1))
 
         # DELETE FROM table
-        delete_match = re.search(r'DELETE\s+FROM\s+(\w+)', stmt_text, re.IGNORECASE)
+        delete_match = re.search(r"DELETE\s+FROM\s+(\w+)", stmt_text, re.IGNORECASE)
         if delete_match:
             tables.add(delete_match.group(1))
 
@@ -295,7 +316,11 @@ class ContextWindowAnalyzer:
         # Type complexity
         if stmt.statement_type == StatementType.SELECT:
             score += 0.2
-        elif stmt.statement_type in [StatementType.INSERT, StatementType.UPDATE, StatementType.DELETE]:
+        elif stmt.statement_type in [
+            StatementType.INSERT,
+            StatementType.UPDATE,
+            StatementType.DELETE,
+        ]:
             score += 0.15
         elif stmt.statement_type in [StatementType.CREATE, StatementType.ALTER]:
             score += 0.1
@@ -315,13 +340,17 @@ class ContextWindowAnalyzer:
     def _has_transaction_control(self, stmt_text: str) -> bool:
         """Check if statement has transaction control keywords"""
         stmt_upper = stmt_text.upper()
-        return bool(re.search(r'\b(BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b', stmt_upper))
+        return bool(re.search(r"\b(BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b", stmt_upper))
 
-    def _detect_transaction_scope(self, statements: List[SQLStatement]) -> TransactionScope:
+    def _detect_transaction_scope(
+        self, statements: List[SQLStatement]
+    ) -> TransactionScope:
         """Detect transaction scope from statements"""
         has_begin = any(s.statement_type == StatementType.BEGIN for s in statements)
         has_commit = any(s.statement_type == StatementType.COMMIT for s in statements)
-        has_rollback = any(s.statement_type == StatementType.ROLLBACK for s in statements)
+        has_rollback = any(
+            s.statement_type == StatementType.ROLLBACK for s in statements
+        )
 
         if has_begin and (has_commit or has_rollback):
             return TransactionScope.EXPLICIT
@@ -347,7 +376,7 @@ class ContextWindowAnalyzer:
                     from_statement_idx=i,
                     to_statement_idx=i + 1,
                     flow_type="read_after_write",
-                    affected_tables=overlapping_tables
+                    affected_tables=overlapping_tables,
                 )
                 flows.append(flow)
 
@@ -364,7 +393,11 @@ class ContextWindowAnalyzer:
         batch_factor = min(0.3, len(statements) * 0.05)
 
         # Mixed statement types factor
-        types = set(s.statement_type for s in statements if s.statement_type != StatementType.UNKNOWN)
+        types = set(
+            s.statement_type
+            for s in statements
+            if s.statement_type != StatementType.UNKNOWN
+        )
         type_variety = min(0.2, len(types) * 0.05)
 
         return min(1.0, avg_complexity + batch_factor + type_variety)
@@ -406,19 +439,27 @@ class ContextWindowAnalyzer:
         # Multiple write operations
         write_stmts = [s for s in analysis.statements if s.tables_written]
         if len(write_stmts) > 2:
-            recommendations.append("Multiple write operations detected - verify they don't have conflicts")
+            recommendations.append(
+                "Multiple write operations detected - verify they don't have conflicts"
+            )
 
         # Circular dependencies
         if self._has_circular_dependencies(analysis.data_flows):
-            recommendations.append("Circular data dependencies detected - review statement order")
+            recommendations.append(
+                "Circular data dependencies detected - review statement order"
+            )
 
         # Large batch
         if len(analysis.statements) > 10:
-            recommendations.append("Large batch of statements - consider breaking into smaller transactions")
+            recommendations.append(
+                "Large batch of statements - consider breaking into smaller transactions"
+            )
 
         # No explicit transaction with writes
         if not analysis.has_explicit_transaction and len(write_stmts) > 1:
-            recommendations.append("Multiple writes without explicit transaction - consider adding BEGIN/COMMIT")
+            recommendations.append(
+                "Multiple writes without explicit transaction - consider adding BEGIN/COMMIT"
+            )
 
         return recommendations
 
@@ -426,8 +467,12 @@ class ContextWindowAnalyzer:
         """Check for circular dependencies in data flows"""
         # Simple circular detection: if A depends on B and B depends on A
         for flow in flows:
-            reverse_flows = [f for f in flows if f.from_statement_idx == flow.to_statement_idx]
-            if any(f.to_statement_idx == flow.from_statement_idx for f in reverse_flows):
+            reverse_flows = [
+                f for f in flows if f.from_statement_idx == flow.to_statement_idx
+            ]
+            if any(
+                f.to_statement_idx == flow.from_statement_idx for f in reverse_flows
+            ):
                 return True
         return False
 
@@ -441,11 +486,11 @@ class ContextWindowAnalyzer:
     def get_execution_flow_summary(self, analysis: ContextWindowAnalysis) -> Dict:
         """Get a summary of execution flow"""
         return {
-            'total_statements': analysis.total_statement_count,
-            'statement_types': analysis.statement_types,
-            'transaction_scope': analysis.transaction_scope.value,
-            'data_dependencies': len(analysis.data_flows),
-            'tables_accessed': len(analysis.tables_accessed),
-            'execution_mode': analysis.batch_vs_sequential_recommendation,
-            'risk_level': analysis.execution_risk_level,
+            "total_statements": analysis.total_statement_count,
+            "statement_types": analysis.statement_types,
+            "transaction_scope": analysis.transaction_scope.value,
+            "data_dependencies": len(analysis.data_flows),
+            "tables_accessed": len(analysis.tables_accessed),
+            "execution_mode": analysis.batch_vs_sequential_recommendation,
+            "risk_level": analysis.execution_risk_level,
         }

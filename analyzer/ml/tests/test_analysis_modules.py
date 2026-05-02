@@ -11,12 +11,13 @@ Tests for:
 """
 
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
-from django.test import TestCase, TransactionTestCase, override_settings
 import logging
+from unittest.mock import MagicMock, Mock, patch
+
+from django.test import TestCase, TransactionTestCase, override_settings
 
 # Suppress verbose logging during tests
-logging.getLogger('analyzer').setLevel(logging.WARNING)
+logging.getLogger("analyzer").setLevel(logging.WARNING)
 
 
 class UnifiedQueryAnalyzerInitializationTestCase(TestCase):
@@ -30,8 +31,8 @@ class UnifiedQueryAnalyzerInitializationTestCase(TestCase):
 
         self.assertIsNotNone(analyzer)
         self.assertIsNotNone(analyzer.config)
-        self.assertEqual(analyzer.performance_metrics['total_analyses'], 0)
-        self.assertEqual(analyzer.performance_metrics['average_time_ms'], 0)
+        self.assertEqual(analyzer.performance_metrics["total_analyses"], 0)
+        self.assertEqual(analyzer.performance_metrics["average_time_ms"], 0)
 
     def test_components_initialized(self):
         """Test all components are initialized"""
@@ -57,17 +58,13 @@ class UnifiedQueryAnalyzerInitializationTestCase(TestCase):
         """Test analyzer initialization with custom config"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
 
-        config = {
-            'disable_cache': True,
-            'analysis_timeout': 5000,
-            'debug_mode': True
-        }
+        config = {"disable_cache": True, "analysis_timeout": 5000, "debug_mode": True}
 
         analyzer = UnifiedQueryAnalyzer(config=config)
 
-        self.assertEqual(analyzer.config['disable_cache'], True)
-        self.assertEqual(analyzer.config['analysis_timeout'], 5000)
-        self.assertEqual(analyzer.config['debug_mode'], True)
+        self.assertEqual(analyzer.config["disable_cache"], True)
+        self.assertEqual(analyzer.config["analysis_timeout"], 5000)
+        self.assertEqual(analyzer.config["debug_mode"], True)
 
     def test_empty_cache_on_init(self):
         """Test cache is empty on initialization"""
@@ -84,11 +81,11 @@ class UnifiedQueryAnalyzerInitializationTestCase(TestCase):
         analyzer = UnifiedQueryAnalyzer()
         metrics = analyzer.get_performance_metrics()
 
-        self.assertIn('total_analyses', metrics)
-        self.assertIn('average_time_ms', metrics)
-        self.assertIn('cache_hit_rate', metrics)
-        self.assertIn('cache_size', metrics)
-        self.assertIn('components_loaded', metrics)
+        self.assertIn("total_analyses", metrics)
+        self.assertIn("average_time_ms", metrics)
+        self.assertIn("cache_hit_rate", metrics)
+        self.assertIn("cache_size", metrics)
+        self.assertIn("components_loaded", metrics)
 
 
 class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
@@ -97,6 +94,7 @@ class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_cache_key_generation(self):
@@ -120,13 +118,9 @@ class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
         """Test cache key includes all request parameters"""
         from analyzer.ml.analysis.unified_analyzer import AnalysisRequest
 
-        request1 = AnalysisRequest(
-            query="SELECT * FROM users",
-            analysis_level='basic'
-        )
+        request1 = AnalysisRequest(query="SELECT * FROM users", analysis_level="basic")
         request2 = AnalysisRequest(
-            query="SELECT * FROM users",
-            analysis_level='comprehensive'
+            query="SELECT * FROM users", analysis_level="comprehensive"
         )
 
         key1 = self.analyzer._generate_cache_key(request1)
@@ -137,7 +131,8 @@ class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
 
     def test_cache_clear(self):
         """Test cache clearing"""
-        from analyzer.ml.analysis.unified_analyzer import AnalysisRequest, AnalysisResult
+        from analyzer.ml.analysis.unified_analyzer import (AnalysisRequest,
+                                                           AnalysisResult)
 
         # Add mock result to cache
         request = AnalysisRequest(query="SELECT * FROM users")
@@ -147,7 +142,7 @@ class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
             request_id="test_123",
             query="SELECT * FROM users",
             user_id=None,
-            overall_grade='A',
+            overall_grade="A",
             overall_score=95,
             semantic_analysis={},
             pattern_analysis={},
@@ -162,7 +157,7 @@ class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
             components_used=[],
             warnings=[],
             execution_time_by_component={},
-            cache_hits={}
+            cache_hits={},
         )
 
         self.analyzer.analysis_cache[cache_key] = mock_result
@@ -178,14 +173,15 @@ class UnifiedQueryAnalyzerMetricsTestCase(TransactionTestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_performance_metrics_update(self):
         """Test performance metrics are updated correctly"""
         self.analyzer._update_performance_metrics(100)
 
-        self.assertEqual(self.analyzer.performance_metrics['total_analyses'], 1)
-        self.assertEqual(self.analyzer.performance_metrics['average_time_ms'], 100)
+        self.assertEqual(self.analyzer.performance_metrics["total_analyses"], 1)
+        self.assertEqual(self.analyzer.performance_metrics["average_time_ms"], 100)
 
     def test_performance_metrics_rolling_average(self):
         """Test rolling average calculation"""
@@ -193,9 +189,9 @@ class UnifiedQueryAnalyzerMetricsTestCase(TransactionTestCase):
         self.analyzer._update_performance_metrics(200)
         self.analyzer._update_performance_metrics(300)
 
-        self.assertEqual(self.analyzer.performance_metrics['total_analyses'], 3)
+        self.assertEqual(self.analyzer.performance_metrics["total_analyses"], 3)
         # Average should be (100 + 200 + 300) / 3 = 200
-        self.assertEqual(self.analyzer.performance_metrics['average_time_ms'], 200)
+        self.assertEqual(self.analyzer.performance_metrics["average_time_ms"], 200)
 
     def test_get_performance_metrics(self):
         """Test retrieving performance metrics"""
@@ -203,14 +199,14 @@ class UnifiedQueryAnalyzerMetricsTestCase(TransactionTestCase):
 
         metrics = self.analyzer.get_performance_metrics()
 
-        self.assertIn('total_analyses', metrics)
-        self.assertIn('average_time_ms', metrics)
-        self.assertIn('cache_size', metrics)
-        self.assertIn('components_loaded', metrics)
-        self.assertEqual(metrics['total_analyses'], 1)
-        self.assertEqual(metrics['average_time_ms'], 150)
-        self.assertEqual(metrics['cache_size'], 0)
-        self.assertGreater(metrics['components_loaded'], 0)
+        self.assertIn("total_analyses", metrics)
+        self.assertIn("average_time_ms", metrics)
+        self.assertIn("cache_size", metrics)
+        self.assertIn("components_loaded", metrics)
+        self.assertEqual(metrics["total_analyses"], 1)
+        self.assertEqual(metrics["average_time_ms"], 150)
+        self.assertEqual(metrics["cache_size"], 0)
+        self.assertGreater(metrics["components_loaded"], 0)
 
 
 class UnifiedQueryAnalyzerErrorHandlingTestCase(TransactionTestCase):
@@ -219,6 +215,7 @@ class UnifiedQueryAnalyzerErrorHandlingTestCase(TransactionTestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_invalid_query_handling(self):
@@ -245,14 +242,11 @@ class UnifiedQueryAnalyzerErrorHandlingTestCase(TransactionTestCase):
         error_msg = "Test error"
 
         result = self.analyzer._create_error_result(
-            "error_123",
-            request,
-            error_msg,
-            0.5
+            "error_123", request, error_msg, 0.5
         )
 
         self.assertEqual(result.request_id, "error_123")
-        self.assertEqual(result.overall_grade, 'F')
+        self.assertEqual(result.overall_grade, "F")
         self.assertEqual(result.overall_score, 0.0)
         self.assertEqual(result.confidence_score, 0.0)
         self.assertGreater(len(result.warnings), 0)
@@ -269,36 +263,36 @@ class AnalysisRequestValidationTestCase(TestCase):
 
         self.assertEqual(request.query, "SELECT * FROM users")
         self.assertIsNone(request.user_id)
-        self.assertEqual(request.analysis_level, 'comprehensive')
+        self.assertEqual(request.analysis_level, "comprehensive")
         self.assertTrue(request.personalize)
         self.assertTrue(request.include_rewrite)
         self.assertFalse(request.include_learning_path)
-        self.assertEqual(request.safety_level, 'moderate')
+        self.assertEqual(request.safety_level, "moderate")
 
     def test_analysis_request_custom_values(self):
         """Test custom values in AnalysisRequest"""
         from analyzer.ml.analysis.unified_analyzer import AnalysisRequest
 
-        context = {'skill_level': 'advanced'}
+        context = {"skill_level": "advanced"}
         request = AnalysisRequest(
             query="SELECT * FROM users",
             user_id="user_123",
             context=context,
-            analysis_level='expert',
+            analysis_level="expert",
             personalize=False,
             include_rewrite=False,
             include_learning_path=True,
-            safety_level='conservative'
+            safety_level="conservative",
         )
 
         self.assertEqual(request.query, "SELECT * FROM users")
         self.assertEqual(request.user_id, "user_123")
         self.assertEqual(request.context, context)
-        self.assertEqual(request.analysis_level, 'expert')
+        self.assertEqual(request.analysis_level, "expert")
         self.assertFalse(request.personalize)
         self.assertFalse(request.include_rewrite)
         self.assertTrue(request.include_learning_path)
-        self.assertEqual(request.safety_level, 'conservative')
+        self.assertEqual(request.safety_level, "conservative")
 
 
 class OverallMetricsCalculationTestCase(TestCase):
@@ -307,42 +301,68 @@ class OverallMetricsCalculationTestCase(TestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_score_to_grade_conversion_a(self):
         """Test score to grade conversion for A"""
-        semantic = {'complexity_indicators': {'cognitive_load': 0}}
-        patterns = {'pattern_score': 0.9}
-        anti_patterns = {'overall_score': 95}
+        semantic = {"complexity_indicators": {"cognitive_load": 0}}
+        patterns = {"pattern_score": 0.9}
+        anti_patterns = {"overall_score": 95}
 
         score, grade = self.analyzer._calculate_overall_metrics(
             semantic, patterns, anti_patterns
         )
 
-        self.assertEqual(grade, 'A')
+        self.assertEqual(grade, "A")
         self.assertGreaterEqual(score, 90)
 
     def test_score_to_grade_conversion_f(self):
         """Test score to grade conversion for F"""
-        semantic = {'complexity_indicators': {'cognitive_load': 1}}
-        patterns = {'pattern_score': 0.1}
-        anti_patterns = {'overall_score': 30}
+        semantic = {"complexity_indicators": {"cognitive_load": 1}}
+        patterns = {"pattern_score": 0.1}
+        anti_patterns = {"overall_score": 30}
 
         score, grade = self.analyzer._calculate_overall_metrics(
             semantic, patterns, anti_patterns
         )
 
-        self.assertEqual(grade, 'F')
+        self.assertEqual(grade, "F")
         self.assertLess(score, 60)
 
     def test_score_to_grade_all_grades(self):
         """Test all grade conversions"""
         test_cases = [
-            ({'complexity_indicators': {'cognitive_load': 0}}, {'pattern_score': 0.95}, {'overall_score': 92}, 'A'),
-            ({'complexity_indicators': {'cognitive_load': 0.1}}, {'pattern_score': 0.85}, {'overall_score': 82}, 'B'),
-            ({'complexity_indicators': {'cognitive_load': 0.3}}, {'pattern_score': 0.7}, {'overall_score': 72}, 'C'),
-            ({'complexity_indicators': {'cognitive_load': 0.5}}, {'pattern_score': 0.6}, {'overall_score': 62}, 'D'),
-            ({'complexity_indicators': {'cognitive_load': 0.8}}, {'pattern_score': 0.4}, {'overall_score': 40}, 'F'),
+            (
+                {"complexity_indicators": {"cognitive_load": 0}},
+                {"pattern_score": 0.95},
+                {"overall_score": 92},
+                "A",
+            ),
+            (
+                {"complexity_indicators": {"cognitive_load": 0.1}},
+                {"pattern_score": 0.85},
+                {"overall_score": 82},
+                "B",
+            ),
+            (
+                {"complexity_indicators": {"cognitive_load": 0.3}},
+                {"pattern_score": 0.7},
+                {"overall_score": 72},
+                "C",
+            ),
+            (
+                {"complexity_indicators": {"cognitive_load": 0.5}},
+                {"pattern_score": 0.6},
+                {"overall_score": 62},
+                "D",
+            ),
+            (
+                {"complexity_indicators": {"cognitive_load": 0.8}},
+                {"pattern_score": 0.4},
+                {"overall_score": 40},
+                "F",
+            ),
         ]
 
         for semantic, patterns, anti_patterns, expected_grade in test_cases:
@@ -359,12 +379,16 @@ class ConfidenceScoreCalculationTestCase(TestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_base_confidence(self):
         """Test base confidence score"""
-        semantic = {'complexity_indicators': {'cognitive_load': 0}, 'query_intent': {'confidence': 0}}
-        patterns = {'matched_patterns': []}
+        semantic = {
+            "complexity_indicators": {"cognitive_load": 0},
+            "query_intent": {"confidence": 0},
+        }
+        patterns = {"matched_patterns": []}
         anti_patterns = {}
 
         confidence = self.analyzer._calculate_confidence_score(
@@ -375,8 +399,11 @@ class ConfidenceScoreCalculationTestCase(TestCase):
 
     def test_confidence_with_patterns(self):
         """Test confidence score increases with matched patterns"""
-        semantic = {'complexity_indicators': {'cognitive_load': 0}, 'query_intent': {'confidence': 0}}
-        patterns = {'matched_patterns': [1, 2, 3]}  # 3 matched patterns
+        semantic = {
+            "complexity_indicators": {"cognitive_load": 0},
+            "query_intent": {"confidence": 0},
+        }
+        patterns = {"matched_patterns": [1, 2, 3]}  # 3 matched patterns
         anti_patterns = {}
 
         confidence = self.analyzer._calculate_confidence_score(
@@ -388,8 +415,11 @@ class ConfidenceScoreCalculationTestCase(TestCase):
 
     def test_confidence_with_semantic_analysis(self):
         """Test confidence score with strong semantic analysis"""
-        semantic = {'complexity_indicators': {'cognitive_load': 0}, 'query_intent': {'confidence': 0.9}}
-        patterns = {'matched_patterns': []}
+        semantic = {
+            "complexity_indicators": {"cognitive_load": 0},
+            "query_intent": {"confidence": 0.9},
+        }
+        patterns = {"matched_patterns": []}
         anti_patterns = {}
 
         confidence = self.analyzer._calculate_confidence_score(
@@ -401,8 +431,11 @@ class ConfidenceScoreCalculationTestCase(TestCase):
 
     def test_confidence_max_capped(self):
         """Test confidence score is capped at 0.95"""
-        semantic = {'complexity_indicators': {'cognitive_load': 0}, 'query_intent': {'confidence': 0.95}}
-        patterns = {'matched_patterns': [1, 2, 3, 4, 5]}  # Many patterns
+        semantic = {
+            "complexity_indicators": {"cognitive_load": 0},
+            "query_intent": {"confidence": 0.95},
+        }
+        patterns = {"matched_patterns": [1, 2, 3, 4, 5]}  # Many patterns
         anti_patterns = {}
 
         confidence = self.analyzer._calculate_confidence_score(
@@ -419,6 +452,7 @@ class UserLevelDeterminationTestCase(TestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_default_user_level(self):
@@ -432,7 +466,7 @@ class UserLevelDeterminationTestCase(TestCase):
         """Test user level from context - beginner"""
         from analyzer.ml.analysis.unified_analyzer import FeedbackLevel
 
-        context = {'skill_level': 'beginner'}
+        context = {"skill_level": "beginner"}
         level = self.analyzer._determine_user_level(None, context)
         self.assertEqual(level, FeedbackLevel.BEGINNER)
 
@@ -440,7 +474,7 @@ class UserLevelDeterminationTestCase(TestCase):
         """Test user level from context - advanced"""
         from analyzer.ml.analysis.unified_analyzer import FeedbackLevel
 
-        context = {'skill_level': 'advanced'}
+        context = {"skill_level": "advanced"}
         level = self.analyzer._determine_user_level(None, context)
         self.assertEqual(level, FeedbackLevel.ADVANCED)
 
@@ -449,15 +483,15 @@ class UserLevelDeterminationTestCase(TestCase):
         from analyzer.ml.analysis.unified_analyzer import FeedbackLevel
 
         level_mappings = {
-            'beginner': FeedbackLevel.BEGINNER,
-            'intermediate': FeedbackLevel.INTERMEDIATE,
-            'advanced': FeedbackLevel.ADVANCED,
-            'expert': FeedbackLevel.EXPERT,
+            "beginner": FeedbackLevel.BEGINNER,
+            "intermediate": FeedbackLevel.INTERMEDIATE,
+            "advanced": FeedbackLevel.ADVANCED,
+            "expert": FeedbackLevel.EXPERT,
         }
 
         for skill_level, expected_level in level_mappings.items():
             with self.subTest(skill_level=skill_level):
-                context = {'skill_level': skill_level}
+                context = {"skill_level": skill_level}
                 level = self.analyzer._determine_user_level(None, context)
                 self.assertEqual(level, expected_level)
 
@@ -468,6 +502,7 @@ class PerformanceBaselineCreationTestCase(TestCase):
     def setUp(self):
         """Set up test analyzer"""
         from analyzer.ml.analysis.unified_analyzer import UnifiedQueryAnalyzer
+
         self.analyzer = UnifiedQueryAnalyzer()
 
     def test_baseline_creation_defaults(self):
@@ -485,11 +520,7 @@ class PerformanceBaselineCreationTestCase(TestCase):
     def test_baseline_creation_with_context(self):
         """Test baseline creation with custom context"""
         query = "SELECT * FROM users"
-        context = {
-            'execution_time_ms': 500,
-            'memory_mb': 256,
-            'io_reads': 5000
-        }
+        context = {"execution_time_ms": 500, "memory_mb": 256, "io_reads": 5000}
 
         baseline = self.analyzer._create_performance_baseline(query, context)
 
@@ -519,12 +550,14 @@ class PerformanceBaselineCreationTestCase(TestCase):
 
 # ==================== ANTI-PATTERN DETECTOR TESTS ====================
 
+
 class AntiPatternDetectorInitializationTestCase(TestCase):
     """Tests for AntiPatternDetector initialization"""
 
     def test_detector_initialization(self):
         """Test basic detector initialization"""
-        from analyzer.ml.analysis.anti_pattern_detector import AntiPatternDetector
+        from analyzer.ml.analysis.anti_pattern_detector import \
+            AntiPatternDetector
 
         detector = AntiPatternDetector()
 
@@ -534,16 +567,32 @@ class AntiPatternDetectorInitializationTestCase(TestCase):
 
     def test_patterns_compiled(self):
         """Test all regex patterns are compiled"""
-        from analyzer.ml.analysis.anti_pattern_detector import AntiPatternDetector
+        from analyzer.ml.analysis.anti_pattern_detector import \
+            AntiPatternDetector
 
         detector = AntiPatternDetector()
 
         expected_patterns = [
-            'select_star', 'implicit_cross_join', 'or_in_join', 'functions_in_where',
-            'not_equals_join', 'wildcard_prefix', 'nested_not_in', 'cursor_usage',
-            'row_by_row', 'null_comparison', 'double_negative', 'ambiguous_columns',
-            'dynamic_sql', 'string_concat_where', 'magic_numbers', 'no_alias',
-            'inconsistent_case', 'offset_pagination', 'union_instead_union_all', 'distinct_misuse'
+            "select_star",
+            "implicit_cross_join",
+            "or_in_join",
+            "functions_in_where",
+            "not_equals_join",
+            "wildcard_prefix",
+            "nested_not_in",
+            "cursor_usage",
+            "row_by_row",
+            "null_comparison",
+            "double_negative",
+            "ambiguous_columns",
+            "dynamic_sql",
+            "string_concat_where",
+            "magic_numbers",
+            "no_alias",
+            "inconsistent_case",
+            "offset_pagination",
+            "union_instead_union_all",
+            "distinct_misuse",
         ]
 
         for pattern_name in expected_patterns:
@@ -555,7 +604,8 @@ class AntiPatternDetectionTestCase(TestCase):
 
     def setUp(self):
         """Set up test detector"""
-        from analyzer.ml.analysis.anti_pattern_detector import AntiPatternDetector
+        from analyzer.ml.analysis.anti_pattern_detector import \
+            AntiPatternDetector
 
         self.detector = AntiPatternDetector()
 
@@ -602,9 +652,9 @@ class AntiPatternDetectionTestCase(TestCase):
 
         self.assertIsNotNone(report.query)
         self.assertIsNotNone(report.anti_patterns)
-        self.assertIn(report.performance_risk, ['low', 'medium', 'high'])
-        self.assertIn(report.maintainability_risk, ['low', 'medium', 'high'])
-        self.assertIn(report.security_risk, ['low', 'medium', 'high'])
+        self.assertIn(report.performance_risk, ["low", "medium", "high"])
+        self.assertIn(report.maintainability_risk, ["low", "medium", "high"])
+        self.assertIn(report.security_risk, ["low", "medium", "high"])
         self.assertGreaterEqual(report.overall_score, 0)
         self.assertLessEqual(report.overall_score, 100)
 
@@ -614,18 +664,22 @@ class AntiPatternDetectionTestCase(TestCase):
         report = self.detector.detect_anti_patterns(query)
 
         # Should detect missing WHERE
-        has_critical = any(ap.severity.value == 'critical' for ap in report.anti_patterns)
+        has_critical = any(
+            ap.severity.value == "critical" for ap in report.anti_patterns
+        )
         self.assertTrue(has_critical)
 
 
 # ==================== COMPLEXITY ANALYZER TESTS ====================
+
 
 class ComplexityAnalyzerInitializationTestCase(TestCase):
     """Tests for QueryComplexityAnalyzer initialization"""
 
     def test_analyzer_initialization(self):
         """Test basic complexity analyzer initialization"""
-        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer
+        from analyzer.ml.analysis.complexity_analyzer import \
+            QueryComplexityAnalyzer
 
         analyzer = QueryComplexityAnalyzer()
 
@@ -635,7 +689,8 @@ class ComplexityAnalyzerInitializationTestCase(TestCase):
 
     def test_complexity_weights_initialization(self):
         """Test complexity weights are properly initialized"""
-        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer, ComplexityDimension
+        from analyzer.ml.analysis.complexity_analyzer import (
+            ComplexityDimension, QueryComplexityAnalyzer)
 
         analyzer = QueryComplexityAnalyzer()
 
@@ -646,7 +701,8 @@ class ComplexityAnalyzerInitializationTestCase(TestCase):
 
     def test_complexity_categories_initialized(self):
         """Test complexity categories are initialized"""
-        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer
+        from analyzer.ml.analysis.complexity_analyzer import \
+            QueryComplexityAnalyzer
 
         analyzer = QueryComplexityAnalyzer()
 
@@ -664,7 +720,8 @@ class ComplexityAnalysisTestCase(TestCase):
 
     def setUp(self):
         """Set up test analyzer"""
-        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer
+        from analyzer.ml.analysis.complexity_analyzer import \
+            QueryComplexityAnalyzer
 
         self.analyzer = QueryComplexityAnalyzer()
 
@@ -723,7 +780,10 @@ class ComplexityAnalysisTestCase(TestCase):
         """Test complexity level determination"""
         test_cases = [
             ("SELECT * FROM users", "SIMPLE"),
-            ("SELECT u.id, COUNT(o.id) FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id", "MODERATE"),
+            (
+                "SELECT u.id, COUNT(o.id) FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id",
+                "MODERATE",
+            ),
             ("WITH RECURSIVE cte AS (SELECT ...) SELECT ... FROM cte", "COMPLEX"),
         ]
 
@@ -735,6 +795,7 @@ class ComplexityAnalysisTestCase(TestCase):
 
 
 # ==================== PATTERN LIBRARY TESTS ====================
+
 
 class PatternLibraryInitializationTestCase(TestCase):
     """Tests for QueryPatternLibrary initialization"""
@@ -751,7 +812,8 @@ class PatternLibraryInitializationTestCase(TestCase):
 
     def test_default_patterns_loaded(self):
         """Test default patterns are loaded"""
-        from analyzer.ml.analysis.pattern_library import QueryPatternLibrary, PatternCategory
+        from analyzer.ml.analysis.pattern_library import (PatternCategory,
+                                                          QueryPatternLibrary)
 
         library = QueryPatternLibrary()
 
@@ -792,7 +854,7 @@ class PatternMatchingTestCase(TestCase):
                 self.assertGreaterEqual(
                     matches[i].quality.value,
                     matches[i + 1].quality.value,
-                    "Patterns not sorted by quality"
+                    "Patterns not sorted by quality",
                 )
 
     def test_get_patterns_by_category(self):
@@ -808,12 +870,14 @@ class PatternMatchingTestCase(TestCase):
 
 # ==================== SEMANTIC ANALYZER TESTS ====================
 
+
 class SemanticAnalyzerInitializationTestCase(TestCase):
     """Tests for SemanticFeatureExtractor initialization"""
 
     def test_analyzer_initialization(self):
         """Test semantic analyzer initialization"""
-        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import \
+            SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -822,14 +886,21 @@ class SemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_patterns_compiled(self):
         """Test semantic patterns are compiled"""
-        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import \
+            SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
         expected_patterns = [
-            'temporal_functions', 'temporal_comparisons', 'window_functions',
-            'advanced_aggregates', 'set_operations', 'recursive_cte',
-            'hierarchical_functions', 'force_index', 'hints'
+            "temporal_functions",
+            "temporal_comparisons",
+            "window_functions",
+            "advanced_aggregates",
+            "set_operations",
+            "recursive_cte",
+            "hierarchical_functions",
+            "force_index",
+            "hints",
         ]
 
         for pattern_name in expected_patterns:
@@ -841,7 +912,8 @@ class SemanticExtractionTestCase(TestCase):
 
     def setUp(self):
         """Set up test extractor"""
-        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import \
+            SemanticFeatureExtractor
 
         self.extractor = SemanticFeatureExtractor()
 
@@ -862,6 +934,7 @@ class SemanticExtractionTestCase(TestCase):
 
         # Should be detected as analytical
         from analyzer.ml.analysis.semantic_analyzer import QueryIntent
+
         self.assertEqual(metrics.primary_intent, QueryIntent.ANALYTICAL)
 
     def test_semantic_metrics_structure(self):
@@ -895,12 +968,14 @@ class SemanticExtractionTestCase(TestCase):
 
 # ==================== WORKLOAD PATTERN TESTS ====================
 
+
 class WorkloadPatternRecognizerInitializationTestCase(TestCase):
     """Tests for WorkloadPatternRecognizer initialization"""
 
     def test_recognizer_initialization(self):
         """Test basic recognizer initialization"""
-        from analyzer.ml.analysis.workload_patterns import WorkloadPatternRecognizer
+        from analyzer.ml.analysis.workload_patterns import \
+            WorkloadPatternRecognizer
 
         recognizer = WorkloadPatternRecognizer()
 
@@ -911,7 +986,8 @@ class WorkloadPatternRecognizerInitializationTestCase(TestCase):
 
     def test_buffers_initialized(self):
         """Test query buffers are initialized"""
-        from analyzer.ml.analysis.workload_patterns import WorkloadPatternRecognizer
+        from analyzer.ml.analysis.workload_patterns import \
+            WorkloadPatternRecognizer
 
         recognizer = WorkloadPatternRecognizer()
 
@@ -924,8 +1000,10 @@ class WorkloadAnalysisTestCase(TestCase):
 
     def setUp(self):
         """Set up test recognizer"""
-        from analyzer.ml.analysis.workload_patterns import WorkloadPatternRecognizer
         from datetime import datetime, timedelta
+
+        from analyzer.ml.analysis.workload_patterns import \
+            WorkloadPatternRecognizer
 
         self.recognizer = WorkloadPatternRecognizer()
         self.base_time = datetime.now() - timedelta(hours=24)
@@ -957,11 +1035,16 @@ class WorkloadAnalysisTestCase(TestCase):
     def test_query_feature_extraction(self):
         """Test query feature extraction"""
         from datetime import timedelta
+
         import numpy as np
 
         queries = [
             ("SELECT * FROM users", self.base_time, 50.0),
-            ("SELECT id, name FROM users WHERE status = 'active'", self.base_time + timedelta(minutes=1), 75.0),
+            (
+                "SELECT id, name FROM users WHERE status = 'active'",
+                self.base_time + timedelta(minutes=1),
+                75.0,
+            ),
         ]
 
         features = self.recognizer._extract_query_features(queries)
@@ -985,7 +1068,7 @@ class WorkloadAnalysisTestCase(TestCase):
         predictions = self.recognizer.predict_future_workload(timedelta(hours=24))
 
         self.assertIsNotNone(predictions)
-        self.assertIn('expected_queries', predictions)
-        self.assertIn('confidence', predictions)
-        self.assertGreaterEqual(predictions['confidence'], 0)
-        self.assertLessEqual(predictions['confidence'], 1)
+        self.assertIn("expected_queries", predictions)
+        self.assertIn("confidence", predictions)
+        self.assertGreaterEqual(predictions["confidence"], 0)
+        self.assertLessEqual(predictions["confidence"], 1)

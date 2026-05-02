@@ -18,28 +18,24 @@ Do not rename task functions as this will break existing queued tasks.
 
 # Log processing tasks
 from .log_tasks import process_log_file_async
-
+# Maintenance tasks
+from .maintenance_tasks import cleanup_temp_files
 # Query analysis tasks
 from .query_tasks import batch_analyze_queries
-
+# Report generation tasks
+from .report_tasks import generate_performance_report
 # Schema analysis tasks
 from .schema_tasks import analyze_database_schema_async
 
-# Maintenance tasks
-from .maintenance_tasks import cleanup_temp_files
-
-# Report generation tasks
-from .report_tasks import generate_performance_report
-
 __all__ = [
     # Log tasks
-    'process_log_file_async',
+    "process_log_file_async",
     # Query tasks
-    'batch_analyze_queries',
+    "batch_analyze_queries",
     # Schema tasks
-    'analyze_database_schema_async',
+    "analyze_database_schema_async",
     # Maintenance tasks
-    'cleanup_temp_files',
+    "cleanup_temp_files",
     # Report tasks
-    'generate_performance_report',
+    "generate_performance_report",
 ]

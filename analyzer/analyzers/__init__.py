@@ -17,17 +17,15 @@ Usage:
     query, analysis = grader.analyze_query("SELECT * FROM users")
 """
 
-# Main orchestrator class
-from .base import QueryGrader, BaseAnalyzer
-
 # Convenience functions for backward compatibility
-from .base import analyze_query, grade_single_query
+# Main orchestrator class
+from .base import BaseAnalyzer, QueryGrader, analyze_query, grade_single_query
 
 __all__ = [
-    'QueryGrader',
-    'BaseAnalyzer',
-    'analyze_query',
-    'grade_single_query',
+    "QueryGrader",
+    "BaseAnalyzer",
+    "analyze_query",
+    "grade_single_query",
 ]
 
-__version__ = '2.0.0'
+__version__ = "2.0.0"

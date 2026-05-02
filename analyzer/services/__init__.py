@@ -21,14 +21,14 @@ Usage:
     result = service.analyze_query(sql_text, database_type, user_id)
 """
 
-from .query_analysis_service import QueryAnalysisService
-from .feedback_service import FeedbackService
 from .database_introspection_service import DatabaseIntrospectionService
+from .feedback_service import FeedbackService
+from .query_analysis_service import QueryAnalysisService
 
 __all__ = [
-    'QueryAnalysisService',
-    'FeedbackService',
-    'DatabaseIntrospectionService',
+    "QueryAnalysisService",
+    "FeedbackService",
+    "DatabaseIntrospectionService",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

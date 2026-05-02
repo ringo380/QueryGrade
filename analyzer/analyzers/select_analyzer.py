@@ -6,7 +6,8 @@ performance issues related to column selection.
 """
 
 import re
-from .base import BaseAnalyzer, AnalysisContext
+
+from .base import AnalysisContext, BaseAnalyzer
 
 
 class SelectAnalyzer(BaseAnalyzer):
@@ -40,50 +41,66 @@ class SelectAnalyzer(BaseAnalyzer):
 
     def _check_select_star(self, sql_text: str, context: AnalysisContext) -> None:
         """Check for SELECT * usage."""
-        if 'SELECT *' in sql_text:
-            context.issues.append({
-                'type': 'SELECT_STAR',
-                'severity': 'medium',
-                'description': 'Using SELECT * retrieves all columns, which may be inefficient'
-            })
-            context.recommendations.append({
-                'type': 'SELECT_SPECIFIC',
-                'priority': 'medium',
-                'description': 'Specify only the columns you need instead of using SELECT *',
-                'example': 'Replace "SELECT *" with "SELECT column1, column2, ..."'
-            })
+        if "SELECT *" in sql_text:
+            context.issues.append(
+                {
+                    "type": "SELECT_STAR",
+                    "severity": "medium",
+                    "description": "Using SELECT * retrieves all columns, which may be inefficient",
+                }
+            )
+            context.recommendations.append(
+                {
+                    "type": "SELECT_SPECIFIC",
+                    "priority": "medium",
+                    "description": "Specify only the columns you need instead of using SELECT *",
+                    "example": 'Replace "SELECT *" with "SELECT column1, column2, ..."',
+                }
+            )
 
-    def _check_unnecessary_distinct(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_unnecessary_distinct(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for unnecessary DISTINCT usage."""
-        if 'SELECT DISTINCT' in sql_text and 'JOIN' not in sql_text:
-            context.recommendations.append({
-                'type': 'UNNECESSARY_DISTINCT',
-                'priority': 'low',
-                'description': 'DISTINCT may be unnecessary without JOINs; verify if duplicates are actually possible'
-            })
+        if "SELECT DISTINCT" in sql_text and "JOIN" not in sql_text:
+            context.recommendations.append(
+                {
+                    "type": "UNNECESSARY_DISTINCT",
+                    "priority": "low",
+                    "description": "DISTINCT may be unnecessary without JOINs; verify if duplicates are actually possible",
+                }
+            )
 
-    def _check_count_optimization(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_count_optimization(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for COUNT(*) optimization opportunities."""
-        if 'COUNT(*)' in sql_text:
-            context.recommendations.append({
-                'type': 'COUNT_OPTIMIZATION',
-                'priority': 'low',
-                'description': 'Consider using COUNT(primary_key) instead of COUNT(*) for better performance on some databases'
-            })
+        if "COUNT(*)" in sql_text:
+            context.recommendations.append(
+                {
+                    "type": "COUNT_OPTIMIZATION",
+                    "priority": "low",
+                    "description": "Consider using COUNT(primary_key) instead of COUNT(*) for better performance on some databases",
+                }
+            )
 
     def _check_scalar_subqueries(self, sql_text: str, context: AnalysisContext) -> None:
         """Check for scalar subqueries in SELECT clause."""
         # Check for SELECT inside SELECT (nested subqueries in SELECT)
-        if sql_text.count('SELECT') > 1 and '(' in sql_text:
-            subquery_select_pattern = r'SELECT[^(]*\([^)]*SELECT'
+        if sql_text.count("SELECT") > 1 and "(" in sql_text:
+            subquery_select_pattern = r"SELECT[^(]*\([^)]*SELECT"
             if re.search(subquery_select_pattern, sql_text):
-                context.issues.append({
-                    'type': 'SCALAR_SUBQUERY',
-                    'severity': 'medium',
-                    'description': 'Scalar subqueries in SELECT clause can be performance bottlenecks'
-                })
-                context.recommendations.append({
-                    'type': 'AVOID_SCALAR_SUBQUERIES',
-                    'priority': 'medium',
-                    'description': 'Consider using JOINs or window functions instead of scalar subqueries'
-                })
+                context.issues.append(
+                    {
+                        "type": "SCALAR_SUBQUERY",
+                        "severity": "medium",
+                        "description": "Scalar subqueries in SELECT clause can be performance bottlenecks",
+                    }
+                )
+                context.recommendations.append(
+                    {
+                        "type": "AVOID_SCALAR_SUBQUERIES",
+                        "priority": "medium",
+                        "description": "Consider using JOINs or window functions instead of scalar subqueries",
+                    }
+                )

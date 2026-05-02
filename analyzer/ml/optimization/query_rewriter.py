@@ -5,19 +5,21 @@ This module automatically rewrites SQL queries for better performance
 while providing detailed explanations of the changes made.
 """
 
-import re
 import logging
-import sqlparse
-from typing import Dict, List, Tuple, Optional, Any, Set
+import re
 from dataclasses import dataclass, field
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+import sqlparse
 from sqlparse.sql import Statement, Token, TokenList
 from sqlparse.tokens import Keyword, Name
 
 
 class RewriteRule(Enum):
     """Types of query rewrite rules"""
+
     EXISTS_TO_JOIN = "exists_to_join"
     IN_TO_EXISTS = "in_to_exists"
     SUBQUERY_TO_JOIN = "subquery_to_join"
@@ -34,15 +36,17 @@ class RewriteRule(Enum):
 
 class RewriteComplexity(Enum):
     """Complexity levels of rewrites"""
-    SIMPLE = "simple"      # Syntax changes
+
+    SIMPLE = "simple"  # Syntax changes
     MODERATE = "moderate"  # Logic restructuring
-    COMPLEX = "complex"    # Significant algorithmic changes
+    COMPLEX = "complex"  # Significant algorithmic changes
     ADVANCED = "advanced"  # Expert-level optimizations
 
 
 @dataclass
 class RewriteStep:
     """Represents a single rewrite step"""
+
     rule: RewriteRule
     complexity: RewriteComplexity
     description: str
@@ -58,6 +62,7 @@ class RewriteStep:
 @dataclass
 class QueryRewrite:
     """Complete query rewrite result"""
+
     original_query: str
     rewritten_query: str
     rewrite_steps: List[RewriteStep]
@@ -83,51 +88,57 @@ class IntelligentQueryRewriter:
 
         self.rewrite_patterns = {
             RewriteRule.IN_TO_EXISTS: {
-                'pattern': re.compile(
-                    r'WHERE\s+(\w+(?:\.\w+)?)\s+IN\s*\(\s*SELECT\s+(\w+(?:\.\w+)?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE\s+(.+?))?\s*\)',
-                    re.IGNORECASE | re.DOTALL
+                "pattern": re.compile(
+                    r"WHERE\s+(\w+(?:\.\w+)?)\s+IN\s*\(\s*SELECT\s+(\w+(?:\.\w+)?)\s+FROM\s+(\w+)(?:\s+\w+)?(?:\s+WHERE\s+(.+?))?\s*\)",
+                    re.IGNORECASE | re.DOTALL,
                 ),
-                'complexity': RewriteComplexity.MODERATE,
-                'description': 'Replace IN subquery with EXISTS for better performance',
-                'performance_impact': 'Significant improvement for large datasets',
-                'risks': ['Behavior change with NULL values'],
-                'verification_needed': True
+                "complexity": RewriteComplexity.MODERATE,
+                "description": "Replace IN subquery with EXISTS for better performance",
+                "performance_impact": "Significant improvement for large datasets",
+                "risks": ["Behavior change with NULL values"],
+                "verification_needed": True,
             },
-
             RewriteRule.UNION_TO_UNION_ALL: {
-                'pattern': re.compile(r'\bUNION\b(?!\s+ALL)', re.IGNORECASE),
-                'complexity': RewriteComplexity.SIMPLE,
-                'description': 'Replace UNION with UNION ALL to avoid duplicate elimination',
-                'performance_impact': 'Eliminates sorting overhead',
-                'risks': ['May introduce duplicate rows'],
-                'verification_needed': True
+                "pattern": re.compile(r"\bUNION\b(?!\s+ALL)", re.IGNORECASE),
+                "complexity": RewriteComplexity.SIMPLE,
+                "description": "Replace UNION with UNION ALL to avoid duplicate elimination",
+                "performance_impact": "Eliminates sorting overhead",
+                "risks": ["May introduce duplicate rows"],
+                "verification_needed": True,
             },
-
             RewriteRule.EXISTS_TO_JOIN: {
-                'pattern': re.compile(
-                    r'WHERE\s+EXISTS\s*\(\s*SELECT\s+.+?\s+FROM\s+(\w+)(?:\s+\w+)?\s+WHERE\s+(.+?)\)',
-                    re.IGNORECASE | re.DOTALL
+                "pattern": re.compile(
+                    r"WHERE\s+EXISTS\s*\(\s*SELECT\s+.+?\s+FROM\s+(\w+)(?:\s+\w+)?\s+WHERE\s+(.+?)\)",
+                    re.IGNORECASE | re.DOTALL,
                 ),
-                'complexity': RewriteComplexity.COMPLEX,
-                'description': 'Convert EXISTS subquery to INNER JOIN',
-                'performance_impact': 'Can improve performance with proper indexes',
-                'risks': ['May change result cardinality', 'Requires DISTINCT if duplicates possible'],
-                'verification_needed': True
+                "complexity": RewriteComplexity.COMPLEX,
+                "description": "Convert EXISTS subquery to INNER JOIN",
+                "performance_impact": "Can improve performance with proper indexes",
+                "risks": [
+                    "May change result cardinality",
+                    "Requires DISTINCT if duplicates possible",
+                ],
+                "verification_needed": True,
             },
-
             RewriteRule.ELIMINATE_DISTINCT: {
-                'pattern': re.compile(r'SELECT\s+DISTINCT\s+(.+?)\s+FROM\s+(.+?)(?:\s+WHERE|$)', re.IGNORECASE | re.DOTALL),
-                'complexity': RewriteComplexity.MODERATE,
-                'description': 'Remove unnecessary DISTINCT clause',
-                'performance_impact': 'Eliminates sorting and duplicate removal overhead',
-                'risks': ['May introduce duplicate rows if DISTINCT was necessary'],
-                'verification_needed': True
-            }
+                "pattern": re.compile(
+                    r"SELECT\s+DISTINCT\s+(.+?)\s+FROM\s+(.+?)(?:\s+WHERE|$)",
+                    re.IGNORECASE | re.DOTALL,
+                ),
+                "complexity": RewriteComplexity.MODERATE,
+                "description": "Remove unnecessary DISTINCT clause",
+                "performance_impact": "Eliminates sorting and duplicate removal overhead",
+                "risks": ["May introduce duplicate rows if DISTINCT was necessary"],
+                "verification_needed": True,
+            },
         }
 
-    def rewrite_query(self, query: str,
-                      safety_level: str = 'conservative',
-                      context: Dict[str, Any] = None) -> QueryRewrite:
+    def rewrite_query(
+        self,
+        query: str,
+        safety_level: str = "conservative",
+        context: Dict[str, Any] = None,
+    ) -> QueryRewrite:
         """
         Rewrite a query with detailed explanations
 
@@ -158,20 +169,33 @@ class IntelligentQueryRewriter:
         for rule in rule_order:
             step = self._apply_rewrite_rule(current_query, rule, context)
             if step:
-                current_query = step.rewritten_fragment if step.rewritten_fragment else current_query
+                current_query = (
+                    step.rewritten_fragment
+                    if step.rewritten_fragment
+                    else current_query
+                )
                 rewrite_steps.append(step)
 
                 # Check if we should continue based on safety
-                if safety_level == 'conservative' and step.complexity in [RewriteComplexity.COMPLEX, RewriteComplexity.ADVANCED]:
-                    warnings.append(f"Skipping {step.rule.value} due to conservative safety setting")
+                if safety_level == "conservative" and step.complexity in [
+                    RewriteComplexity.COMPLEX,
+                    RewriteComplexity.ADVANCED,
+                ]:
+                    warnings.append(
+                        f"Skipping {step.rule.value} due to conservative safety setting"
+                    )
                     continue
 
         # Calculate metrics
         overall_improvement = self._calculate_overall_improvement(rewrite_steps)
         confidence = self._calculate_confidence(rewrite_steps, context)
         safety_score = self._calculate_safety_score(rewrite_steps, safety_level)
-        complexity_reduction = self._calculate_complexity_reduction(query, current_query)
-        readability_improvement = self._calculate_readability_improvement(query, current_query)
+        complexity_reduction = self._calculate_complexity_reduction(
+            query, current_query
+        )
+        readability_improvement = self._calculate_readability_improvement(
+            query, current_query
+        )
 
         # Generate explanation
         explanation = self._generate_explanation(rewrite_steps, overall_improvement)
@@ -190,27 +214,27 @@ class IntelligentQueryRewriter:
             readability_improvement=readability_improvement,
             explanation=explanation,
             warnings=warnings,
-            test_recommendations=test_recommendations
+            test_recommendations=test_recommendations,
         )
 
     def _get_rule_order(self, safety_level: str) -> List[RewriteRule]:
         """Get rewrite rules in order of application based on safety level"""
 
         rule_priorities = {
-            'conservative': [
+            "conservative": [
                 RewriteRule.UNION_TO_UNION_ALL,
                 RewriteRule.OPTIMIZE_WHERE,
-                RewriteRule.NORMALIZE_EXPRESSIONS
+                RewriteRule.NORMALIZE_EXPRESSIONS,
             ],
-            'moderate': [
+            "moderate": [
                 RewriteRule.UNION_TO_UNION_ALL,
                 RewriteRule.IN_TO_EXISTS,
                 RewriteRule.ELIMINATE_DISTINCT,
                 RewriteRule.OPTIMIZE_WHERE,
                 RewriteRule.SIMPLIFY_CASE,
-                RewriteRule.NORMALIZE_EXPRESSIONS
+                RewriteRule.NORMALIZE_EXPRESSIONS,
             ],
-            'aggressive': [
+            "aggressive": [
                 RewriteRule.UNION_TO_UNION_ALL,
                 RewriteRule.IN_TO_EXISTS,
                 RewriteRule.EXISTS_TO_JOIN,
@@ -222,13 +246,15 @@ class IntelligentQueryRewriter:
                 RewriteRule.OPTIMIZE_AGGREGATION,
                 RewriteRule.OPTIMIZE_WHERE,
                 RewriteRule.SIMPLIFY_CASE,
-                RewriteRule.NORMALIZE_EXPRESSIONS
-            ]
+                RewriteRule.NORMALIZE_EXPRESSIONS,
+            ],
         }
 
-        return rule_priorities.get(safety_level, rule_priorities['moderate'])
+        return rule_priorities.get(safety_level, rule_priorities["moderate"])
 
-    def _apply_rewrite_rule(self, query: str, rule: RewriteRule, context: Dict[str, Any]) -> Optional[RewriteStep]:
+    def _apply_rewrite_rule(
+        self, query: str, rule: RewriteRule, context: Dict[str, Any]
+    ) -> Optional[RewriteStep]:
         """Apply a specific rewrite rule to the query"""
 
         if rule == RewriteRule.IN_TO_EXISTS:
@@ -253,7 +279,7 @@ class IntelligentQueryRewriter:
     def _rewrite_in_to_exists(self, query: str) -> Optional[RewriteStep]:
         """Rewrite IN subquery to EXISTS"""
 
-        pattern = self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]['pattern']
+        pattern = self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]["pattern"]
         match = pattern.search(query)
 
         if not match:
@@ -264,7 +290,9 @@ class IntelligentQueryRewriter:
         # Build EXISTS equivalent
         exists_clause = f"EXISTS (SELECT 1 FROM {table}"
         if where_clause:
-            exists_clause += f" WHERE {where_clause} AND {right_column} = {left_column})"
+            exists_clause += (
+                f" WHERE {where_clause} AND {right_column} = {left_column})"
+            )
         else:
             exists_clause += f" WHERE {right_column} = {left_column})"
 
@@ -273,26 +301,26 @@ class IntelligentQueryRewriter:
 
         return RewriteStep(
             rule=RewriteRule.IN_TO_EXISTS,
-            complexity=self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]['complexity'],
-            description=self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]['description'],
+            complexity=self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]["complexity"],
+            description=self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]["description"],
             original_fragment=match.group(0),
             rewritten_fragment=rewritten,
             rationale="EXISTS typically performs better than IN for subqueries, especially with NULL values",
             performance_impact="20-40% improvement for large subqueries",
-            risks=self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]['risks'],
+            risks=self.rewrite_patterns[RewriteRule.IN_TO_EXISTS]["risks"],
             verification_needed=True,
-            estimated_improvement=0.3
+            estimated_improvement=0.3,
         )
 
     def _rewrite_union_to_union_all(self, query: str) -> Optional[RewriteStep]:
         """Rewrite UNION to UNION ALL where appropriate"""
 
-        pattern = self.rewrite_patterns[RewriteRule.UNION_TO_UNION_ALL]['pattern']
+        pattern = self.rewrite_patterns[RewriteRule.UNION_TO_UNION_ALL]["pattern"]
 
         if not pattern.search(query):
             return None
 
-        rewritten = pattern.sub('UNION ALL', query)
+        rewritten = pattern.sub("UNION ALL", query)
 
         return RewriteStep(
             rule=RewriteRule.UNION_TO_UNION_ALL,
@@ -304,13 +332,13 @@ class IntelligentQueryRewriter:
             performance_impact="10-30% improvement depending on result set size",
             risks=["May introduce duplicate rows if not handled by application"],
             verification_needed=True,
-            estimated_improvement=0.2
+            estimated_improvement=0.2,
         )
 
     def _rewrite_exists_to_join(self, query: str) -> Optional[RewriteStep]:
         """Convert EXISTS subquery to INNER JOIN"""
 
-        pattern = self.rewrite_patterns[RewriteRule.EXISTS_TO_JOIN]['pattern']
+        pattern = self.rewrite_patterns[RewriteRule.EXISTS_TO_JOIN]["pattern"]
         match = pattern.search(query)
 
         if not match:
@@ -322,7 +350,9 @@ class IntelligentQueryRewriter:
         original_fragment = match.group(0)
 
         # For safety, we'll provide the pattern but not automatically apply this complex transformation
-        join_suggestion = f"Consider converting to: INNER JOIN {table} ON {where_clause}"
+        join_suggestion = (
+            f"Consider converting to: INNER JOIN {table} ON {where_clause}"
+        )
 
         return RewriteStep(
             rule=RewriteRule.EXISTS_TO_JOIN,
@@ -334,24 +364,28 @@ class IntelligentQueryRewriter:
             performance_impact="Varies - can be significant with proper indexing",
             risks=["May change result cardinality", "Complex transformation"],
             verification_needed=True,
-            estimated_improvement=0.25
+            estimated_improvement=0.25,
         )
 
-    def _rewrite_eliminate_distinct(self, query: str, context: Dict[str, Any]) -> Optional[RewriteStep]:
+    def _rewrite_eliminate_distinct(
+        self, query: str, context: Dict[str, Any]
+    ) -> Optional[RewriteStep]:
         """Remove unnecessary DISTINCT clause"""
 
         # Only suggest removal if we have context indicating it's safe
         if not self._is_distinct_safe_to_remove(query, context):
             return None
 
-        pattern = self.rewrite_patterns[RewriteRule.ELIMINATE_DISTINCT]['pattern']
+        pattern = self.rewrite_patterns[RewriteRule.ELIMINATE_DISTINCT]["pattern"]
         match = pattern.search(query)
 
         if not match:
             return None
 
         columns, tables = match.groups()
-        rewritten = re.sub(r'SELECT\s+DISTINCT\s+', 'SELECT ', query, flags=re.IGNORECASE)
+        rewritten = re.sub(
+            r"SELECT\s+DISTINCT\s+", "SELECT ", query, flags=re.IGNORECASE
+        )
 
         return RewriteStep(
             rule=RewriteRule.ELIMINATE_DISTINCT,
@@ -363,7 +397,7 @@ class IntelligentQueryRewriter:
             performance_impact="10-25% improvement in execution time",
             risks=["May introduce duplicates if DISTINCT was necessary"],
             verification_needed=True,
-            estimated_improvement=0.15
+            estimated_improvement=0.15,
         )
 
     def _rewrite_optimize_where(self, query: str) -> Optional[RewriteStep]:
@@ -373,12 +407,18 @@ class IntelligentQueryRewriter:
         optimizations = []
 
         # Check for sargable conditions
-        if re.search(r'WHERE\s+\w+\s*\+\s*\d+\s*[<>=]', query, re.IGNORECASE):
+        if re.search(r"WHERE\s+\w+\s*\+\s*\d+\s*[<>=]", query, re.IGNORECASE):
             optimizations.append("Move constants to right side of comparison")
 
         # Check for function calls on columns
-        if re.search(r'WHERE\s+(YEAR|MONTH|DAY|LOWER|UPPER)\s*\([^)]*\w+\.\w+', query, re.IGNORECASE):
-            optimizations.append("Function calls on indexed columns prevent index usage")
+        if re.search(
+            r"WHERE\s+(YEAR|MONTH|DAY|LOWER|UPPER)\s*\([^)]*\w+\.\w+",
+            query,
+            re.IGNORECASE,
+        ):
+            optimizations.append(
+                "Function calls on indexed columns prevent index usage"
+            )
 
         if not optimizations:
             return None
@@ -393,7 +433,7 @@ class IntelligentQueryRewriter:
             performance_impact="Significant improvement with proper indexes",
             risks=["May require index changes"],
             verification_needed=True,
-            estimated_improvement=0.4
+            estimated_improvement=0.4,
         )
 
     def _rewrite_simplify_case(self, query: str) -> Optional[RewriteStep]:
@@ -401,8 +441,8 @@ class IntelligentQueryRewriter:
 
         # Look for simple CASE expressions that can be simplified
         case_pattern = re.compile(
-            r'CASE\s+WHEN\s+(\w+)\s*=\s*(.+?)\s+THEN\s+(.+?)\s+ELSE\s+(.+?)\s+END',
-            re.IGNORECASE | re.DOTALL
+            r"CASE\s+WHEN\s+(\w+)\s*=\s*(.+?)\s+THEN\s+(.+?)\s+ELSE\s+(.+?)\s+END",
+            re.IGNORECASE | re.DOTALL,
         )
 
         match = case_pattern.search(query)
@@ -413,7 +453,7 @@ class IntelligentQueryRewriter:
         column, value, then_val, else_val = match.groups()
 
         # Check if this can be simplified to COALESCE or similar
-        if then_val.strip().upper() == 'NULL' or else_val.strip().upper() == 'NULL':
+        if then_val.strip().upper() == "NULL" or else_val.strip().upper() == "NULL":
             return RewriteStep(
                 rule=RewriteRule.SIMPLIFY_CASE,
                 complexity=RewriteComplexity.SIMPLE,
@@ -424,7 +464,7 @@ class IntelligentQueryRewriter:
                 performance_impact="Minor improvement in readability and execution",
                 risks=["Minimal"],
                 verification_needed=False,
-                estimated_improvement=0.05
+                estimated_improvement=0.05,
             )
 
         return None
@@ -434,8 +474,8 @@ class IntelligentQueryRewriter:
 
         # Look for correlated subqueries in SELECT clause
         subquery_pattern = re.compile(
-            r'SELECT\s+.*?\(\s*SELECT\s+.+?\s+FROM\s+\w+\s+WHERE\s+.+?\)\s*(?:as\s+\w+)?',
-            re.IGNORECASE | re.DOTALL
+            r"SELECT\s+.*?\(\s*SELECT\s+.+?\s+FROM\s+\w+\s+WHERE\s+.+?\)\s*(?:as\s+\w+)?",
+            re.IGNORECASE | re.DOTALL,
         )
 
         if not subquery_pattern.search(query):
@@ -451,7 +491,7 @@ class IntelligentQueryRewriter:
             performance_impact="Can provide significant improvement",
             risks=["Complex transformation", "May change result structure"],
             verification_needed=True,
-            estimated_improvement=0.35
+            estimated_improvement=0.35,
         )
 
     def _rewrite_normalize_expressions(self, query: str) -> Optional[RewriteStep]:
@@ -461,13 +501,13 @@ class IntelligentQueryRewriter:
         rewritten = query
 
         # Normalize comparison operators
-        if '!=' in query:
-            rewritten = rewritten.replace('!=', '<>')
+        if "!=" in query:
+            rewritten = rewritten.replace("!=", "<>")
             changes.append("Standardized comparison operators")
 
         # Normalize spacing around operators
-        rewritten = re.sub(r'\s*=\s*', ' = ', rewritten)
-        rewritten = re.sub(r'\s*<>\s*', ' <> ', rewritten)
+        rewritten = re.sub(r"\s*=\s*", " = ", rewritten)
+        rewritten = re.sub(r"\s*<>\s*", " <> ", rewritten)
 
         if rewritten != query:
             changes.append("Normalized spacing")
@@ -485,7 +525,7 @@ class IntelligentQueryRewriter:
             performance_impact="No performance impact, improves readability",
             risks=["None"],
             verification_needed=False,
-            estimated_improvement=0.0
+            estimated_improvement=0.0,
         )
 
     def _is_distinct_safe_to_remove(self, query: str, context: Dict[str, Any]) -> bool:
@@ -496,11 +536,11 @@ class IntelligentQueryRewriter:
             return False
 
         # Check if query involves only primary key columns
-        if context.get('primary_key_only', False):
+        if context.get("primary_key_only", False):
             return True
 
         # Check if there are unique constraints that guarantee no duplicates
-        if context.get('unique_result_guaranteed', False):
+        if context.get("unique_result_guaranteed", False):
             return True
 
         return False
@@ -515,11 +555,15 @@ class IntelligentQueryRewriter:
         total_improvement = 0.0
         for step in steps:
             # Apply diminishing returns formula
-            total_improvement = total_improvement + step.estimated_improvement * (1 - total_improvement)
+            total_improvement = total_improvement + step.estimated_improvement * (
+                1 - total_improvement
+            )
 
         return min(0.9, total_improvement)  # Cap at 90%
 
-    def _calculate_confidence(self, steps: List[RewriteStep], context: Dict[str, Any]) -> float:
+    def _calculate_confidence(
+        self, steps: List[RewriteStep], context: Dict[str, Any]
+    ) -> float:
         """Calculate confidence in the rewrite"""
 
         if not steps:
@@ -540,7 +584,9 @@ class IntelligentQueryRewriter:
 
         return max(0.3, min(0.95, base_confidence))
 
-    def _calculate_safety_score(self, steps: List[RewriteStep], safety_level: str) -> float:
+    def _calculate_safety_score(
+        self, steps: List[RewriteStep], safety_level: str
+    ) -> float:
         """Calculate safety score of the rewrite"""
 
         if not steps:
@@ -550,7 +596,7 @@ class IntelligentQueryRewriter:
             RewriteComplexity.SIMPLE: 0.9,
             RewriteComplexity.MODERATE: 0.7,
             RewriteComplexity.COMPLEX: 0.5,
-            RewriteComplexity.ADVANCED: 0.3
+            RewriteComplexity.ADVANCED: 0.3,
         }
 
         # Calculate weighted average
@@ -571,12 +617,12 @@ class IntelligentQueryRewriter:
 
         def complexity_score(query):
             score = 0
-            score += query.upper().count('SELECT') * 2  # Subqueries
-            score += query.upper().count('JOIN') * 1
-            score += query.upper().count('UNION') * 1
-            score += query.upper().count('CASE') * 1
-            score += query.upper().count('EXISTS') * 2
-            score += len(re.findall(r'\(', query))  # Nested expressions
+            score += query.upper().count("SELECT") * 2  # Subqueries
+            score += query.upper().count("JOIN") * 1
+            score += query.upper().count("UNION") * 1
+            score += query.upper().count("CASE") * 1
+            score += query.upper().count("EXISTS") * 2
+            score += len(re.findall(r"\(", query))  # Nested expressions
             return score
 
         original_complexity = complexity_score(original)
@@ -588,13 +634,15 @@ class IntelligentQueryRewriter:
         reduction = (original_complexity - rewritten_complexity) / original_complexity
         return max(0.0, reduction)
 
-    def _calculate_readability_improvement(self, original: str, rewritten: str) -> float:
+    def _calculate_readability_improvement(
+        self, original: str, rewritten: str
+    ) -> float:
         """Calculate improvement in query readability"""
 
         def readability_score(query):
             score = 100
             # Penalize long lines
-            lines = query.split('\n')
+            lines = query.split("\n")
             for line in lines:
                 if len(line) > 120:
                     score -= 5
@@ -603,10 +651,10 @@ class IntelligentQueryRewriter:
             max_nesting = 0
             current_nesting = 0
             for char in query:
-                if char == '(':
+                if char == "(":
                     current_nesting += 1
                     max_nesting = max(max_nesting, current_nesting)
-                elif char == ')':
+                elif char == ")":
                     current_nesting -= 1
 
             score -= max_nesting * 2
@@ -622,7 +670,9 @@ class IntelligentQueryRewriter:
         improvement = (rewritten_score - original_score) / 100
         return max(0.0, min(1.0, improvement))
 
-    def _generate_explanation(self, steps: List[RewriteStep], overall_improvement: float) -> str:
+    def _generate_explanation(
+        self, steps: List[RewriteStep], overall_improvement: float
+    ) -> str:
         """Generate human-readable explanation of the rewrite"""
 
         if not steps:
@@ -630,20 +680,28 @@ class IntelligentQueryRewriter:
 
         explanation_parts = []
 
-        explanation_parts.append(f"Applied {len(steps)} optimization(s) with an estimated {overall_improvement:.1%} overall improvement:")
+        explanation_parts.append(
+            f"Applied {len(steps)} optimization(s) with an estimated {overall_improvement:.1%} overall improvement:"
+        )
         explanation_parts.append("")
 
         for i, step in enumerate(steps, 1):
             explanation_parts.append(f"{i}. **{step.description}**")
             explanation_parts.append(f"   - Rationale: {step.rationale}")
-            explanation_parts.append(f"   - Expected improvement: {step.estimated_improvement:.1%}")
-            explanation_parts.append(f"   - Performance impact: {step.performance_impact}")
+            explanation_parts.append(
+                f"   - Expected improvement: {step.estimated_improvement:.1%}"
+            )
+            explanation_parts.append(
+                f"   - Performance impact: {step.performance_impact}"
+            )
 
             if step.risks:
                 explanation_parts.append(f"   - Risks: {', '.join(step.risks)}")
 
             if step.verification_needed:
-                explanation_parts.append("   - ⚠️ Verification recommended before production use")
+                explanation_parts.append(
+                    "   - ⚠️ Verification recommended before production use"
+                )
 
             explanation_parts.append("")
 
@@ -656,7 +714,7 @@ class IntelligentQueryRewriter:
             "Compare execution plans of original and rewritten queries",
             "Verify identical result sets with diverse test data",
             "Test with various data volumes (small, medium, large)",
-            "Monitor resource usage (CPU, memory, I/O) during testing"
+            "Monitor resource usage (CPU, memory, I/O) during testing",
         ]
 
         # Add specific recommendations based on rewrite types
@@ -684,7 +742,7 @@ class IntelligentQueryRewriter:
             readability_improvement=0.0,
             explanation="Unable to parse query for rewriting",
             warnings=["Query parsing failed - no optimizations applied"],
-            test_recommendations=[]
+            test_recommendations=[],
         )
 
     def suggest_alternative_approaches(self, query: str) -> List[Dict[str, str]]:
@@ -693,28 +751,34 @@ class IntelligentQueryRewriter:
         suggestions = []
 
         # Check for complex subqueries
-        if query.upper().count('SELECT') > 3:
-            suggestions.append({
-                'approach': 'Common Table Expressions (CTEs)',
-                'description': 'Break down complex subqueries into readable CTEs',
-                'example': 'WITH subquery_name AS (SELECT ...) SELECT ... FROM subquery_name'
-            })
+        if query.upper().count("SELECT") > 3:
+            suggestions.append(
+                {
+                    "approach": "Common Table Expressions (CTEs)",
+                    "description": "Break down complex subqueries into readable CTEs",
+                    "example": "WITH subquery_name AS (SELECT ...) SELECT ... FROM subquery_name",
+                }
+            )
 
         # Check for many JOINs
-        if query.upper().count('JOIN') > 4:
-            suggestions.append({
-                'approach': 'Staged Processing',
-                'description': 'Consider breaking into multiple queries with temporary tables',
-                'example': 'Process in stages: temp table → final result'
-            })
+        if query.upper().count("JOIN") > 4:
+            suggestions.append(
+                {
+                    "approach": "Staged Processing",
+                    "description": "Consider breaking into multiple queries with temporary tables",
+                    "example": "Process in stages: temp table → final result",
+                }
+            )
 
         # Check for complex aggregations
-        if 'GROUP BY' in query.upper() and 'HAVING' in query.upper():
-            suggestions.append({
-                'approach': 'Window Functions',
-                'description': 'Consider using window functions for advanced analytics',
-                'example': 'ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)'
-            })
+        if "GROUP BY" in query.upper() and "HAVING" in query.upper():
+            suggestions.append(
+                {
+                    "approach": "Window Functions",
+                    "description": "Consider using window functions for advanced analytics",
+                    "example": "ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)",
+                }
+            )
 
         return suggestions
 
@@ -804,26 +868,23 @@ if __name__ == "__main__":
 
     # Conservative rewrite
     conservative_rewrite = rewriter.rewrite_query(
-        test_query,
-        safety_level='conservative'
+        test_query, safety_level="conservative"
     )
 
     print("CONSERVATIVE REWRITE:")
     print(format_rewrite_report(conservative_rewrite))
 
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
 
     # Moderate rewrite
     moderate_rewrite = rewriter.rewrite_query(
-        test_query,
-        safety_level='moderate',
-        context={'unique_result_guaranteed': True}
+        test_query, safety_level="moderate", context={"unique_result_guaranteed": True}
     )
 
     print("MODERATE REWRITE:")
     print(format_rewrite_report(moderate_rewrite))
 
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
 
     # Alternative approaches
     alternatives = rewriter.suggest_alternative_approaches(test_query)

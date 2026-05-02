@@ -5,16 +5,17 @@ Advanced analysis of nested SQL subqueries with support for 3+ nesting levels,
 dependency graph construction, and performance impact assessment.
 """
 
-import re
 import logging
-from typing import Dict, List, Set, Optional, Tuple, NamedTuple
+import re
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
-from collections import defaultdict, deque
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 
 class SubqueryType(Enum):
     """Classification of subquery types"""
+
     SCALAR = "scalar"  # Returns single value (e.g., in SELECT or WHERE)
     CORRELATED = "correlated"  # References outer query columns
     DERIVED_TABLE = "derived_table"  # Used in FROM clause
@@ -27,6 +28,7 @@ class SubqueryType(Enum):
 
 class SubqueryLocation(Enum):
     """Location of subquery in query structure"""
+
     SELECT_LIST = "select_list"  # In SELECT clause
     FROM_CLAUSE = "from_clause"  # In FROM clause
     WHERE_CLAUSE = "where_clause"  # In WHERE clause
@@ -40,6 +42,7 @@ class SubqueryLocation(Enum):
 @dataclass
 class SubqueryNode:
     """Represents a single subquery in the hierarchy"""
+
     query_text: str
     depth: int
     type: SubqueryType
@@ -60,15 +63,20 @@ class SubqueryNode:
 @dataclass
 class NestedSubqueryAnalysis:
     """Complete analysis of nested subqueries in a query"""
+
     total_subquery_count: int = 0
     max_nesting_depth: int = 0
     nesting_levels: Dict[int, int] = field(default_factory=dict)  # depth -> count
     subquery_types: Dict[str, int] = field(default_factory=dict)  # type -> count
-    subquery_locations: Dict[str, int] = field(default_factory=dict)  # location -> count
+    subquery_locations: Dict[str, int] = field(
+        default_factory=dict
+    )  # location -> count
     correlated_count: int = 0
     derived_table_count: int = 0
     subquery_nodes: List[SubqueryNode] = field(default_factory=list)
-    dependency_graph: Dict[int, List[int]] = field(default_factory=dict)  # parent -> children
+    dependency_graph: Dict[int, List[int]] = field(
+        default_factory=dict
+    )  # parent -> children
     complexity_score: float = 0.0
     performance_risk_level: str = "low"  # low, medium, high, critical
 
@@ -84,41 +92,27 @@ class NestedSubqueryAnalyzer:
     def _compile_patterns(self):
         """Compile regex patterns for subquery analysis"""
         # Match SELECT statements (including nested)
-        self.select_pattern = re.compile(
-            r'\bSELECT\s+(?:DISTINCT\s+)?',
-            re.IGNORECASE
-        )
+        self.select_pattern = re.compile(r"\bSELECT\s+(?:DISTINCT\s+)?", re.IGNORECASE)
 
         # Match various subquery contexts
         self.scalar_subquery_pattern = re.compile(
-            r'(COUNT|SUM|AVG|MAX|MIN|STDDEV|VARIANCE)\s*\(\s*(?:SELECT|CASE)',
-            re.IGNORECASE
+            r"(COUNT|SUM|AVG|MAX|MIN|STDDEV|VARIANCE)\s*\(\s*(?:SELECT|CASE)",
+            re.IGNORECASE,
         )
 
-        self.exists_pattern = re.compile(
-            r'\b(EXISTS|NOT\s+EXISTS)\s*\(',
-            re.IGNORECASE
-        )
+        self.exists_pattern = re.compile(r"\b(EXISTS|NOT\s+EXISTS)\s*\(", re.IGNORECASE)
 
-        self.in_pattern = re.compile(
-            r'\b(IN|NOT\s+IN)\s*\(',
-            re.IGNORECASE
-        )
+        self.in_pattern = re.compile(r"\b(IN|NOT\s+IN)\s*\(", re.IGNORECASE)
 
-        self.from_pattern = re.compile(
-            r'\bFROM\s*\(',
-            re.IGNORECASE
-        )
+        self.from_pattern = re.compile(r"\bFROM\s*\(", re.IGNORECASE)
 
         self.join_pattern = re.compile(
-            r'\b(INNER|LEFT|RIGHT|FULL|CROSS)?\s*JOIN\s+\(',
-            re.IGNORECASE
+            r"\b(INNER|LEFT|RIGHT|FULL|CROSS)?\s*JOIN\s+\(", re.IGNORECASE
         )
 
         # Correlation indicators
         self.correlation_pattern = re.compile(
-            r'(\w+)\.(\w+)\s+(?:=|<>|<|>|<=|>=)',
-            re.IGNORECASE
+            r"(\w+)\.(\w+)\s+(?:=|<>|<|>|<=|>=)", re.IGNORECASE
         )
 
     def analyze_nested_subqueries(self, query: str) -> NestedSubqueryAnalysis:
@@ -145,15 +139,21 @@ class NestedSubqueryAnalyzer:
             # Collect statistics
             for node in subqueries:
                 # Nesting level distribution
-                analysis.nesting_levels[node.depth] = analysis.nesting_levels.get(node.depth, 0) + 1
+                analysis.nesting_levels[node.depth] = (
+                    analysis.nesting_levels.get(node.depth, 0) + 1
+                )
 
                 # Type distribution
                 type_name = node.type.value
-                analysis.subquery_types[type_name] = analysis.subquery_types.get(type_name, 0) + 1
+                analysis.subquery_types[type_name] = (
+                    analysis.subquery_types.get(type_name, 0) + 1
+                )
 
                 # Location distribution
                 location_name = node.location.value
-                analysis.subquery_locations[location_name] = analysis.subquery_locations.get(location_name, 0) + 1
+                analysis.subquery_locations[location_name] = (
+                    analysis.subquery_locations.get(location_name, 0) + 1
+                )
 
                 # Count correlated
                 if node.references_outer:
@@ -201,7 +201,7 @@ class NestedSubqueryAnalyzer:
             char = query[i]
 
             # Handle string literals
-            if char in ('"', "'") and (i == 0 or query[i-1] != '\\'):
+            if char in ('"', "'") and (i == 0 or query[i - 1] != "\\"):
                 if not in_string:
                     in_string = True
                     string_char = char
@@ -210,22 +210,24 @@ class NestedSubqueryAnalyzer:
 
             # Only count parentheses outside strings
             if not in_string:
-                if char == '(':
+                if char == "(":
                     paren_count += 1
-                elif char == ')':
+                elif char == ")":
                     paren_count -= 1
                     if paren_count < 0:
                         return i
 
                 # Check for statement terminators
-                if char == ';' and paren_count == 0:
+                if char == ";" and paren_count == 0:
                     return i
 
             i += 1
 
         return len(query)
 
-    def _extract_subqueries(self, query: str, select_positions: List[Tuple[int, int]]) -> List[SubqueryNode]:
+    def _extract_subqueries(
+        self, query: str, select_positions: List[Tuple[int, int]]
+    ) -> List[SubqueryNode]:
         """Extract and classify all subqueries"""
         subqueries = []
 
@@ -236,8 +238,11 @@ class NestedSubqueryAnalyzer:
             subquery_text = query[start:end].strip()
 
             # Determine depth (count parent SELECTs)
-            depth = sum(1 for p_start, p_end in select_positions[:pos_idx]
-                       if p_start < start < p_end)
+            depth = sum(
+                1
+                for p_start, p_end in select_positions[:pos_idx]
+                if p_start < start < p_end
+            )
 
             # Classify type and location
             subquery_type = self._classify_subquery_type(query, start, subquery_text)
@@ -258,9 +263,11 @@ class NestedSubqueryAnalyzer:
             node.column_references = self._extract_column_references(subquery_text)
             node.table_references = self._extract_table_references(subquery_text)
             node.aggregate_functions = self._extract_aggregate_functions(subquery_text)
-            node.has_group_by = 'GROUP BY' in subquery_text.upper()
-            node.has_order_by = 'ORDER BY' in subquery_text.upper()
-            node.has_limit = 'LIMIT' in subquery_text.upper() or 'TOP' in subquery_text.upper()
+            node.has_group_by = "GROUP BY" in subquery_text.upper()
+            node.has_order_by = "ORDER BY" in subquery_text.upper()
+            node.has_limit = (
+                "LIMIT" in subquery_text.upper() or "TOP" in subquery_text.upper()
+            )
 
             # Calculate complexity
             node.complexity_score = self._calculate_node_complexity(node)
@@ -269,30 +276,32 @@ class NestedSubqueryAnalyzer:
 
         return subqueries
 
-    def _classify_subquery_type(self, full_query: str, position: int, subquery_text: str) -> SubqueryType:
+    def _classify_subquery_type(
+        self, full_query: str, position: int, subquery_text: str
+    ) -> SubqueryType:
         """Classify the type of subquery"""
         query_upper = full_query.upper()
         before = full_query[:position].upper()
-        after = full_query[position + 6:position + 20].upper()  # After SELECT keyword
+        after = full_query[position + 6 : position + 20].upper()  # After SELECT keyword
 
         # Check for EXISTS
-        if 'EXISTS' in before[-10:]:
+        if "EXISTS" in before[-10:]:
             return SubqueryType.EXISTS
 
         # Check for IN/NOT IN
-        if 'IN' in before[-5:] and '(' in before[-1:]:
+        if "IN" in before[-5:] and "(" in before[-1:]:
             return SubqueryType.IN_LIST
 
         # Check for comparison operators (=, <, >, etc.)
-        if any(op in before[-3:] for op in ['=', '<', '>']):
+        if any(op in before[-3:] for op in ["=", "<", ">"]):
             return SubqueryType.COMPARISON
 
         # Check for FROM clause (derived table)
-        if 'FROM' in before[-10:]:
+        if "FROM" in before[-10:]:
             return SubqueryType.DERIVED_TABLE
 
         # Check for JOIN
-        if 'JOIN' in before[-10:]:
+        if "JOIN" in before[-10:]:
             return SubqueryType.DERIVED_TABLE
 
         # Check for aggregate function (scalar subquery)
@@ -300,7 +309,7 @@ class NestedSubqueryAnalyzer:
             return SubqueryType.SCALAR
 
         # Default to scalar if in SELECT list
-        if 'SELECT' in before[-50:] and 'FROM' not in before[-30:]:
+        if "SELECT" in before[-50:] and "FROM" not in before[-30:]:
             return SubqueryType.SCALAR
 
         return SubqueryType.SCALAR
@@ -310,32 +319,32 @@ class NestedSubqueryAnalyzer:
         before = full_query[:position].upper()
 
         # Find the last major clause
-        select_pos = before.rfind('SELECT')
-        from_pos = before.rfind('FROM')
-        where_pos = before.rfind('WHERE')
-        having_pos = before.rfind('HAVING')
-        orderby_pos = before.rfind('ORDER BY')
-        join_pos = before.rfind('JOIN')
+        select_pos = before.rfind("SELECT")
+        from_pos = before.rfind("FROM")
+        where_pos = before.rfind("WHERE")
+        having_pos = before.rfind("HAVING")
+        orderby_pos = before.rfind("ORDER BY")
+        join_pos = before.rfind("JOIN")
 
         positions = {
-            'select': select_pos if select_pos > from_pos else -1,
-            'from': from_pos if from_pos > where_pos else -1,
-            'where': where_pos if where_pos > from_pos else -1,
-            'having': having_pos if having_pos > where_pos else -1,
-            'orderby': orderby_pos if orderby_pos > having_pos else -1,
-            'join': join_pos if join_pos > from_pos else -1,
+            "select": select_pos if select_pos > from_pos else -1,
+            "from": from_pos if from_pos > where_pos else -1,
+            "where": where_pos if where_pos > from_pos else -1,
+            "having": having_pos if having_pos > where_pos else -1,
+            "orderby": orderby_pos if orderby_pos > having_pos else -1,
+            "join": join_pos if join_pos > from_pos else -1,
         }
 
         # Determine location based on last major clause
-        if positions['orderby'] > positions['having']:
+        if positions["orderby"] > positions["having"]:
             return SubqueryLocation.ORDER_BY
-        elif positions['having'] > positions['where']:
+        elif positions["having"] > positions["where"]:
             return SubqueryLocation.HAVING_CLAUSE
-        elif positions['join'] > positions['where']:
+        elif positions["join"] > positions["where"]:
             return SubqueryLocation.JOIN_CONDITION
-        elif positions['where'] > positions['from']:
+        elif positions["where"] > positions["from"]:
             return SubqueryLocation.WHERE_CLAUSE
-        elif positions['from'] > positions['select']:
+        elif positions["from"] > positions["select"]:
             return SubqueryLocation.FROM_CLAUSE
         else:
             return SubqueryLocation.SELECT_LIST
@@ -343,7 +352,7 @@ class NestedSubqueryAnalyzer:
     def _check_correlated(self, subquery_text: str, before_query: str) -> bool:
         """Check if subquery is correlated (references outer query)"""
         # Look for table aliases with dots (e.g., t1.column)
-        table_alias_pattern = re.compile(r'\b(\w+)\.(\w+)\b', re.IGNORECASE)
+        table_alias_pattern = re.compile(r"\b(\w+)\.(\w+)\b", re.IGNORECASE)
         references = table_alias_pattern.findall(subquery_text)
 
         if not references:
@@ -351,7 +360,9 @@ class NestedSubqueryAnalyzer:
 
         # Extract table aliases from outer query
         outer_aliases = set()
-        for match in re.finditer(r'FROM\s+\w+\s+(?:AS\s+)?(\w+)', before_query, re.IGNORECASE):
+        for match in re.finditer(
+            r"FROM\s+\w+\s+(?:AS\s+)?(\w+)", before_query, re.IGNORECASE
+        ):
             outer_aliases.add(match.group(1).lower())
 
         # Check if any reference uses outer alias
@@ -363,7 +374,10 @@ class NestedSubqueryAnalyzer:
 
     def _extract_column_references(self, subquery_text: str) -> List[str]:
         """Extract all column references from subquery"""
-        pattern = re.compile(r'\b(\w+)\.(\w+)\b|\b(?:SELECT|FROM|WHERE|GROUP\s+BY|ORDER\s+BY)\s+(\w+)', re.IGNORECASE)
+        pattern = re.compile(
+            r"\b(\w+)\.(\w+)\b|\b(?:SELECT|FROM|WHERE|GROUP\s+BY|ORDER\s+BY)\s+(\w+)",
+            re.IGNORECASE,
+        )
         references = []
 
         for match in pattern.finditer(subquery_text):
@@ -376,7 +390,7 @@ class NestedSubqueryAnalyzer:
 
     def _extract_table_references(self, subquery_text: str) -> List[str]:
         """Extract all table references from subquery"""
-        pattern = re.compile(r'\bFROM\s+(\w+)(?:\s+(?:AS\s+)?(\w+))?', re.IGNORECASE)
+        pattern = re.compile(r"\bFROM\s+(\w+)(?:\s+(?:AS\s+)?(\w+))?", re.IGNORECASE)
         tables = []
 
         for match in pattern.finditer(subquery_text):
@@ -387,8 +401,8 @@ class NestedSubqueryAnalyzer:
     def _extract_aggregate_functions(self, subquery_text: str) -> List[str]:
         """Extract aggregate functions from subquery"""
         pattern = re.compile(
-            r'\b(COUNT|SUM|AVG|MAX|MIN|STDDEV|VARIANCE|GROUP_CONCAT|STRING_AGG)\s*\(',
-            re.IGNORECASE
+            r"\b(COUNT|SUM|AVG|MAX|MIN|STDDEV|VARIANCE|GROUP_CONCAT|STRING_AGG)\s*\(",
+            re.IGNORECASE,
         )
         functions = []
 
@@ -424,7 +438,9 @@ class NestedSubqueryAnalyzer:
 
         return min(1.0, score)
 
-    def _build_dependency_graph(self, subqueries: List[SubqueryNode]) -> Dict[int, List[int]]:
+    def _build_dependency_graph(
+        self, subqueries: List[SubqueryNode]
+    ) -> Dict[int, List[int]]:
         """Build dependency graph showing parent-child relationships"""
         graph = defaultdict(list)
 
@@ -454,8 +470,9 @@ class NestedSubqueryAnalyzer:
 
         return min(1.0, depth_weighted_score + depth_penalty + correlated_penalty)
 
-    def _assess_performance_risk(self, analysis: NestedSubqueryAnalysis,
-                                subqueries: List[SubqueryNode]) -> str:
+    def _assess_performance_risk(
+        self, analysis: NestedSubqueryAnalysis, subqueries: List[SubqueryNode]
+    ) -> str:
         """Assess performance risk level"""
         risk_score = 0.0
 
@@ -494,20 +511,30 @@ class NestedSubqueryAnalyzer:
         else:
             return "low"
 
-    def get_performance_recommendations(self, analysis: NestedSubqueryAnalysis) -> List[str]:
+    def get_performance_recommendations(
+        self, analysis: NestedSubqueryAnalysis
+    ) -> List[str]:
         """Get performance recommendations based on analysis"""
         recommendations = []
 
         if analysis.max_nesting_depth >= 3:
-            recommendations.append("Consider using CTEs (WITH clause) to flatten deeply nested subqueries")
+            recommendations.append(
+                "Consider using CTEs (WITH clause) to flatten deeply nested subqueries"
+            )
 
         if analysis.correlated_count > 0:
-            recommendations.append("Correlated subqueries detected - consider using JOINs or window functions")
+            recommendations.append(
+                "Correlated subqueries detected - consider using JOINs or window functions"
+            )
 
         if analysis.derived_table_count > 2:
-            recommendations.append("Multiple derived tables found - consider consolidating using CTEs")
+            recommendations.append(
+                "Multiple derived tables found - consider consolidating using CTEs"
+            )
 
         if analysis.total_subquery_count >= 10:
-            recommendations.append("Query has many subqueries - consider refactoring for readability and performance")
+            recommendations.append(
+                "Query has many subqueries - consider refactoring for readability and performance"
+            )
 
         return recommendations
