@@ -271,10 +271,12 @@ WHERE u.created_at > '2024-01-01' AND o.total > 100;</code></pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
 
+{{ db_versions|json_script:"db-versions-data" }}
 <script>
 let sqlEditor = null;
 
-const DB_VERSIONS = {{ db_versions_json|default:"{}"|safe }};
+const _dbVersionsEl = document.getElementById('db-versions-data');
+const DB_VERSIONS = _dbVersionsEl ? JSON.parse(_dbVersionsEl.textContent) : {};
 
 function updateVersionList(dbType) {
   const versionInput = document.getElementById('{{ form.database_version.id_for_label }}');
