@@ -395,6 +395,7 @@ async function deleteSelected() {
 function copyQuery(historyId) {
   const ta = document.getElementById('query-' + historyId);
   if (!ta) return;
+  if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'query' });
   const text = ta.value;
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(() => showToast('Query copied'));

@@ -18,7 +18,7 @@
     <p class="mt-1 text-sm text-gray-500">Submit 2 or 3 SQL queries to see a side-by-side analysis with grades, issues, and recommendations.</p>
   </header>
 
-  <form method="post" class="space-y-6">
+  <form method="post" class="space-y-6" id="compareForm">
     {% csrf_token %}
 
     <section class="bg-white rounded-lg border border-gray-200 p-5">
@@ -124,6 +124,15 @@ function clearAllForms() {
   document.querySelectorAll('form input[type=text], form textarea').forEach(el => { el.value = ''; });
   document.querySelectorAll('form select').forEach(el => { el.selectedIndex = 0; });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const f = document.getElementById('compareForm');
+  if (f) f.addEventListener('submit', () => {
+    let count = 0;
+    sqlEditors.forEach(ed => { if (ed.getValue().trim()) count++; });
+    if (window.trackEvent) window.trackEvent('comparison_started', { query_count: count });
+  });
+});
 
 function loadComparisonExample() {
   if (sqlEditors.length >= 2) {

@@ -84,6 +84,9 @@ def submit_feedback(request, analysis_id):
             user_history.feedback_comments = form.cleaned_data["suggestions"]
             user_history.save()
 
+            # GA4 one-shot event (read+popped by context processor on next render)
+            request.session["_pending_gtag_event"] = "feedback_submitted"
+            request.session["_pending_gtag_params"] = {"feedback_type": "detailed"}
             return redirect("grade_results", analysis_id=analysis_id)
         else:
             messages.error(request, "Please correct the errors in the feedback form.")

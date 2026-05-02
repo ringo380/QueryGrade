@@ -38,6 +38,17 @@
     gtag('event', 'sign_up', { method: 'email' });
     {% endif %}
   </script>
+  {% if gtag_event %}
+  {{ gtag_params|default_if_none:""|json_script:"gtag-params-data" }}
+  <script>
+    (function() {
+      var el = document.getElementById('gtag-params-data');
+      var params = {};
+      try { params = el && el.textContent ? JSON.parse(el.textContent) : {}; } catch(e) {}
+      gtag('event', '{{ gtag_event|escapejs }}', params || {});
+    })();
+  </script>
+  {% endif %}
   {% endif %}
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -52,18 +63,18 @@
         <div class="flex gap-1 items-center">
           {% if user.is_authenticated %}
             {% with url_name=request.resolver_match.url_name %}
-              <a href="{% url 'index' %}"
+              <a href="{% url 'index' %}" data-nav="dashboard"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'index' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Dashboard</a>
-              <a href="{% url 'grade_query' %}"
+              <a href="{% url 'grade_query' %}" data-nav="grade"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'grade_query' or url_name == 'grade_results' or url_name == 'enhanced_grade_results' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Grade</a>
-              <a href="{% url 'batch_analysis' %}"
+              <a href="{% url 'batch_analysis' %}" data-nav="batch"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'batch_analysis' or url_name == 'batch_results' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Batch</a>
-              <a href="{% url 'database_analyze' %}"
+              <a href="{% url 'database_analyze' %}" data-nav="database"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'database_analyze' or url_name == 'database_schema' or url_name == 'query_with_context' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Database</a>
-              <a href="{% url 'query_history' %}"
+              <a href="{% url 'query_history' %}" data-nav="history"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'query_history' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">History</a>
               {% if user.is_staff %}
-              <a href="{% url 'ml_dashboard' %}"
+              <a href="{% url 'ml_dashboard' %}" data-nav="ml"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'ml_dashboard' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">ML</a>
               {% endif %}
             {% endwith %}
@@ -81,8 +92,8 @@
               </div>
             </div>
           {% else %}
-            <a href="{% url 'login' %}" class="px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">Login</a>
-            <a href="{% url 'register' %}" class="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700">Register</a>
+            <a href="{% url 'login' %}" data-nav="login" class="px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">Login</a>
+            <a href="{% url 'register' %}" data-nav="register" class="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700">Register</a>
           {% endif %}
         </div>
       </div>
@@ -132,6 +143,21 @@
       return document.cookie.split(';').map(c => c.trim())
         .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
     }
+
+    // GA4 helper: safely fire a gtag event when GA is configured. Silent no-op otherwise.
+    window.trackEvent = function(name, params) {
+      if (typeof gtag === 'function') {
+        try { gtag('event', name, params || {}); } catch (e) {}
+      }
+    };
+
+    // Delegated nav click tracking. Reads `data-nav` from anchors inside the primary <nav>.
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest && e.target.closest('nav#navigation a[data-nav]');
+      if (a) {
+        window.trackEvent('nav_clicked', { nav_target: a.getAttribute('data-nav') });
+      }
+    }, true);
 
     // Apply Tailwind-friendly classes to Django-rendered form widgets that don't already have a `class` attr
     document.addEventListener('DOMContentLoaded', () => {

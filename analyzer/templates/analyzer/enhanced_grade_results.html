@@ -498,14 +498,25 @@
     } catch (e) { console.error(e); showToast('Copy failed', 'error'); }
   }
 
+  function _copyContentType(elementId) {
+    if (!elementId) return 'unknown';
+    if (elementId === 'analyzed-query') return 'query';
+    if (elementId === 'optimized-query') return 'optimization';
+    if (elementId.indexOf('example-') === 0) return 'example';
+    if (elementId.indexOf('rewrite-') === 0) return 'rewrite';
+    return elementId;
+  }
+
   async function copyToClipboard(elementId, msg) {
     const el = document.getElementById(elementId);
     if (!el) return;
     const text = (el.value !== undefined ? el.value : el.textContent || el.innerText || '').trim();
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: _copyContentType(elementId) });
     await copyText(text, msg);
   }
 
   async function copyAllRecommendations() {
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'recommendations' });
     const list = document.getElementById('recommendations-list');
     if (!list) return;
     let s = "SQL Query Analysis Recommendations\n=====================================\n\n";
@@ -520,6 +531,7 @@
   }
 
   async function copyRewriteSuggestions() {
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'rewrite_all' });
     let s = "AI Query Rewrite Suggestions\n============================\n\n";
     document.querySelectorAll('[id^="rewrite-"]').forEach((el, i) => {
       s += `${i + 1}. ${(el.value || el.textContent || '').trim()}\n\n`;
@@ -528,6 +540,7 @@
   }
 
   async function copyFullReport() {
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'report' });
     let r = "Enhanced SQL Query Analysis Report\n==================================\n\n";
     r += `Overall Grade: {{ analysis.grade }} ({{ analysis.score|floatformat:1 }}/100)\n`;
     {% if ml_analysis.has_ml_analysis %}r += `AI Semantic Score: {{ ml_analysis.semantic_score|floatformat:1 }}/100\n`;{% endif %}

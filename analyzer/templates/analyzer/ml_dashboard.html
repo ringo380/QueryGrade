@@ -263,6 +263,7 @@ function triggerTraining() {
   const orig = btn.innerHTML;
   btn.innerHTML = '⏳ Training…';
   btn.disabled = true;
+  if (window.trackEvent) window.trackEvent('admin_training_triggered', {});
   fetch('/ml/api/trigger-training/', {
     method: 'POST',
     headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },

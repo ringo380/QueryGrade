@@ -11,7 +11,7 @@
   </header>
 
   <section class="bg-white rounded-lg border border-gray-200 p-6">
-    <form method="post" class="space-y-5">
+    <form method="post" class="space-y-5" id="batchForm">
       {% csrf_token %}
 
       <div>
@@ -61,6 +61,23 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const f = document.getElementById('batchForm');
+  if (!f) return;
+  f.addEventListener('submit', () => {
+    const ta = document.getElementById('{{ form.queries_text.id_for_label }}');
+    const dbSel = document.getElementById('{{ form.database_type.id_for_label }}');
+    let count = 0;
+    if (ta && ta.value) {
+      count = ta.value.split(';').map(s => s.trim()).filter(Boolean).length;
+    }
+    if (window.trackEvent) window.trackEvent('batch_analysis_started', {
+      query_count: count,
+      database_type: (dbSel && dbSel.value) || 'unspecified'
+    });
+  });
+});
+
 function loadExample() {
   const ta = document.getElementById('{{ form.queries_text.id_for_label }}');
   if (!ta) return;

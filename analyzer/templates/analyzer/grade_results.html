@@ -372,14 +372,25 @@
     }
   }
 
+  function _copyContentType(elementId) {
+    if (!elementId) return 'unknown';
+    if (elementId === 'analyzed-query') return 'query';
+    if (elementId === 'optimized-query') return 'optimization';
+    if (elementId.indexOf('example-') === 0) return 'example';
+    if (elementId.indexOf('rewrite-') === 0) return 'rewrite';
+    return elementId;
+  }
+
   async function copyToClipboard(elementId, msg) {
     const el = document.getElementById(elementId);
     if (!el) return;
     const text = (el.value !== undefined ? el.value : el.textContent || el.innerText || '').trim();
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: _copyContentType(elementId) });
     await copyText(text, msg);
   }
 
   async function copyAllRecommendations() {
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'recommendations' });
     const list = document.getElementById('recommendations-list');
     if (!list) return;
     let summary = "SQL Query Analysis Recommendations\n=====================================\n\n";
@@ -398,6 +409,7 @@
   }
 
   async function copyFullReport() {
+    if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'report' });
     let r = "SQL Query Analysis Report\n========================\n\n";
     const grade = "{{ analysis.grade }}";
     const score = "{{ analysis.score|floatformat:1 }}";

@@ -46,7 +46,10 @@ def login_view(request):
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
 
-            # Handle next parameter for redirect after login
+            # GA4 one-shot event (read+popped by context processor on next render)
+            request.session["_pending_gtag_event"] = "user_login"
+            request.session["_pending_gtag_params"] = {"method": "password"}
+
             next_url = request.GET.get("next") or request.POST.get("next")
             if next_url:
                 return redirect(next_url)
@@ -209,6 +212,7 @@ def password_reset_confirm(request, uidb64, token):
                     request,
                     "Your password has been reset successfully. You can now log in.",
                 )
+                request.session["_pending_gtag_event"] = "password_reset_confirm"
                 return redirect("login")
         else:
             form = SetPasswordForm(user)

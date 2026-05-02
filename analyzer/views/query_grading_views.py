@@ -69,6 +69,8 @@ def grade_query(request):
                     "trial_cap": cap,
                     "trial_remaining": 0,
                     "db_versions": DATABASE_VERSIONS,
+                    "gtag_event": "trial_exhausted",
+                    "gtag_params": {"trial_cap": cap, "queries_used": count},
                 },
             )
 

@@ -11,7 +11,7 @@
   </header>
 
   <section class="bg-white rounded-lg border border-gray-200 p-6">
-    <form method="post" class="space-y-5">
+    <form method="post" class="space-y-5" id="dbAnalyzeForm">
       {% csrf_token %}
 
       {% for field in form %}
@@ -35,6 +35,19 @@
       </div>
     </form>
   </section>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const f = document.getElementById('dbAnalyzeForm');
+      if (!f) return;
+      f.addEventListener('submit', () => {
+        const dbType = f.querySelector('[name="database_type"], [name="db_type"]');
+        if (window.trackEvent) window.trackEvent('database_analysis_started', {
+          database_type: (dbType && dbType.value) || 'unspecified'
+        });
+      });
+    });
+  </script>
 
   <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900">
     <p class="font-semibold">🔒 Security note</p>
