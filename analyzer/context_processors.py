@@ -23,3 +23,27 @@ def ga4_settings(request):
                 ctx["gtag_params"] = params
 
     return ctx
+
+
+def anon_trial(request):
+    """Expose anonymous trial state (cap/count/remaining) for the navbar credits indicator.
+
+    Returns empty dict for authenticated users so the indicator renders only for anon visitors.
+    """
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated:
+        return {}
+    if getattr(request, "session", None) is None:
+        return {}
+
+    from analyzer.views.utils import anon_trial_state
+
+    try:
+        cap, count, remaining = anon_trial_state(request)
+    except Exception:
+        return {}
+    return {
+        "anon_trial_cap": cap,
+        "anon_trial_count": count,
+        "anon_trial_remaining": remaining,
+    }

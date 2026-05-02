@@ -65,6 +65,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "analyzer.context_processors.ga4_settings",
+                "analyzer.context_processors.anon_trial",
             ],
         },
     },
@@ -440,7 +441,7 @@ RATELIMIT_ENABLE = os.environ.get("RATELIMIT_ENABLE", "False").lower() in (
 RATELIMIT_USE_CACHE = "default"
 
 # Anonymous trial: per-session cap on free query grades for unauthenticated visitors
-ANON_TRIAL_CAP = int(os.environ.get("ANON_TRIAL_CAP", "3"))
+ANON_TRIAL_CAP = int(os.environ.get("ANON_TRIAL_CAP", "50"))
 
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
