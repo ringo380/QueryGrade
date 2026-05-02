@@ -6,7 +6,8 @@ issues related to filtering conditions.
 """
 
 import re
-from .base import BaseAnalyzer, AnalysisContext
+
+from .base import AnalysisContext, BaseAnalyzer
 
 
 class WhereAnalyzer(BaseAnalyzer):
@@ -41,74 +42,107 @@ class WhereAnalyzer(BaseAnalyzer):
         self._check_constant_comparisons(sql_text, context)
         self._check_date_range_queries(sql_text, context)
 
-    def _check_functions_on_columns(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_functions_on_columns(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for functions on columns in WHERE clause."""
         function_patterns = [
-            r'UPPER\([^)]+\)', r'LOWER\([^)]+\)', r'SUBSTRING\([^)]+\)',
-            r'CONCAT\([^)]+\)', r'DATE\([^)]+\)', r'YEAR\([^)]+\)', r'MONTH\([^)]+\)'
+            r"UPPER\([^)]+\)",
+            r"LOWER\([^)]+\)",
+            r"SUBSTRING\([^)]+\)",
+            r"CONCAT\([^)]+\)",
+            r"DATE\([^)]+\)",
+            r"YEAR\([^)]+\)",
+            r"MONTH\([^)]+\)",
         ]
 
         for pattern in function_patterns:
             if re.search(pattern, sql_text):
-                context.issues.append({
-                    'type': 'FUNCTION_ON_COLUMN',
-                    'severity': 'medium',
-                    'description': 'Using functions on columns in WHERE clause prevents index usage'
-                })
-                context.recommendations.append({
-                    'type': 'AVOID_FUNCTIONS_ON_COLUMNS',
-                    'priority': 'medium',
-                    'description': 'Avoid using functions on columns in WHERE conditions',
-                    'example': 'Instead of WHERE YEAR(date_col) = 2024, use WHERE date_col >= \'2024-01-01\' AND date_col < \'2025-01-01\''
-                })
+                context.issues.append(
+                    {
+                        "type": "FUNCTION_ON_COLUMN",
+                        "severity": "medium",
+                        "description": "Using functions on columns in WHERE clause prevents index usage",
+                    }
+                )
+                context.recommendations.append(
+                    {
+                        "type": "AVOID_FUNCTIONS_ON_COLUMNS",
+                        "priority": "medium",
+                        "description": "Avoid using functions on columns in WHERE conditions",
+                        "example": "Instead of WHERE YEAR(date_col) = 2024, use WHERE date_col >= '2024-01-01' AND date_col < '2025-01-01'",
+                    }
+                )
                 break
 
     def _check_leading_wildcards(self, sql_text: str, context: AnalysisContext) -> None:
         """Check for LIKE with leading wildcard."""
         if re.search(r'LIKE\s+["\'][%]', sql_text):
-            context.issues.append({
-                'type': 'LEADING_WILDCARD',
-                'severity': 'medium',
-                'description': 'LIKE with leading wildcard (%) prevents index usage'
-            })
-            context.recommendations.append({
-                'type': 'AVOID_LEADING_WILDCARDS',
-                'priority': 'medium',
-                'description': 'Avoid starting LIKE patterns with % when possible'
-            })
+            context.issues.append(
+                {
+                    "type": "LEADING_WILDCARD",
+                    "severity": "medium",
+                    "description": "LIKE with leading wildcard (%) prevents index usage",
+                }
+            )
+            context.recommendations.append(
+                {
+                    "type": "AVOID_LEADING_WILDCARDS",
+                    "priority": "medium",
+                    "description": "Avoid starting LIKE patterns with % when possible",
+                }
+            )
 
-    def _check_multiple_or_conditions(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_multiple_or_conditions(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for multiple OR conditions that might benefit from UNION."""
-        if sql_text.count(' OR ') > 2:
-            context.recommendations.append({
-                'type': 'CONSIDER_UNION_FOR_OR',
-                'priority': 'low',
-                'description': 'Multiple OR conditions might perform better as UNION queries with proper indexing'
-            })
+        if sql_text.count(" OR ") > 2:
+            context.recommendations.append(
+                {
+                    "type": "CONSIDER_UNION_FOR_OR",
+                    "priority": "low",
+                    "description": "Multiple OR conditions might perform better as UNION queries with proper indexing",
+                }
+            )
 
-    def _check_inequality_operators(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_inequality_operators(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for inequality operators that might prevent index usage."""
-        if re.search(r'!= |<> ', sql_text):
-            context.recommendations.append({
-                'type': 'INEQUALITY_INDEX_IMPACT',
-                'priority': 'low',
-                'description': 'Inequality operators (!= or <>) may limit index effectiveness'
-            })
+        if re.search(r"!= |<> ", sql_text):
+            context.recommendations.append(
+                {
+                    "type": "INEQUALITY_INDEX_IMPACT",
+                    "priority": "low",
+                    "description": "Inequality operators (!= or <>) may limit index effectiveness",
+                }
+            )
 
-    def _check_constant_comparisons(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_constant_comparisons(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for WHERE clause with only constants (likely a mistake)."""
-        if 'WHERE' in sql_text and re.search(r'WHERE\s+[\'"]\w+[\'"]\s*=\s*[\'"]\w+[\'"]', sql_text):
-            context.issues.append({
-                'type': 'WHERE_CONSTANT_COMPARISON',
-                'severity': 'high',
-                'description': 'WHERE clause appears to compare constants instead of columns'
-            })
+        if "WHERE" in sql_text and re.search(
+            r'WHERE\s+[\'"]\w+[\'"]\s*=\s*[\'"]\w+[\'"]', sql_text
+        ):
+            context.issues.append(
+                {
+                    "type": "WHERE_CONSTANT_COMPARISON",
+                    "severity": "high",
+                    "description": "WHERE clause appears to compare constants instead of columns",
+                }
+            )
 
-    def _check_date_range_queries(self, sql_text: str, context: AnalysisContext) -> None:
+    def _check_date_range_queries(
+        self, sql_text: str, context: AnalysisContext
+    ) -> None:
         """Check for date range queries and provide optimization tips."""
-        if re.search(r'BETWEEN.*AND.*', sql_text) and 'DATE' in sql_text:
-            context.recommendations.append({
-                'type': 'DATE_RANGE_OPTIMIZATION',
-                'priority': 'low',
-                'description': 'For date ranges, ensure proper indexing on date columns for optimal performance'
-            })
+        if re.search(r"BETWEEN.*AND.*", sql_text) and "DATE" in sql_text:
+            context.recommendations.append(
+                {
+                    "type": "DATE_RANGE_OPTIMIZATION",
+                    "priority": "low",
+                    "description": "For date ranges, ensure proper indexing on date columns for optimal performance",
+                }
+            )

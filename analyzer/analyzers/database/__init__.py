@@ -16,6 +16,6 @@ from .mysql_analyzer import MySQLAnalyzer
 from .postgresql_analyzer import PostgreSQLAnalyzer
 
 __all__ = [
-    'MySQLAnalyzer',
-    'PostgreSQLAnalyzer',
+    "MySQLAnalyzer",
+    "PostgreSQLAnalyzer",
 ]

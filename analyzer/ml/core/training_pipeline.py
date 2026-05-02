@@ -5,26 +5,27 @@ This module manages the complete machine learning training pipeline,
 including data preparation, model training, validation, and deployment.
 """
 
-import logging
 import json
+import logging
 import os
 import pickle
-import joblib
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+import joblib
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from sklearn.preprocessing import StandardScaler
 import pandas as pd
-
 from django.conf import settings
-from django.utils import timezone
 from django.db import transaction
+from django.utils import timezone
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.preprocessing import StandardScaler
 
-from ...models import Query, QueryFeedback, MLModel, TrainingData, LearningMetrics
+from ...models import (LearningMetrics, MLModel, Query, QueryFeedback,
+                       TrainingData)
 from .feature_extractor import FeatureExtractor
 from .feedback_collector import FeedbackCollector
 
@@ -34,9 +35,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainingConfig:
     """Configuration for training pipeline."""
-    model_type: str = 'HYBRID_SCORER'
-    model_name: str = 'query_grader'
-    algorithm: str = 'random_forest'  # random_forest, gradient_boosting, neural_network
+
+    model_type: str = "HYBRID_SCORER"
+    model_name: str = "query_grader"
+    algorithm: str = "random_forest"  # random_forest, gradient_boosting, neural_network
     test_size: float = 0.2
     validation_size: float = 0.2
     cross_validation_folds: int = 5
@@ -52,6 +54,7 @@ class TrainingConfig:
 @dataclass
 class TrainingResult:
     """Results from training pipeline execution."""
+
     success: bool
     model_version: str
     training_accuracy: float
@@ -74,7 +77,7 @@ class TrainingPipelineManager:
         self.scaler = StandardScaler() if self.config.feature_scaling else None
 
         # Ensure model directory exists
-        self.model_dir = os.path.join(settings.BASE_DIR, 'ml_models')
+        self.model_dir = os.path.join(settings.BASE_DIR, "ml_models")
         os.makedirs(self.model_dir, exist_ok=True)
 
     def run_training_pipeline(self, force_retrain: bool = False) -> TrainingResult:
@@ -111,7 +114,7 @@ class TrainingPipelineManager:
                     feature_importance={},
                     training_time=0.0,
                     model_path="",
-                    error_message=f"Insufficient training data: {len(X) if X is not None else 0} samples"
+                    error_message=f"Insufficient training data: {len(X) if X is not None else 0} samples",
                 )
 
             # 3. Split data
@@ -120,7 +123,10 @@ class TrainingPipelineManager:
             )
 
             X_train, X_val, y_train, y_val = train_test_split(
-                X_train_val, y_train_val, test_size=self.config.validation_size, random_state=42
+                X_train_val,
+                y_train_val,
+                test_size=self.config.validation_size,
+                random_state=42,
             )
 
             # 4. Feature scaling
@@ -144,8 +150,13 @@ class TrainingPipelineManager:
             test_accuracy = r2_score(y_test, test_predictions)
 
             # 7. Cross-validation
-            cv_scores = cross_val_score(model, X_train_val, y_train_val,
-                                      cv=self.config.cross_validation_folds, scoring='r2')
+            cv_scores = cross_val_score(
+                model,
+                X_train_val,
+                y_train_val,
+                cv=self.config.cross_validation_folds,
+                scoring="r2",
+            )
 
             # 8. Feature importance
             feature_importance = self._get_feature_importance(model)
@@ -158,17 +169,26 @@ class TrainingPipelineManager:
 
             # 11. Record training metrics
             self._record_training_metrics(
-                model_version, training_accuracy, validation_accuracy,
-                test_accuracy, cv_scores, metadata
+                model_version,
+                training_accuracy,
+                validation_accuracy,
+                test_accuracy,
+                cv_scores,
+                metadata,
             )
 
             # 12. Deploy model if meets threshold
-            if self.config.auto_deployment and validation_accuracy >= self.config.performance_threshold:
+            if (
+                self.config.auto_deployment
+                and validation_accuracy >= self.config.performance_threshold
+            ):
                 self._deploy_model(model_version)
 
             training_time = (timezone.now() - start_time).total_seconds()
 
-            logger.info(f"Training pipeline completed successfully in {training_time:.2f}s")
+            logger.info(
+                f"Training pipeline completed successfully in {training_time:.2f}s"
+            )
 
             return TrainingResult(
                 success=True,
@@ -180,18 +200,18 @@ class TrainingPipelineManager:
                 training_time=training_time,
                 model_path=model_path,
                 metrics={
-                    'cv_mean': np.mean(cv_scores),
-                    'cv_std': np.std(cv_scores),
-                    'mse_train': mean_squared_error(y_train, train_predictions),
-                    'mse_val': mean_squared_error(y_val, val_predictions),
-                    'mse_test': mean_squared_error(y_test, test_predictions),
-                    'mae_train': mean_absolute_error(y_train, train_predictions),
-                    'mae_val': mean_absolute_error(y_val, val_predictions),
-                    'mae_test': mean_absolute_error(y_test, test_predictions),
-                    'training_samples': len(X_train),
-                    'validation_samples': len(X_val),
-                    'test_samples': len(X_test),
-                }
+                    "cv_mean": np.mean(cv_scores),
+                    "cv_std": np.std(cv_scores),
+                    "mse_train": mean_squared_error(y_train, train_predictions),
+                    "mse_val": mean_squared_error(y_val, val_predictions),
+                    "mse_test": mean_squared_error(y_test, test_predictions),
+                    "mae_train": mean_absolute_error(y_train, train_predictions),
+                    "mae_val": mean_absolute_error(y_val, val_predictions),
+                    "mae_test": mean_absolute_error(y_test, test_predictions),
+                    "training_samples": len(X_train),
+                    "validation_samples": len(X_val),
+                    "test_samples": len(X_test),
+                },
             )
 
         except Exception as e:
@@ -207,28 +227,32 @@ class TrainingPipelineManager:
                 feature_importance={},
                 training_time=training_time,
                 model_path="",
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def _should_skip_training(self) -> bool:
         """Check if training should be skipped based on existing models."""
         recent_models = MLModel.objects.filter(
             model_type=self.config.model_type,
-            created_at__gte=timezone.now() - timedelta(hours=24)
-        ).order_by('-created_at')
+            created_at__gte=timezone.now() - timedelta(hours=24),
+        ).order_by("-created_at")
 
         if recent_models.exists():
             latest_model = recent_models.first()
-            if (latest_model.validation_accuracy or 0) >= self.config.performance_threshold:
+            if (
+                latest_model.validation_accuracy or 0
+            ) >= self.config.performance_threshold:
                 return True
 
         return False
 
     def _get_existing_model_result(self) -> TrainingResult:
         """Get result for existing model."""
-        latest_model = MLModel.objects.filter(
-            model_type=self.config.model_type
-        ).order_by('-created_at').first()
+        latest_model = (
+            MLModel.objects.filter(model_type=self.config.model_type)
+            .order_by("-created_at")
+            .first()
+        )
 
         if latest_model:
             return TrainingResult(
@@ -240,7 +264,7 @@ class TrainingPipelineManager:
                 feature_importance={},
                 training_time=0.0,
                 model_path=latest_model.file_path,
-                metrics={}
+                metrics={},
             )
 
         return TrainingResult(
@@ -252,15 +276,17 @@ class TrainingPipelineManager:
             feature_importance={},
             training_time=0.0,
             model_path="",
-            error_message="No existing model found"
+            error_message="No existing model found",
         )
 
-    def _prepare_training_data(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Dict[str, Any]]:
+    def _prepare_training_data(
+        self,
+    ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Dict[str, Any]]:
         """Prepare training data from collected feedback."""
-        training_data = TrainingData.objects.all().order_by('-created_at')
+        training_data = TrainingData.objects.all().order_by("-created_at")
 
         if self.config.max_training_samples:
-            training_data = training_data[:self.config.max_training_samples]
+            training_data = training_data[: self.config.max_training_samples]
 
         if not training_data.exists():
             logger.warning("No training data available")
@@ -286,12 +312,12 @@ class TrainingPipelineManager:
 
         # Metadata about training data
         metadata = {
-            'total_samples': len(X),
-            'feature_count': X.shape[1] if len(X.shape) > 1 else 0,
-            'target_mean': np.mean(y),
-            'target_std': np.std(y),
-            'weight_mean': np.mean(weights),
-            'data_collection_period': self._get_data_collection_period(training_data)
+            "total_samples": len(X),
+            "feature_count": X.shape[1] if len(X.shape) > 1 else 0,
+            "target_mean": np.mean(y),
+            "target_std": np.std(y),
+            "weight_mean": np.mean(weights),
+            "data_collection_period": self._get_data_collection_period(training_data),
         }
 
         logger.info(f"Prepared training data: {metadata}")
@@ -299,29 +325,27 @@ class TrainingPipelineManager:
 
     def _create_model(self):
         """Create ML model based on configuration."""
-        if self.config.algorithm == 'random_forest':
+        if self.config.algorithm == "random_forest":
             return RandomForestRegressor(
                 n_estimators=100,
                 max_depth=10,
                 min_samples_split=5,
                 min_samples_leaf=2,
                 random_state=42,
-                n_jobs=-1
+                n_jobs=-1,
             )
-        elif self.config.algorithm == 'gradient_boosting':
+        elif self.config.algorithm == "gradient_boosting":
             from sklearn.ensemble import GradientBoostingRegressor
+
             return GradientBoostingRegressor(
-                n_estimators=100,
-                learning_rate=0.1,
-                max_depth=6,
-                random_state=42
+                n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42
             )
         else:
             raise ValueError(f"Unsupported algorithm: {self.config.algorithm}")
 
     def _get_feature_importance(self, model) -> Dict[str, float]:
         """Get feature importance from trained model."""
-        if hasattr(model, 'feature_importances_'):
+        if hasattr(model, "feature_importances_"):
             feature_names = self.feature_extractor.get_feature_names()
             importance_dict = {}
 
@@ -330,7 +354,9 @@ class TrainingPipelineManager:
                     importance_dict[feature_names[i]] = float(importance)
 
             # Sort by importance
-            return dict(sorted(importance_dict.items(), key=lambda x: x[1], reverse=True))
+            return dict(
+                sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
+            )
 
         return {}
 
@@ -346,11 +372,11 @@ class TrainingPipelineManager:
 
         # Save model and scaler together
         model_data = {
-            'model': model,
-            'scaler': self.scaler,
-            'feature_names': self.feature_extractor.get_feature_names(),
-            'config': self.config,
-            'timestamp': datetime.now().isoformat()
+            "model": model,
+            "scaler": self.scaler,
+            "feature_names": self.feature_extractor.get_feature_names(),
+            "config": self.config,
+            "timestamp": datetime.now().isoformat(),
         }
 
         joblib.dump(model_data, model_path)
@@ -358,34 +384,41 @@ class TrainingPipelineManager:
 
         return model_path
 
-    def _record_training_metrics(self, model_version: str, training_accuracy: float,
-                                validation_accuracy: float, test_accuracy: float,
-                                cv_scores: np.ndarray, metadata: Dict[str, Any]):
+    def _record_training_metrics(
+        self,
+        model_version: str,
+        training_accuracy: float,
+        validation_accuracy: float,
+        test_accuracy: float,
+        cv_scores: np.ndarray,
+        metadata: Dict[str, Any],
+    ):
         """Record training metrics in database."""
         import hashlib as _hashlib
+
         model_path = os.path.join(self.model_dir, f"{model_version}.pkl")
 
         # Compute file size and checksum
         try:
             file_size = os.path.getsize(model_path)
-            with open(model_path, 'rb') as f:
+            with open(model_path, "rb") as f:
                 checksum = _hashlib.sha256(f.read()).hexdigest()
         except OSError:
             file_size = 0
-            checksum = ''
+            checksum = ""
 
         with transaction.atomic():
             model_record = MLModel.objects.create(
                 name=self.config.model_name,
                 model_type=self.config.model_type,
                 version=model_version,
-                status='TRAINING',
+                status="TRAINING",
                 file_path=model_path,
                 file_size_bytes=file_size,
                 checksum=checksum,
                 training_accuracy=training_accuracy,
                 validation_accuracy=validation_accuracy,
-                training_samples=metadata.get('total_samples', 0),
+                training_samples=metadata.get("total_samples", 0),
             )
 
             now = timezone.now()
@@ -408,13 +441,13 @@ class TrainingPipelineManager:
         with transaction.atomic():
             MLModel.objects.filter(
                 model_type=self.config.model_type,
-                status='ACTIVE',
-            ).update(status='DEPRECATED')
+                status="ACTIVE",
+            ).update(status="DEPRECATED")
 
             MLModel.objects.filter(
                 version=model_version,
                 model_type=self.config.model_type,
-            ).update(status='ACTIVE', deployed_at=timezone.now())
+            ).update(status="ACTIVE", deployed_at=timezone.now())
 
         logger.info(f"Model {model_version} deployed successfully")
 
@@ -424,18 +457,20 @@ class TrainingPipelineManager:
 
         if dates:
             return {
-                'start_date': min(dates).isoformat(),
-                'end_date': max(dates).isoformat(),
-                'span_days': (max(dates) - min(dates)).days
+                "start_date": min(dates).isoformat(),
+                "end_date": max(dates).isoformat(),
+                "span_days": (max(dates) - min(dates)).days,
             }
 
         return {}
 
     def get_training_status(self) -> Dict[str, Any]:
         """Get current training pipeline status."""
-        latest_model = MLModel.objects.filter(
-            model_type=self.config.model_type
-        ).order_by('-created_at').first()
+        latest_model = (
+            MLModel.objects.filter(model_type=self.config.model_type)
+            .order_by("-created_at")
+            .first()
+        )
 
         training_data_count = TrainingData.objects.count()
         recent_feedback_count = QueryFeedback.objects.filter(
@@ -443,36 +478,47 @@ class TrainingPipelineManager:
         ).count()
 
         return {
-            'latest_model': {
-                'version': latest_model.version if latest_model else None,
-                'status': latest_model.status if latest_model else None,
-                'performance': {
-                    'training_accuracy': latest_model.training_accuracy,
-                    'validation_accuracy': latest_model.validation_accuracy,
-                } if latest_model else {},
-                'created_at': latest_model.created_at.isoformat() if latest_model else None
+            "latest_model": {
+                "version": latest_model.version if latest_model else None,
+                "status": latest_model.status if latest_model else None,
+                "performance": (
+                    {
+                        "training_accuracy": latest_model.training_accuracy,
+                        "validation_accuracy": latest_model.validation_accuracy,
+                    }
+                    if latest_model
+                    else {}
+                ),
+                "created_at": (
+                    latest_model.created_at.isoformat() if latest_model else None
+                ),
             },
-            'training_data': {
-                'total_samples': training_data_count,
-                'ready_for_training': training_data_count >= self.config.min_training_samples
+            "training_data": {
+                "total_samples": training_data_count,
+                "ready_for_training": training_data_count
+                >= self.config.min_training_samples,
             },
-            'recent_activity': {
-                'feedback_last_week': recent_feedback_count,
-                'training_recommended': recent_feedback_count > 10
+            "recent_activity": {
+                "feedback_last_week": recent_feedback_count,
+                "training_recommended": recent_feedback_count > 10,
             },
-            'pipeline_config': {
-                'algorithm': self.config.algorithm,
-                'min_samples': self.config.min_training_samples,
-                'auto_deployment': self.config.auto_deployment,
-                'performance_threshold': self.config.performance_threshold
-            }
+            "pipeline_config": {
+                "algorithm": self.config.algorithm,
+                "min_samples": self.config.min_training_samples,
+                "auto_deployment": self.config.auto_deployment,
+                "performance_threshold": self.config.performance_threshold,
+            },
         }
 
     def cleanup_old_models(self, keep_versions: int = 5):
         """Clean up old model files and database records."""
-        old_models = MLModel.objects.filter(
-            model_type=self.config.model_type,
-        ).exclude(status='ACTIVE').order_by('-created_at')[keep_versions:]
+        old_models = (
+            MLModel.objects.filter(
+                model_type=self.config.model_type,
+            )
+            .exclude(status="ACTIVE")
+            .order_by("-created_at")[keep_versions:]
+        )
 
         for model in old_models:
             # Remove file if exists
@@ -481,7 +527,9 @@ class TrainingPipelineManager:
                     os.remove(model.file_path)
                     logger.info(f"Removed old model file: {model.file_path}")
                 except OSError as e:
-                    logger.warning(f"Could not remove model file {model.file_path}: {e}")
+                    logger.warning(
+                        f"Could not remove model file {model.file_path}: {e}"
+                    )
 
             # Remove database record
             model.delete()
@@ -498,9 +546,11 @@ class TrainingScheduler:
     def should_trigger_training(self) -> Tuple[bool, str]:
         """Determine if training should be triggered."""
         # Check if enough new feedback has been collected
-        last_training = MLModel.objects.filter(
-            model_type=self.pipeline_manager.config.model_type
-        ).order_by('-created_at').first()
+        last_training = (
+            MLModel.objects.filter(model_type=self.pipeline_manager.config.model_type)
+            .order_by("-created_at")
+            .first()
+        )
 
         if not last_training:
             return True, "No existing model found"
@@ -514,9 +564,7 @@ class TrainingScheduler:
             return True, f"New feedback available: {new_feedback_count} items"
 
         # Check if model performance has degraded
-        recent_metrics = LearningMetrics.objects.filter(
-            model=last_training
-        ).first()
+        recent_metrics = LearningMetrics.objects.filter(model=last_training).first()
 
         if recent_metrics and recent_metrics.accuracy < 0.6:
             return True, "Model performance below threshold"
@@ -536,15 +584,7 @@ class TrainingScheduler:
             logger.info(f"Triggering training: {reason}")
             result = self.pipeline_manager.run_training_pipeline()
 
-            return {
-                'training_triggered': True,
-                'reason': reason,
-                'result': result
-            }
+            return {"training_triggered": True, "reason": reason, "result": result}
         else:
             logger.info(f"Training not triggered: {reason}")
-            return {
-                'training_triggered': False,
-                'reason': reason,
-                'result': None
-            }
+            return {"training_triggered": False, "reason": reason, "result": None}

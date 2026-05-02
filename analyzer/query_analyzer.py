@@ -18,13 +18,13 @@ This facade maintains compatibility with existing code:
     from analyzer.query_analyzer import QueryGrader, analyze_query
 """
 
-from typing import Tuple, Optional
-from .models import Query, QueryAnalysis
+from typing import Optional, Tuple
 
 # Import the new modular implementation
 from .analyzers import QueryGrader as ModularQueryGrader
 from .analyzers import analyze_query as modular_analyze_query
 from .analyzers import grade_single_query as modular_grade_single_query
+from .models import Query, QueryAnalysis
 
 
 # Legacy class name for backward compatibility
@@ -38,11 +38,14 @@ class QueryGrader(ModularQueryGrader):
     For new code, import from analyzer.analyzers instead:
         from analyzer.analyzers import QueryGrader
     """
+
     pass
 
 
 # Legacy convenience functions for backward compatibility
-def analyze_query(sql_text: str, database_type: str = '', use_ml: Optional[bool] = None) -> Tuple[Query, QueryAnalysis]:
+def analyze_query(
+    sql_text: str, database_type: str = "", use_ml: Optional[bool] = None
+) -> Tuple[Query, QueryAnalysis]:
     """
     Convenience function to analyze a SQL query with optional ML integration.
 
@@ -63,8 +66,12 @@ def analyze_query(sql_text: str, database_type: str = '', use_ml: Optional[bool]
     return modular_analyze_query(sql_text, database_type, use_ml)
 
 
-def grade_single_query(sql_text: str, database_type: str = '',
-                      database_version: str = '', use_ml: Optional[bool] = None) -> QueryAnalysis:
+def grade_single_query(
+    sql_text: str,
+    database_type: str = "",
+    database_version: str = "",
+    use_ml: Optional[bool] = None,
+) -> QueryAnalysis:
     """
     Convenience function to grade a single SQL query and return just the analysis.
 

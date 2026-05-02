@@ -5,19 +5,21 @@ This module provides intelligent, context-aware recommendations for SQL query im
 based on query patterns, database context, user history, and best practices.
 """
 
-import re
-import logging
-from typing import Dict, List, Tuple, Optional, Any, Set
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timedelta
-import numpy as np
-from collections import defaultdict, Counter
 import json
+import logging
+import re
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+import numpy as np
 
 
 class RecommendationType(Enum):
     """Types of recommendations"""
+
     INDEX_CREATION = "index_creation"
     QUERY_REWRITE = "query_rewrite"
     SCHEMA_CHANGE = "schema_change"
@@ -30,25 +32,28 @@ class RecommendationType(Enum):
 
 class RecommendationPriority(Enum):
     """Priority levels for recommendations"""
+
     CRITICAL = 1  # Must implement immediately
-    HIGH = 2      # Should implement soon
-    MEDIUM = 3    # Consider implementing
-    LOW = 4       # Nice to have
+    HIGH = 2  # Should implement soon
+    MEDIUM = 3  # Consider implementing
+    LOW = 4  # Nice to have
     INFORMATIONAL = 5  # FYI only
 
 
 class ImplementationComplexity(Enum):
     """Complexity of implementing recommendation"""
-    TRIVIAL = "trivial"      # < 5 minutes
-    EASY = "easy"            # < 30 minutes
-    MODERATE = "moderate"    # < 2 hours
-    COMPLEX = "complex"      # < 1 day
+
+    TRIVIAL = "trivial"  # < 5 minutes
+    EASY = "easy"  # < 30 minutes
+    MODERATE = "moderate"  # < 2 hours
+    COMPLEX = "complex"  # < 1 day
     VERY_COMPLEX = "very_complex"  # Multiple days
 
 
 @dataclass
 class Recommendation:
     """Represents a contextual recommendation"""
+
     recommendation_id: str
     type: RecommendationType
     priority: RecommendationPriority
@@ -72,6 +77,7 @@ class Recommendation:
 @dataclass
 class RecommendationContext:
     """Context for generating recommendations"""
+
     query: str
     query_patterns: List[Dict[str, Any]]
     database_stats: Dict[str, Any]
@@ -85,6 +91,7 @@ class RecommendationContext:
 @dataclass
 class RecommendationSet:
     """Set of recommendations for a query/context"""
+
     context_summary: str
     recommendations: List[Recommendation]
     implementation_plan: List[str]  # Ordered implementation steps
@@ -105,50 +112,52 @@ class ContextualRecommendationsEngine:
     def _initialize_knowledge_base(self) -> Dict[str, Any]:
         """Initialize recommendation knowledge base"""
         return {
-            'index_patterns': {
-                'missing_where_index': {
-                    'pattern': r'WHERE\s+(\w+)\s*=',
-                    'recommendation': 'Create index on frequently filtered columns',
-                    'impact': {'performance': 0.7}
+            "index_patterns": {
+                "missing_where_index": {
+                    "pattern": r"WHERE\s+(\w+)\s*=",
+                    "recommendation": "Create index on frequently filtered columns",
+                    "impact": {"performance": 0.7},
                 },
-                'missing_join_index': {
-                    'pattern': r'JOIN.*ON\s+\w+\.(\w+)\s*=\s*\w+\.(\w+)',
-                    'recommendation': 'Create indexes on join columns',
-                    'impact': {'performance': 0.6}
+                "missing_join_index": {
+                    "pattern": r"JOIN.*ON\s+\w+\.(\w+)\s*=\s*\w+\.(\w+)",
+                    "recommendation": "Create indexes on join columns",
+                    "impact": {"performance": 0.6},
                 },
-                'missing_order_index': {
-                    'pattern': r'ORDER\s+BY\s+(\w+)',
-                    'recommendation': 'Create index for sorting',
-                    'impact': {'performance': 0.4}
-                }
+                "missing_order_index": {
+                    "pattern": r"ORDER\s+BY\s+(\w+)",
+                    "recommendation": "Create index for sorting",
+                    "impact": {"performance": 0.4},
+                },
             },
-            'rewrite_patterns': {
-                'exists_vs_in': {
-                    'pattern': r'WHERE\s+\w+\s+IN\s*\(\s*SELECT',
-                    'recommendation': 'Replace IN with EXISTS for better performance',
-                    'impact': {'performance': 0.5}
+            "rewrite_patterns": {
+                "exists_vs_in": {
+                    "pattern": r"WHERE\s+\w+\s+IN\s*\(\s*SELECT",
+                    "recommendation": "Replace IN with EXISTS for better performance",
+                    "impact": {"performance": 0.5},
                 },
-                'union_all': {
-                    'pattern': r'\bUNION\b(?!\s+ALL)',
-                    'recommendation': 'Use UNION ALL if duplicates are acceptable',
-                    'impact': {'performance': 0.3}
-                }
+                "union_all": {
+                    "pattern": r"\bUNION\b(?!\s+ALL)",
+                    "recommendation": "Use UNION ALL if duplicates are acceptable",
+                    "impact": {"performance": 0.3},
+                },
             },
-            'best_practices': {
-                'select_star': {
-                    'pattern': r'SELECT\s+\*',
-                    'recommendation': 'Specify required columns explicitly',
-                    'impact': {'performance': 0.2, 'maintainability': 0.4}
+            "best_practices": {
+                "select_star": {
+                    "pattern": r"SELECT\s+\*",
+                    "recommendation": "Specify required columns explicitly",
+                    "impact": {"performance": 0.2, "maintainability": 0.4},
                 },
-                'implicit_conversion': {
-                    'pattern': r"WHERE\s+\w+\s*=\s*'\d+'",
-                    'recommendation': 'Avoid implicit type conversions',
-                    'impact': {'performance': 0.3}
-                }
-            }
+                "implicit_conversion": {
+                    "pattern": r"WHERE\s+\w+\s*=\s*'\d+'",
+                    "recommendation": "Avoid implicit type conversions",
+                    "impact": {"performance": 0.3},
+                },
+            },
         }
 
-    def generate_recommendations(self, context: RecommendationContext) -> RecommendationSet:
+    def generate_recommendations(
+        self, context: RecommendationContext
+    ) -> RecommendationSet:
         """Generate comprehensive recommendations based on context"""
 
         recommendations = []
@@ -177,7 +186,9 @@ class ContextualRecommendationsEngine:
         filtered_recommendations = self._filter_by_context(recommendations, context)
 
         # Prioritize and order recommendations
-        prioritized = self._prioritize_recommendations(filtered_recommendations, context)
+        prioritized = self._prioritize_recommendations(
+            filtered_recommendations, context
+        )
 
         # Create implementation plan
         implementation_plan = self._create_implementation_plan(prioritized)
@@ -198,43 +209,56 @@ class ContextualRecommendationsEngine:
             total_estimated_time=self._calculate_total_time(prioritized[:10]),
             expected_overall_impact=overall_impact,
             risk_assessment=risk_assessment,
-            success_metrics=success_metrics
+            success_metrics=success_metrics,
         )
 
-    def _analyze_query_patterns(self, context: RecommendationContext) -> List[Recommendation]:
+    def _analyze_query_patterns(
+        self, context: RecommendationContext
+    ) -> List[Recommendation]:
         """Analyze query patterns and generate recommendations"""
         recommendations = []
         query = context.query
 
         # Check for index opportunities
-        for pattern_name, pattern_info in self.pattern_knowledge_base['index_patterns'].items():
-            if re.search(pattern_info['pattern'], query, re.IGNORECASE):
-                recommendations.append(self._create_index_recommendation(
-                    pattern_name, pattern_info, query
-                ))
+        for pattern_name, pattern_info in self.pattern_knowledge_base[
+            "index_patterns"
+        ].items():
+            if re.search(pattern_info["pattern"], query, re.IGNORECASE):
+                recommendations.append(
+                    self._create_index_recommendation(pattern_name, pattern_info, query)
+                )
 
         # Check for rewrite opportunities
-        for pattern_name, pattern_info in self.pattern_knowledge_base['rewrite_patterns'].items():
-            if re.search(pattern_info['pattern'], query, re.IGNORECASE):
-                recommendations.append(self._create_rewrite_recommendation(
-                    pattern_name, pattern_info, query
-                ))
+        for pattern_name, pattern_info in self.pattern_knowledge_base[
+            "rewrite_patterns"
+        ].items():
+            if re.search(pattern_info["pattern"], query, re.IGNORECASE):
+                recommendations.append(
+                    self._create_rewrite_recommendation(
+                        pattern_name, pattern_info, query
+                    )
+                )
 
         # Check for best practice violations
-        for pattern_name, pattern_info in self.pattern_knowledge_base['best_practices'].items():
-            if re.search(pattern_info['pattern'], query, re.IGNORECASE):
-                recommendations.append(self._create_best_practice_recommendation(
-                    pattern_name, pattern_info, query
-                ))
+        for pattern_name, pattern_info in self.pattern_knowledge_base[
+            "best_practices"
+        ].items():
+            if re.search(pattern_info["pattern"], query, re.IGNORECASE):
+                recommendations.append(
+                    self._create_best_practice_recommendation(
+                        pattern_name, pattern_info, query
+                    )
+                )
 
         return recommendations
 
-    def _create_index_recommendation(self, pattern_name: str, pattern_info: Dict[str, Any],
-                                    query: str) -> Recommendation:
+    def _create_index_recommendation(
+        self, pattern_name: str, pattern_info: Dict[str, Any], query: str
+    ) -> Recommendation:
         """Create index creation recommendation"""
 
         # Extract column names from pattern match
-        match = re.search(pattern_info['pattern'], query, re.IGNORECASE)
+        match = re.search(pattern_info["pattern"], query, re.IGNORECASE)
         columns = []
         if match:
             columns = [g for g in match.groups() if g]
@@ -251,19 +275,20 @@ class ContextualRecommendationsEngine:
                 f"1. Analyze column cardinality and selectivity",
                 f"2. Create index: CREATE INDEX idx_name ON table({', '.join(columns)})",
                 f"3. Test query performance with EXPLAIN",
-                f"4. Monitor index usage statistics"
+                f"4. Monitor index usage statistics",
             ],
-            expected_impact=pattern_info['impact'],
+            expected_impact=pattern_info["impact"],
             prerequisites=["Verify column data distribution", "Check existing indexes"],
             risks=["Index maintenance overhead", "Additional storage required"],
             code_example=f"CREATE INDEX idx_{columns[0] if columns else 'column'} ON table_name({', '.join(columns)});",
             estimated_time="15 minutes",
             confidence=0.85,
-            tags={"index", "performance", "optimization"}
+            tags={"index", "performance", "optimization"},
         )
 
-    def _create_rewrite_recommendation(self, pattern_name: str, pattern_info: Dict[str, Any],
-                                      query: str) -> Recommendation:
+    def _create_rewrite_recommendation(
+        self, pattern_name: str, pattern_info: Dict[str, Any], query: str
+    ) -> Recommendation:
         """Create query rewrite recommendation"""
 
         rewritten_query = self._generate_rewrite(query, pattern_name)
@@ -281,20 +306,24 @@ class ContextualRecommendationsEngine:
                 "2. Apply recommended rewrite pattern",
                 "3. Test functionality equivalence",
                 "4. Compare execution plans",
-                "5. Deploy and monitor"
+                "5. Deploy and monitor",
             ],
-            expected_impact=pattern_info['impact'],
-            prerequisites=["Understand current query logic", "Have test data available"],
+            expected_impact=pattern_info["impact"],
+            prerequisites=[
+                "Understand current query logic",
+                "Have test data available",
+            ],
             risks=["Potential logic changes", "Different result ordering"],
             alternatives=["Keep current structure with index optimization"],
             code_example=rewritten_query,
             estimated_time="30 minutes",
             confidence=0.75,
-            tags={"rewrite", "optimization", "performance"}
+            tags={"rewrite", "optimization", "performance"},
         )
 
-    def _create_best_practice_recommendation(self, pattern_name: str, pattern_info: Dict[str, Any],
-                                            query: str) -> Recommendation:
+    def _create_best_practice_recommendation(
+        self, pattern_name: str, pattern_info: Dict[str, Any], query: str
+    ) -> Recommendation:
         """Create best practice recommendation"""
 
         return Recommendation(
@@ -309,17 +338,19 @@ class ContextualRecommendationsEngine:
                 "1. Identify anti-pattern in current query",
                 "2. Apply best practice pattern",
                 "3. Update documentation",
-                "4. Review with team"
+                "4. Review with team",
             ],
-            expected_impact=pattern_info['impact'],
+            expected_impact=pattern_info["impact"],
             prerequisites=["None"],
             risks=["Minimal"],
             estimated_time="5 minutes",
             confidence=0.9,
-            tags={"best-practice", "maintainability", "code-quality"}
+            tags={"best-practice", "maintainability", "code-quality"},
         )
 
-    def _analyze_database_context(self, context: RecommendationContext) -> List[Recommendation]:
+    def _analyze_database_context(
+        self, context: RecommendationContext
+    ) -> List[Recommendation]:
         """Generate recommendations based on database statistics"""
         recommendations = []
 
@@ -327,28 +358,34 @@ class ContextualRecommendationsEngine:
             return recommendations
 
         # Check for table statistics
-        if 'table_stats' in context.database_stats:
-            for table_name, stats in context.database_stats['table_stats'].items():
+        if "table_stats" in context.database_stats:
+            for table_name, stats in context.database_stats["table_stats"].items():
                 # Large table without proper indexing
-                if stats.get('row_count', 0) > 100000 and stats.get('index_count', 0) < 2:
-                    recommendations.append(self._create_table_optimization_recommendation(
-                        table_name, stats
-                    ))
+                if (
+                    stats.get("row_count", 0) > 100000
+                    and stats.get("index_count", 0) < 2
+                ):
+                    recommendations.append(
+                        self._create_table_optimization_recommendation(
+                            table_name, stats
+                        )
+                    )
 
                 # High fragmentation
-                if stats.get('fragmentation', 0) > 30:
-                    recommendations.append(self._create_maintenance_recommendation(
-                        table_name, stats
-                    ))
+                if stats.get("fragmentation", 0) > 30:
+                    recommendations.append(
+                        self._create_maintenance_recommendation(table_name, stats)
+                    )
 
         # Check for missing statistics
-        if context.database_stats.get('stats_age_days', 0) > 30:
+        if context.database_stats.get("stats_age_days", 0) > 30:
             recommendations.append(self._create_statistics_recommendation())
 
         return recommendations
 
-    def _create_table_optimization_recommendation(self, table_name: str,
-                                                 stats: Dict[str, Any]) -> Recommendation:
+    def _create_table_optimization_recommendation(
+        self, table_name: str, stats: Dict[str, Any]
+    ) -> Recommendation:
         """Create table optimization recommendation"""
 
         return Recommendation(
@@ -364,21 +401,22 @@ class ContextualRecommendationsEngine:
                 "2. Identify frequently accessed columns",
                 "3. Create appropriate indexes",
                 "4. Consider partitioning for very large tables",
-                "5. Update statistics"
+                "5. Update statistics",
             ],
-            expected_impact={'performance': 0.6, 'scalability': 0.7},
+            expected_impact={"performance": 0.6, "scalability": 0.7},
             prerequisites=["Analyze workload patterns", "Plan maintenance window"],
             risks=["Temporary performance impact during implementation"],
             estimated_time="2-4 hours",
             confidence=0.8,
-            tags={"schema", "optimization", "indexing"}
+            tags={"schema", "optimization", "indexing"},
         )
 
-    def _create_maintenance_recommendation(self, table_name: str,
-                                          stats: Dict[str, Any]) -> Recommendation:
+    def _create_maintenance_recommendation(
+        self, table_name: str, stats: Dict[str, Any]
+    ) -> Recommendation:
         """Create maintenance recommendation"""
 
-        fragmentation = stats.get('fragmentation', 0)
+        fragmentation = stats.get("fragmentation", 0)
 
         return Recommendation(
             recommendation_id=f"MAINT_{table_name}_{datetime.now().timestamp()}",
@@ -392,15 +430,15 @@ class ContextualRecommendationsEngine:
                 "1. Schedule maintenance window",
                 "2. Run OPTIMIZE TABLE or equivalent",
                 "3. Update statistics",
-                "4. Verify fragmentation reduction"
+                "4. Verify fragmentation reduction",
             ],
-            expected_impact={'performance': 0.3},
+            expected_impact={"performance": 0.3},
             prerequisites=["Maintenance window", "Backup current state"],
             risks=["Table lock during operation"],
             code_example=f"OPTIMIZE TABLE {table_name};",
             estimated_time="30-60 minutes",
             confidence=0.9,
-            tags={"maintenance", "fragmentation", "performance"}
+            tags={"maintenance", "fragmentation", "performance"},
         )
 
     def _create_statistics_recommendation(self) -> Recommendation:
@@ -417,18 +455,20 @@ class ContextualRecommendationsEngine:
             implementation_steps=[
                 "1. Run UPDATE STATISTICS or equivalent",
                 "2. Schedule regular statistics updates",
-                "3. Monitor query plan changes"
+                "3. Monitor query plan changes",
             ],
-            expected_impact={'performance': 0.4},
+            expected_impact={"performance": 0.4},
             prerequisites=["None"],
             risks=["Minimal"],
             code_example="UPDATE STATISTICS;",
             estimated_time="5-15 minutes",
             confidence=0.95,
-            tags={"statistics", "maintenance", "optimizer"}
+            tags={"statistics", "maintenance", "optimizer"},
         )
 
-    def _analyze_user_history(self, context: RecommendationContext) -> List[Recommendation]:
+    def _analyze_user_history(
+        self, context: RecommendationContext
+    ) -> List[Recommendation]:
         """Generate recommendations based on user history"""
         recommendations = []
 
@@ -438,25 +478,29 @@ class ContextualRecommendationsEngine:
         # Analyze repeated patterns
         pattern_counts = Counter()
         for history_item in context.user_history:
-            if 'pattern' in history_item:
-                pattern_counts[history_item['pattern']] += 1
+            if "pattern" in history_item:
+                pattern_counts[history_item["pattern"]] += 1
 
         # Recommend learning for frequently encountered issues
         for pattern, count in pattern_counts.most_common(3):
             if count >= 3:  # Pattern repeated 3+ times
-                recommendations.append(self._create_learning_recommendation(pattern, count))
+                recommendations.append(
+                    self._create_learning_recommendation(pattern, count)
+                )
 
         return recommendations
 
-    def _create_learning_recommendation(self, pattern: str, frequency: int) -> Recommendation:
+    def _create_learning_recommendation(
+        self, pattern: str, frequency: int
+    ) -> Recommendation:
         """Create learning recommendation"""
 
         learning_topics = {
-            'subquery': "SQL Subqueries and CTEs",
-            'join': "Advanced JOIN Techniques",
-            'index': "Database Indexing Strategies",
-            'performance': "Query Performance Tuning",
-            'aggregation': "Aggregation and Window Functions"
+            "subquery": "SQL Subqueries and CTEs",
+            "join": "Advanced JOIN Techniques",
+            "index": "Database Indexing Strategies",
+            "performance": "Query Performance Tuning",
+            "aggregation": "Aggregation and Window Functions",
         }
 
         topic = learning_topics.get(pattern, "SQL Best Practices")
@@ -473,18 +517,20 @@ class ContextualRecommendationsEngine:
                 f"1. Review documentation on {topic}",
                 "2. Complete hands-on exercises",
                 "3. Apply learnings to current queries",
-                "4. Share knowledge with team"
+                "4. Share knowledge with team",
             ],
-            expected_impact={'skill_improvement': 0.8, 'future_performance': 0.6},
+            expected_impact={"skill_improvement": 0.8, "future_performance": 0.6},
             prerequisites=["Time allocation for learning"],
             risks=["None"],
             documentation_links=[f"#learn-{pattern}"],
             estimated_time="2-4 hours",
             confidence=0.7,
-            tags={"learning", "skill-development", pattern}
+            tags={"learning", "skill-development", pattern},
         )
 
-    def _analyze_performance_metrics(self, context: RecommendationContext) -> List[Recommendation]:
+    def _analyze_performance_metrics(
+        self, context: RecommendationContext
+    ) -> List[Recommendation]:
         """Generate recommendations based on performance metrics"""
         recommendations = []
 
@@ -494,27 +540,34 @@ class ContextualRecommendationsEngine:
         metrics = context.performance_metrics
 
         # Check for slow queries
-        if metrics.get('avg_execution_time_ms', 0) > 1000:
-            recommendations.append(self._create_performance_optimization_recommendation(metrics))
+        if metrics.get("avg_execution_time_ms", 0) > 1000:
+            recommendations.append(
+                self._create_performance_optimization_recommendation(metrics)
+            )
 
         # Check for high resource usage
-        if metrics.get('cpu_usage', 0) > 80:
-            recommendations.append(self._create_resource_optimization_recommendation('CPU', metrics))
+        if metrics.get("cpu_usage", 0) > 80:
+            recommendations.append(
+                self._create_resource_optimization_recommendation("CPU", metrics)
+            )
 
-        if metrics.get('memory_usage', 0) > 80:
-            recommendations.append(self._create_resource_optimization_recommendation('Memory', metrics))
+        if metrics.get("memory_usage", 0) > 80:
+            recommendations.append(
+                self._create_resource_optimization_recommendation("Memory", metrics)
+            )
 
         # Check for concurrency issues
-        if metrics.get('lock_wait_time_ms', 0) > 100:
+        if metrics.get("lock_wait_time_ms", 0) > 100:
             recommendations.append(self._create_concurrency_recommendation(metrics))
 
         return recommendations
 
-    def _create_performance_optimization_recommendation(self,
-                                                       metrics: Dict[str, Any]) -> Recommendation:
+    def _create_performance_optimization_recommendation(
+        self, metrics: Dict[str, Any]
+    ) -> Recommendation:
         """Create performance optimization recommendation"""
 
-        exec_time = metrics.get('avg_execution_time_ms', 0)
+        exec_time = metrics.get("avg_execution_time_ms", 0)
 
         return Recommendation(
             recommendation_id=f"PERF_OPT_{datetime.now().timestamp()}",
@@ -529,21 +582,22 @@ class ContextualRecommendationsEngine:
                 "2. Identify bottlenecks",
                 "3. Apply optimization techniques",
                 "4. Test improvements",
-                "5. Deploy optimized version"
+                "5. Deploy optimized version",
             ],
-            expected_impact={'performance': 0.7, 'user_experience': 0.8},
+            expected_impact={"performance": 0.7, "user_experience": 0.8},
             prerequisites=["Query profiling tools", "Test environment"],
             risks=["Functionality changes", "Different results"],
             estimated_time="2-4 hours",
             confidence=0.85,
-            tags={"performance", "critical", "optimization"}
+            tags={"performance", "critical", "optimization"},
         )
 
-    def _create_resource_optimization_recommendation(self, resource_type: str,
-                                                    metrics: Dict[str, Any]) -> Recommendation:
+    def _create_resource_optimization_recommendation(
+        self, resource_type: str, metrics: Dict[str, Any]
+    ) -> Recommendation:
         """Create resource optimization recommendation"""
 
-        usage = metrics.get(f'{resource_type.lower()}_usage', 0)
+        usage = metrics.get(f"{resource_type.lower()}_usage", 0)
 
         return Recommendation(
             recommendation_id=f"RES_{resource_type}_{datetime.now().timestamp()}",
@@ -557,20 +611,22 @@ class ContextualRecommendationsEngine:
                 f"1. Profile {resource_type} usage patterns",
                 f"2. Optimize resource-intensive operations",
                 f"3. Consider hardware/configuration upgrades",
-                f"4. Implement resource limits"
+                f"4. Implement resource limits",
             ],
-            expected_impact={'stability': 0.6, 'performance': 0.4},
+            expected_impact={"stability": 0.6, "performance": 0.4},
             prerequisites=["Resource monitoring tools"],
             risks=["Service disruption during changes"],
             estimated_time="1-2 hours",
             confidence=0.8,
-            tags={"resources", resource_type.lower(), "optimization"}
+            tags={"resources", resource_type.lower(), "optimization"},
         )
 
-    def _create_concurrency_recommendation(self, metrics: Dict[str, Any]) -> Recommendation:
+    def _create_concurrency_recommendation(
+        self, metrics: Dict[str, Any]
+    ) -> Recommendation:
         """Create concurrency optimization recommendation"""
 
-        lock_time = metrics.get('lock_wait_time_ms', 0)
+        lock_time = metrics.get("lock_wait_time_ms", 0)
 
         return Recommendation(
             recommendation_id=f"CONC_OPT_{datetime.now().timestamp()}",
@@ -585,18 +641,22 @@ class ContextualRecommendationsEngine:
                 "2. Optimize transaction scope",
                 "3. Consider read replicas",
                 "4. Implement optimistic locking",
-                "5. Review isolation levels"
+                "5. Review isolation levels",
             ],
-            expected_impact={'concurrency': 0.7, 'throughput': 0.5},
-            prerequisites=["Lock monitoring tools", "Understanding of transaction patterns"],
+            expected_impact={"concurrency": 0.7, "throughput": 0.5},
+            prerequisites=[
+                "Lock monitoring tools",
+                "Understanding of transaction patterns",
+            ],
             risks=["Data consistency concerns", "Application changes required"],
             estimated_time="1-2 days",
             confidence=0.75,
-            tags={"concurrency", "locking", "architecture"}
+            tags={"concurrency", "locking", "architecture"},
         )
 
-    def _generate_architecture_recommendations(self,
-                                              context: RecommendationContext) -> List[Recommendation]:
+    def _generate_architecture_recommendations(
+        self, context: RecommendationContext
+    ) -> List[Recommendation]:
         """Generate architectural recommendations"""
         recommendations = []
 
@@ -618,8 +678,8 @@ class ContextualRecommendationsEngine:
         """Determine if caching should be recommended"""
         # Simple heuristic: recommend if query is read-heavy and frequently executed
         if context.performance_metrics:
-            read_ratio = context.performance_metrics.get('read_write_ratio', 0)
-            frequency = context.performance_metrics.get('query_frequency', 0)
+            read_ratio = context.performance_metrics.get("read_write_ratio", 0)
+            frequency = context.performance_metrics.get("query_frequency", 0)
             return read_ratio > 10 and frequency > 100
 
         return False
@@ -640,22 +700,24 @@ class ContextualRecommendationsEngine:
                 "2. Choose caching strategy (Redis, Memcached, etc.)",
                 "3. Implement cache layer",
                 "4. Define cache invalidation strategy",
-                "5. Monitor cache hit rates"
+                "5. Monitor cache hit rates",
             ],
-            expected_impact={'performance': 0.8, 'database_load': 0.6},
+            expected_impact={"performance": 0.8, "database_load": 0.6},
             prerequisites=["Cache infrastructure", "Application changes"],
             risks=["Stale data", "Cache invalidation complexity"],
             alternatives=["Materialized views", "Query result sets"],
             estimated_time="1-2 days",
             confidence=0.8,
-            tags={"caching", "architecture", "performance"}
+            tags={"caching", "architecture", "performance"},
         )
 
     def _should_recommend_read_replicas(self, context: RecommendationContext) -> bool:
         """Determine if read replicas should be recommended"""
         if context.performance_metrics:
-            return (context.performance_metrics.get('read_write_ratio', 0) > 5 and
-                   context.environment == 'production')
+            return (
+                context.performance_metrics.get("read_write_ratio", 0) > 5
+                and context.environment == "production"
+            )
         return False
 
     def _create_read_replica_recommendation(self) -> Recommendation:
@@ -674,21 +736,21 @@ class ContextualRecommendationsEngine:
                 "2. Configure replication",
                 "3. Implement read/write splitting in application",
                 "4. Handle replication lag",
-                "5. Monitor replica health"
+                "5. Monitor replica health",
             ],
-            expected_impact={'scalability': 0.9, 'availability': 0.7},
+            expected_impact={"scalability": 0.9, "availability": 0.7},
             prerequisites=["Infrastructure budget", "Application architecture support"],
             risks=["Replication lag", "Consistency challenges"],
             estimated_time="3-5 days",
             confidence=0.75,
-            tags={"replication", "scalability", "architecture"}
+            tags={"replication", "scalability", "architecture"},
         )
 
     def _should_recommend_partitioning(self, context: RecommendationContext) -> bool:
         """Determine if partitioning should be recommended"""
-        if context.database_stats and 'table_stats' in context.database_stats:
-            for table_stats in context.database_stats['table_stats'].values():
-                if table_stats.get('row_count', 0) > 10000000:  # 10M+ rows
+        if context.database_stats and "table_stats" in context.database_stats:
+            for table_stats in context.database_stats["table_stats"].values():
+                if table_stats.get("row_count", 0) > 10000000:  # 10M+ rows
                     return True
         return False
 
@@ -708,25 +770,26 @@ class ContextualRecommendationsEngine:
                 "2. Plan partition boundaries",
                 "3. Create partitioned table structure",
                 "4. Migrate data to partitions",
-                "5. Update application queries"
+                "5. Update application queries",
             ],
-            expected_impact={'performance': 0.6, 'maintenance': 0.8},
+            expected_impact={"performance": 0.6, "maintenance": 0.8},
             prerequisites=["Database support for partitioning", "Maintenance window"],
             risks=["Complex implementation", "Application changes required"],
             estimated_time="1-2 weeks",
             confidence=0.7,
-            tags={"partitioning", "schema", "scalability"}
+            tags={"partitioning", "schema", "scalability"},
         )
 
-    def _filter_by_context(self, recommendations: List[Recommendation],
-                          context: RecommendationContext) -> List[Recommendation]:
+    def _filter_by_context(
+        self, recommendations: List[Recommendation], context: RecommendationContext
+    ) -> List[Recommendation]:
         """Filter recommendations based on context constraints"""
 
         filtered = []
 
         for rec in recommendations:
             # Check environment constraints
-            if context.environment == 'production':
+            if context.environment == "production":
                 # Skip risky recommendations in production
                 if rec.complexity == ImplementationComplexity.VERY_COMPLEX:
                     continue
@@ -743,8 +806,9 @@ class ContextualRecommendationsEngine:
 
         return filtered
 
-    def _prioritize_recommendations(self, recommendations: List[Recommendation],
-                                   context: RecommendationContext) -> List[Recommendation]:
+    def _prioritize_recommendations(
+        self, recommendations: List[Recommendation], context: RecommendationContext
+    ) -> List[Recommendation]:
         """Prioritize recommendations based on context and goals"""
 
         # Score each recommendation
@@ -758,8 +822,9 @@ class ContextualRecommendationsEngine:
 
         return [rec for _, rec in scored]
 
-    def _calculate_recommendation_score(self, rec: Recommendation,
-                                       context: RecommendationContext) -> float:
+    def _calculate_recommendation_score(
+        self, rec: Recommendation, context: RecommendationContext
+    ) -> float:
         """Calculate score for a recommendation"""
 
         score = 0.0
@@ -770,7 +835,7 @@ class ContextualRecommendationsEngine:
             RecommendationPriority.HIGH: 7.0,
             RecommendationPriority.MEDIUM: 4.0,
             RecommendationPriority.LOW: 2.0,
-            RecommendationPriority.INFORMATIONAL: 1.0
+            RecommendationPriority.INFORMATIONAL: 1.0,
         }
         score += priority_weights.get(rec.priority, 0)
 
@@ -780,7 +845,7 @@ class ContextualRecommendationsEngine:
             ImplementationComplexity.EASY: 1,
             ImplementationComplexity.MODERATE: 2,
             ImplementationComplexity.COMPLEX: 3,
-            ImplementationComplexity.VERY_COMPLEX: 5
+            ImplementationComplexity.VERY_COMPLEX: 5,
         }
         score -= complexity_penalty.get(rec.complexity, 0)
 
@@ -794,45 +859,48 @@ class ContextualRecommendationsEngine:
 
         return max(0, score)
 
-    def _create_implementation_plan(self, recommendations: List[Recommendation]) -> List[str]:
+    def _create_implementation_plan(
+        self, recommendations: List[Recommendation]
+    ) -> List[str]:
         """Create ordered implementation plan"""
 
         plan = []
 
         # Group by complexity
-        groups = {
-            'quick_wins': [],
-            'medium_term': [],
-            'long_term': []
-        }
+        groups = {"quick_wins": [], "medium_term": [], "long_term": []}
 
         for rec in recommendations[:10]:  # Top 10
-            if rec.complexity in [ImplementationComplexity.TRIVIAL, ImplementationComplexity.EASY]:
-                groups['quick_wins'].append(rec)
+            if rec.complexity in [
+                ImplementationComplexity.TRIVIAL,
+                ImplementationComplexity.EASY,
+            ]:
+                groups["quick_wins"].append(rec)
             elif rec.complexity == ImplementationComplexity.MODERATE:
-                groups['medium_term'].append(rec)
+                groups["medium_term"].append(rec)
             else:
-                groups['long_term'].append(rec)
+                groups["long_term"].append(rec)
 
         # Create phased plan
-        if groups['quick_wins']:
+        if groups["quick_wins"]:
             plan.append("=== Phase 1: Quick Wins (This Week) ===")
-            for rec in groups['quick_wins']:
+            for rec in groups["quick_wins"]:
                 plan.append(f"- {rec.title} ({rec.estimated_time})")
 
-        if groups['medium_term']:
+        if groups["medium_term"]:
             plan.append("=== Phase 2: Medium-term Improvements (Next 2 Weeks) ===")
-            for rec in groups['medium_term']:
+            for rec in groups["medium_term"]:
                 plan.append(f"- {rec.title} ({rec.estimated_time})")
 
-        if groups['long_term']:
+        if groups["long_term"]:
             plan.append("=== Phase 3: Long-term Optimizations (Next Month) ===")
-            for rec in groups['long_term']:
+            for rec in groups["long_term"]:
                 plan.append(f"- {rec.title} ({rec.estimated_time})")
 
         return plan
 
-    def _calculate_overall_impact(self, recommendations: List[Recommendation]) -> Dict[str, float]:
+    def _calculate_overall_impact(
+        self, recommendations: List[Recommendation]
+    ) -> Dict[str, float]:
         """Calculate cumulative impact of recommendations"""
 
         impact = defaultdict(float)
@@ -849,8 +917,9 @@ class ContextualRecommendationsEngine:
 
         return dict(impact)
 
-    def _assess_risks(self, recommendations: List[Recommendation],
-                     context: RecommendationContext) -> str:
+    def _assess_risks(
+        self, recommendations: List[Recommendation], context: RecommendationContext
+    ) -> str:
         """Assess overall risk of implementing recommendations"""
 
         risk_score = 0
@@ -865,8 +934,11 @@ class ContextualRecommendationsEngine:
                 risk_score += 2
 
             # Add risk for production environment
-            if context.environment == 'production':
-                if rec.type in [RecommendationType.SCHEMA_CHANGE, RecommendationType.ARCHITECTURE]:
+            if context.environment == "production":
+                if rec.type in [
+                    RecommendationType.SCHEMA_CHANGE,
+                    RecommendationType.ARCHITECTURE,
+                ]:
                     risk_score += 2
                     risk_factors.append(f"Production change: {rec.title}")
 
@@ -883,7 +955,9 @@ class ContextualRecommendationsEngine:
 
         return assessment
 
-    def _define_success_metrics(self, recommendations: List[Recommendation]) -> List[str]:
+    def _define_success_metrics(
+        self, recommendations: List[Recommendation]
+    ) -> List[str]:
         """Define metrics to measure success of implementations"""
 
         metrics = set()
@@ -891,16 +965,16 @@ class ContextualRecommendationsEngine:
         for rec in recommendations[:10]:
             # Add metrics based on expected impact
             for impact_area in rec.expected_impact:
-                if impact_area == 'performance':
+                if impact_area == "performance":
                     metrics.add("Query execution time reduction > 30%")
                     metrics.add("Database CPU usage reduction > 20%")
-                elif impact_area == 'scalability':
+                elif impact_area == "scalability":
                     metrics.add("Support 2x current transaction volume")
                     metrics.add("Linear performance scaling with data growth")
-                elif impact_area == 'maintainability':
+                elif impact_area == "maintainability":
                     metrics.add("Code review approval rate > 90%")
                     metrics.add("Bug report reduction > 25%")
-                elif impact_area == 'stability':
+                elif impact_area == "stability":
                     metrics.add("Error rate reduction > 50%")
                     metrics.add("System uptime > 99.9%")
 
@@ -912,7 +986,9 @@ class ContextualRecommendationsEngine:
         parts = []
 
         if context.query:
-            query_type = context.query.split()[0].upper() if context.query else "UNKNOWN"
+            query_type = (
+                context.query.split()[0].upper() if context.query else "UNKNOWN"
+            )
             parts.append(f"Query Type: {query_type}")
 
         if context.environment:
@@ -934,19 +1010,19 @@ class ContextualRecommendationsEngine:
         for rec in recommendations:
             # Parse estimated time
             time_str = rec.estimated_time.lower()
-            if 'minute' in time_str:
+            if "minute" in time_str:
                 # Extract minutes and convert to hours
-                minutes = re.search(r'(\d+)', time_str)
+                minutes = re.search(r"(\d+)", time_str)
                 if minutes:
                     total_hours += int(minutes.group(1)) / 60
-            elif 'hour' in time_str:
+            elif "hour" in time_str:
                 # Extract hours
-                hours = re.search(r'(\d+)', time_str)
+                hours = re.search(r"(\d+)", time_str)
                 if hours:
                     total_hours += int(hours.group(1))
-            elif 'day' in time_str:
+            elif "day" in time_str:
                 # Extract days and convert to hours
-                days = re.search(r'(\d+)', time_str)
+                days = re.search(r"(\d+)", time_str)
                 if days:
                     total_hours += int(days.group(1)) * 8  # Assume 8-hour workday
 
@@ -961,19 +1037,21 @@ class ContextualRecommendationsEngine:
         """Generate rewritten query based on pattern"""
 
         # Simple rewrite examples (would be more sophisticated in production)
-        if pattern_name == 'exists_vs_in':
+        if pattern_name == "exists_vs_in":
             # Replace IN with EXISTS
             rewritten = re.sub(
-                r'WHERE\s+(\w+)\s+IN\s*\(\s*SELECT\s+(\w+)\s+FROM\s+(\w+)',
-                r'WHERE EXISTS (SELECT 1 FROM \3 WHERE \3.\2 = \1',
+                r"WHERE\s+(\w+)\s+IN\s*\(\s*SELECT\s+(\w+)\s+FROM\s+(\w+)",
+                r"WHERE EXISTS (SELECT 1 FROM \3 WHERE \3.\2 = \1",
                 query,
-                flags=re.IGNORECASE
+                flags=re.IGNORECASE,
             )
             return rewritten
 
-        elif pattern_name == 'union_all':
+        elif pattern_name == "union_all":
             # Replace UNION with UNION ALL
-            return re.sub(r'\bUNION\b(?!\s+ALL)', 'UNION ALL', query, flags=re.IGNORECASE)
+            return re.sub(
+                r"\bUNION\b(?!\s+ALL)", "UNION ALL", query, flags=re.IGNORECASE
+            )
 
         return query  # Return original if no rewrite available
 
@@ -991,26 +1069,26 @@ if __name__ == "__main__":
         """,
         query_patterns=[],
         database_stats={
-            'table_stats': {
-                'orders': {'row_count': 5000000, 'index_count': 1, 'fragmentation': 35},
-                'customers': {'row_count': 100000, 'index_count': 3}
+            "table_stats": {
+                "orders": {"row_count": 5000000, "index_count": 1, "fragmentation": 35},
+                "customers": {"row_count": 100000, "index_count": 3},
             },
-            'stats_age_days': 45
+            "stats_age_days": 45,
         },
         user_history=[
-            {'pattern': 'subquery', 'timestamp': datetime.now()},
-            {'pattern': 'subquery', 'timestamp': datetime.now()},
-            {'pattern': 'subquery', 'timestamp': datetime.now()}
+            {"pattern": "subquery", "timestamp": datetime.now()},
+            {"pattern": "subquery", "timestamp": datetime.now()},
+            {"pattern": "subquery", "timestamp": datetime.now()},
         ],
         performance_metrics={
-            'avg_execution_time_ms': 1500,
-            'cpu_usage': 75,
-            'read_write_ratio': 20,
-            'query_frequency': 500
+            "avg_execution_time_ms": 1500,
+            "cpu_usage": 75,
+            "read_write_ratio": 20,
+            "query_frequency": 500,
         },
-        environment='production',
-        constraints=['No downtime', 'Limited budget'],
-        goals=['Improve performance', 'Reduce costs']
+        environment="production",
+        constraints=["No downtime", "Limited budget"],
+        goals=["Improve performance", "Reduce costs"],
     )
 
     # Generate recommendations

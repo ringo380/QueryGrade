@@ -6,37 +6,42 @@ adaptive learning rates, and streaming data processing capabilities for continuo
 model improvement without full retraining.
 """
 
-import logging
-import numpy as np
-import pickle
-import json
 import hashlib
-from typing import Dict, List, Optional, Tuple, Any, Union
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
+import json
+import logging
 import math
-from collections import deque, defaultdict
+import pickle
 import threading
 import time
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from django.core.cache import caches
-from django.utils import timezone
 from django.db import transaction
+from django.utils import timezone
 
 try:
-    from sklearn.base import BaseEstimator, RegressorMixin
-    from sklearn.linear_model import SGDRegressor, PassiveAggressiveRegressor
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
     import joblib
+    from sklearn.base import BaseEstimator, RegressorMixin
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
+    from sklearn.metrics import (mean_absolute_error, mean_squared_error,
+                                 r2_score)
+    from sklearn.preprocessing import StandardScaler
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
-    logging.warning("scikit-learn not available. Online learning functionality will be limited.")
+    logging.warning(
+        "scikit-learn not available. Online learning functionality will be limited."
+    )
 
-from analyzer.models import Query, QueryAnalysis, TrainingData, MLModel, LearningMetrics
 from analyzer.ml.core.feature_extractor import FeatureExtractor
+from analyzer.models import (LearningMetrics, MLModel, Query, QueryAnalysis,
+                             TrainingData)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +49,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LearningInstance:
     """Represents a single learning instance for incremental learning."""
+
     instance_id: str
     features: List[float]
     target: float
@@ -58,6 +64,7 @@ class LearningInstance:
 @dataclass
 class ConceptDriftAlert:
     """Alert for detected concept drift."""
+
     alert_id: str
     drift_type: str  # 'gradual', 'sudden', 'recurring'
     magnitude: float
@@ -70,6 +77,7 @@ class ConceptDriftAlert:
 @dataclass
 class LearningMetrics:
     """Metrics for tracking learning performance."""
+
     window_size: int
     samples_processed: int
     average_loss: float
@@ -83,7 +91,9 @@ class LearningMetrics:
 class AdaptiveLearningRateScheduler:
     """Adaptive learning rate scheduler for online learning."""
 
-    def __init__(self, initial_lr: float = 0.01, min_lr: float = 1e-6, max_lr: float = 0.1):
+    def __init__(
+        self, initial_lr: float = 0.01, min_lr: float = 1e-6, max_lr: float = 0.1
+    ):
         self.initial_lr = initial_lr
         self.min_lr = min_lr
         self.max_lr = max_lr
@@ -96,7 +106,9 @@ class AdaptiveLearningRateScheduler:
         self.patience_counter = 0
         self.patience_threshold = 10
 
-    def update_learning_rate(self, current_loss: float, gradient_norm: float = None) -> float:
+    def update_learning_rate(
+        self, current_loss: float, gradient_norm: float = None
+    ) -> float:
         """Update learning rate based on loss and gradient information."""
         self.loss_history.append(current_loss)
 
@@ -184,7 +196,9 @@ class ConceptDriftDetector:
             if self.consecutive_alerts >= 3:  # Confirm drift
                 # Determine drift type
                 drift_type = self._classify_drift_type(errors)
-                magnitude = (recent_avg_error - self.baseline_error) / self.baseline_error
+                magnitude = (
+                    recent_avg_error - self.baseline_error
+                ) / self.baseline_error
 
                 alert = ConceptDriftAlert(
                     alert_id=f"drift_{int(time.time() * 1000)}",
@@ -193,7 +207,9 @@ class ConceptDriftDetector:
                     affected_features=[],  # Could be enhanced to detect specific features
                     detection_method="error_threshold",
                     timestamp=timezone.now(),
-                    recommended_action=self._get_recommended_action(drift_type, magnitude)
+                    recommended_action=self._get_recommended_action(
+                        drift_type, magnitude
+                    ),
                 )
 
                 # Reset for next detection
@@ -246,7 +262,9 @@ class ConceptDriftDetector:
 class IncrementalRandomForest:
     """Incremental Random Forest implementation for streaming data."""
 
-    def __init__(self, n_estimators: int = 10, max_depth: int = 5, memory_limit: int = 1000):
+    def __init__(
+        self, n_estimators: int = 10, max_depth: int = 5, memory_limit: int = 1000
+    ):
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.memory_limit = memory_limit
@@ -260,7 +278,9 @@ class IncrementalRandomForest:
         self.training_buffer = deque(maxlen=memory_limit)
         self.estimator_ages = []
 
-    def partial_fit(self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray = None):
+    def partial_fit(
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray = None
+    ):
         """Incrementally update the forest with new data."""
         if not isinstance(X, np.ndarray):
             X = np.array(X)
@@ -290,9 +310,7 @@ class IncrementalRandomForest:
         for i in range(self.n_estimators):
             # Use SGD for incremental learning
             estimator = SGDRegressor(
-                learning_rate='adaptive',
-                eta0=0.01,
-                random_state=i
+                learning_rate="adaptive", eta0=0.01, random_state=i
             )
             self.estimators.append(estimator)
             self.estimator_ages.append(0)
@@ -311,9 +329,7 @@ class IncrementalRandomForest:
         for i, estimator in enumerate(self.estimators):
             # Bootstrap sampling for diversity
             indices = np.random.choice(
-                len(buffer_data),
-                size=min(len(buffer_data), 50),
-                replace=True
+                len(buffer_data), size=min(len(buffer_data), 50), replace=True
             )
 
             X_subset = X_buffer[indices]
@@ -321,7 +337,7 @@ class IncrementalRandomForest:
             w_subset = w_buffer[indices]
 
             # Partial fit
-            if hasattr(estimator, 'partial_fit'):
+            if hasattr(estimator, "partial_fit"):
                 estimator.partial_fit(X_subset, y_subset, sample_weight=w_subset)
             else:
                 # If not incremental, retrain with recent data
@@ -340,9 +356,9 @@ class IncrementalRandomForest:
             if age > max_age:
                 # Create new estimator
                 new_estimator = SGDRegressor(
-                    learning_rate='adaptive',
+                    learning_rate="adaptive",
                     eta0=0.01,
-                    random_state=i + int(time.time())
+                    random_state=i + int(time.time()),
                 )
 
                 # Train with recent buffer data
@@ -367,7 +383,7 @@ class IncrementalRandomForest:
 
         predictions = []
         for estimator in self.estimators:
-            if hasattr(estimator, 'predict'):
+            if hasattr(estimator, "predict"):
                 pred = estimator.predict(X)
                 predictions.append(pred)
 
@@ -383,7 +399,7 @@ class IncrementalRandomForest:
 
         importances = []
         for estimator in self.estimators:
-            if hasattr(estimator, 'coef_'):
+            if hasattr(estimator, "coef_"):
                 # For linear models, use absolute coefficients as importance
                 imp = np.abs(estimator.coef_)
                 if len(imp) == self.n_features_:
@@ -423,7 +439,7 @@ class IncrementalLearningEngine:
         self.processing_lock = threading.Lock()
 
         # Cache
-        self.cache = caches['default']
+        self.cache = caches["default"]
 
     def initialize_models(self) -> bool:
         """Initialize the incremental learning models."""
@@ -434,22 +450,13 @@ class IncrementalLearningEngine:
 
             # Primary incremental model
             self.primary_model = IncrementalRandomForest(
-                n_estimators=20,
-                max_depth=8,
-                memory_limit=5000
+                n_estimators=20, max_depth=8, memory_limit=5000
             )
 
             # Backup models for comparison
             self.backup_models = [
-                SGDRegressor(
-                    learning_rate='adaptive',
-                    eta0=0.01,
-                    random_state=42
-                ),
-                PassiveAggressiveRegressor(
-                    C=1.0,
-                    random_state=42
-                )
+                SGDRegressor(learning_rate="adaptive", eta0=0.01, random_state=42),
+                PassiveAggressiveRegressor(C=1.0, random_state=42),
             ]
 
             logger.info("Incremental learning models initialized")
@@ -467,7 +474,7 @@ class IncrementalLearningEngine:
 
                 # Validate instance
                 if not self._validate_instance(instance):
-                    return {'success': False, 'error': 'Invalid instance'}
+                    return {"success": False, "error": "Invalid instance"}
 
                 # Add to buffer
                 self.instance_buffer.append(instance)
@@ -508,15 +515,17 @@ class IncrementalLearningEngine:
                     self._perform_periodic_evaluation()
 
                 return {
-                    'success': True,
-                    'processing_time_ms': processing_time,
-                    'samples_processed': self.total_samples_processed,
-                    'drift_detected': drift_alert is not None if 'drift_alert' in locals() else False
+                    "success": True,
+                    "processing_time_ms": processing_time,
+                    "samples_processed": self.total_samples_processed,
+                    "drift_detected": (
+                        drift_alert is not None if "drift_alert" in locals() else False
+                    ),
                 }
 
             except Exception as e:
                 logger.error(f"Error processing learning instance: {e}")
-                return {'success': False, 'error': str(e)}
+                return {"success": False, "error": str(e)}
 
     def _validate_instance(self, instance: LearningInstance) -> bool:
         """Validate a learning instance."""
@@ -539,7 +548,7 @@ class IncrementalLearningEngine:
 
         # Update backup models
         for model in self.backup_models:
-            if hasattr(model, 'partial_fit'):
+            if hasattr(model, "partial_fit"):
                 model.partial_fit(X, y, sample_weight=weight)
 
         # Update learning rate
@@ -549,12 +558,14 @@ class IncrementalLearningEngine:
 
             # Apply new learning rate to SGD models
             for model in self.backup_models:
-                if hasattr(model, 'learning_rate') and hasattr(model, 'eta0'):
+                if hasattr(model, "learning_rate") and hasattr(model, "eta0"):
                     model.eta0 = new_lr
 
     def _handle_drift_alert(self, alert: ConceptDriftAlert):
         """Handle concept drift alert."""
-        logger.warning(f"Concept drift detected: {alert.drift_type} with magnitude {alert.magnitude:.3f}")
+        logger.warning(
+            f"Concept drift detected: {alert.drift_type} with magnitude {alert.magnitude:.3f}"
+        )
 
         # Cache the alert
         self.cache.set(f"drift_alert_{alert.alert_id}", asdict(alert), timeout=86400)
@@ -564,8 +575,7 @@ class IncrementalLearningEngine:
             self._trigger_emergency_retrain()
         elif alert.recommended_action == "increase_learning_rate":
             self.lr_scheduler.current_lr = min(
-                self.lr_scheduler.max_lr,
-                self.lr_scheduler.current_lr * 1.5
+                self.lr_scheduler.max_lr, self.lr_scheduler.current_lr * 1.5
             )
         elif alert.recommended_action == "adapt_learning_rate":
             self.lr_scheduler.current_lr = self.lr_scheduler.initial_lr
@@ -575,7 +585,9 @@ class IncrementalLearningEngine:
         try:
             # Retrain with recent buffer data
             if len(self.instance_buffer) >= 100:
-                recent_instances = list(self.instance_buffer)[-500:]  # Use last 500 instances
+                recent_instances = list(self.instance_buffer)[
+                    -500:
+                ]  # Use last 500 instances
 
                 X = np.array([inst.features for inst in recent_instances])
                 y = np.array([inst.target for inst in recent_instances])
@@ -586,17 +598,17 @@ class IncrementalLearningEngine:
 
                 # Reinitialize and retrain primary model
                 self.primary_model = IncrementalRandomForest(
-                    n_estimators=20,
-                    max_depth=8,
-                    memory_limit=5000
+                    n_estimators=20, max_depth=8, memory_limit=5000
                 )
 
                 # Batch train the model
                 for i in range(0, len(X_scaled), 50):  # Process in batches
-                    batch_X = X_scaled[i:i+50]
-                    batch_y = y[i:i+50]
-                    batch_w = weights[i:i+50]
-                    self.primary_model.partial_fit(batch_X, batch_y, sample_weight=batch_w)
+                    batch_X = X_scaled[i : i + 50]
+                    batch_y = y[i : i + 50]
+                    batch_w = weights[i : i + 50]
+                    self.primary_model.partial_fit(
+                        batch_X, batch_y, sample_weight=batch_w
+                    )
 
                 logger.info("Emergency retrain completed")
 
@@ -627,17 +639,19 @@ class IncrementalLearningEngine:
                 self.performance_history.append(mse)
 
                 # Log performance
-                logger.info(f"Periodic evaluation - MSE: {mse:.3f}, MAE: {mae:.3f}, R2: {r2:.3f}")
+                logger.info(
+                    f"Periodic evaluation - MSE: {mse:.3f}, MAE: {mae:.3f}, R2: {r2:.3f}"
+                )
 
                 # Cache metrics
                 metrics = {
-                    'mse': mse,
-                    'mae': mae,
-                    'r2': r2,
-                    'samples_evaluated': len(recent_instances),
-                    'timestamp': timezone.now().isoformat()
+                    "mse": mse,
+                    "mae": mae,
+                    "r2": r2,
+                    "samples_evaluated": len(recent_instances),
+                    "timestamp": timezone.now().isoformat(),
                 }
-                self.cache.set('incremental_learning_metrics', metrics, timeout=3600)
+                self.cache.set("incremental_learning_metrics", metrics, timeout=3600)
 
         except Exception as e:
             logger.error(f"Error in periodic evaluation: {e}")
@@ -657,7 +671,7 @@ class IncrementalLearningEngine:
             # Backup predictions for confidence estimation
             backup_preds = []
             for model in self.backup_models:
-                if hasattr(model, 'predict'):
+                if hasattr(model, "predict"):
                     pred = model.predict(X_scaled)[0]
                     backup_preds.append(pred)
 
@@ -678,23 +692,25 @@ class IncrementalLearningEngine:
     def get_model_insights(self) -> Dict[str, Any]:
         """Get insights about the current model state."""
         insights = {
-            'total_samples_processed': self.total_samples_processed,
-            'buffer_size': len(self.instance_buffer),
-            'current_learning_rate': self.lr_scheduler.current_lr,
-            'model_version': self.model_version,
-            'last_evaluation': self.last_full_evaluation.isoformat(),
+            "total_samples_processed": self.total_samples_processed,
+            "buffer_size": len(self.instance_buffer),
+            "current_learning_rate": self.lr_scheduler.current_lr,
+            "model_version": self.model_version,
+            "last_evaluation": self.last_full_evaluation.isoformat(),
         }
 
         # Performance insights
         if self.performance_history:
             recent_performance = list(self.performance_history)[-10:]
-            insights['recent_avg_loss'] = np.mean(recent_performance)
-            insights['performance_trend'] = self._analyze_performance_trend()
+            insights["recent_avg_loss"] = np.mean(recent_performance)
+            insights["performance_trend"] = self._analyze_performance_trend()
 
         # Feature importance (if available)
-        if self.primary_model and hasattr(self.primary_model, 'feature_importances_'):
+        if self.primary_model and hasattr(self.primary_model, "feature_importances_"):
             if self.primary_model.feature_importances_ is not None:
-                insights['feature_importances'] = self.primary_model.feature_importances_.tolist()
+                insights["feature_importances"] = (
+                    self.primary_model.feature_importances_.tolist()
+                )
 
         return insights
 
@@ -720,17 +736,17 @@ class IncrementalLearningEngine:
         """Save current model state to file."""
         try:
             state = {
-                'primary_model': self.primary_model,
-                'backup_models': self.backup_models,
-                'scaler': self.scaler,
-                'lr_scheduler': self.lr_scheduler,
-                'total_samples_processed': self.total_samples_processed,
-                'model_version': self.model_version,
-                'performance_history': list(self.performance_history),
-                'saved_at': timezone.now().isoformat()
+                "primary_model": self.primary_model,
+                "backup_models": self.backup_models,
+                "scaler": self.scaler,
+                "lr_scheduler": self.lr_scheduler,
+                "total_samples_processed": self.total_samples_processed,
+                "model_version": self.model_version,
+                "performance_history": list(self.performance_history),
+                "saved_at": timezone.now().isoformat(),
             }
 
-            with open(filepath, 'wb') as f:
+            with open(filepath, "wb") as f:
                 pickle.dump(state, f)
 
             logger.info(f"Model state saved to {filepath}")
@@ -743,16 +759,16 @@ class IncrementalLearningEngine:
     def load_model_state(self, filepath: str) -> bool:
         """Load model state from file."""
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 state = pickle.load(f)
 
-            self.primary_model = state['primary_model']
-            self.backup_models = state['backup_models']
-            self.scaler = state['scaler']
-            self.lr_scheduler = state['lr_scheduler']
-            self.total_samples_processed = state['total_samples_processed']
-            self.model_version = state['model_version']
-            self.performance_history = deque(state['performance_history'], maxlen=1000)
+            self.primary_model = state["primary_model"]
+            self.backup_models = state["backup_models"]
+            self.scaler = state["scaler"]
+            self.lr_scheduler = state["lr_scheduler"]
+            self.total_samples_processed = state["total_samples_processed"]
+            self.model_version = state["model_version"]
+            self.performance_history = deque(state["performance_history"], maxlen=1000)
 
             logger.info(f"Model state loaded from {filepath}")
             return True
@@ -777,7 +793,7 @@ if __name__ == "__main__":
                 weight=1.0,
                 timestamp=timezone.now(),
                 query_id=i,
-                source="test"
+                source="test",
             )
 
             result = engine.process_learning_instance(instance)

@@ -12,24 +12,24 @@ All forms and validators are exported from this module for backward compatibilit
 with existing imports: `from analyzer.forms import QueryGradeForm`
 """
 
-from .validators import validate_log_file, validate_sql_query
-from .upload_forms import UploadLogForm
-from .query_forms import QueryGradeForm, QueryCompareForm, BatchQueryForm
-from .feedback_forms import QueryFeedbackForm
 from .database_forms import DatabaseConnectionForm
+from .feedback_forms import QueryFeedbackForm
+from .query_forms import BatchQueryForm, QueryCompareForm, QueryGradeForm
+from .upload_forms import UploadLogForm
+from .validators import validate_log_file, validate_sql_query
 
 __all__ = [
     # Validators
-    'validate_log_file',
-    'validate_sql_query',
+    "validate_log_file",
+    "validate_sql_query",
     # Upload forms
-    'UploadLogForm',
+    "UploadLogForm",
     # Query forms
-    'QueryGradeForm',
-    'QueryCompareForm',
-    'BatchQueryForm',
+    "QueryGradeForm",
+    "QueryCompareForm",
+    "BatchQueryForm",
     # Feedback forms
-    'QueryFeedbackForm',
+    "QueryFeedbackForm",
     # Database forms
-    'DatabaseConnectionForm',
+    "DatabaseConnectionForm",
 ]

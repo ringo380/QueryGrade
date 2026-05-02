@@ -6,20 +6,23 @@ semantically equivalent but syntactically different query variations for trainin
 """
 
 import logging
-import re
 import random
-from typing import Dict, List, Optional, Tuple, Set, Any
+import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import sqlparse
-from sqlparse import sql, tokens, keywords
-from sqlparse.sql import Statement, Token, TokenList, IdentifierList, Identifier, Function, Where, Comparison
+from sqlparse import keywords, sql, tokens
+from sqlparse.sql import (Comparison, Function, Identifier, IdentifierList,
+                          Statement, Token, TokenList, Where)
 
 logger = logging.getLogger(__name__)
 
 
 class MutationType(Enum):
     """Types of mutations that can be applied to queries."""
+
     ALIAS_VARIATION = "alias_variation"
     CASE_VARIATION = "case_variation"
     WHITESPACE_VARIATION = "whitespace_variation"
@@ -35,6 +38,7 @@ class MutationType(Enum):
 @dataclass
 class MutationRule:
     """A rule defining how to mutate queries."""
+
     mutation_type: MutationType
     pattern: str  # Regex pattern to match
     replacement_options: List[str]  # Possible replacements
@@ -47,6 +51,7 @@ class MutationRule:
 @dataclass
 class MutationResult:
     """Result of applying mutations to a query."""
+
     original_query: str
     mutated_query: str
     mutations_applied: List[MutationType]
@@ -61,20 +66,20 @@ class QueryAliasGenerator:
 
     def __init__(self):
         self.table_aliases = {
-            'users': ['u', 'usr', 'user_tbl', 'people'],
-            'orders': ['o', 'ord', 'order_tbl', 'purchases'],
-            'products': ['p', 'prod', 'item', 'product_tbl'],
-            'customers': ['c', 'cust', 'client', 'customer_tbl'],
-            'employees': ['e', 'emp', 'staff', 'employee_tbl'],
-            'departments': ['d', 'dept', 'division', 'department_tbl'],
+            "users": ["u", "usr", "user_tbl", "people"],
+            "orders": ["o", "ord", "order_tbl", "purchases"],
+            "products": ["p", "prod", "item", "product_tbl"],
+            "customers": ["c", "cust", "client", "customer_tbl"],
+            "employees": ["e", "emp", "staff", "employee_tbl"],
+            "departments": ["d", "dept", "division", "department_tbl"],
         }
 
         self.column_aliases = {
-            'id': ['pk', 'key', 'identifier'],
-            'name': ['nm', 'title', 'label'],
-            'email': ['mail', 'email_addr', 'e_mail'],
-            'created_at': ['created', 'create_time', 'creation_date'],
-            'updated_at': ['updated', 'update_time', 'last_modified'],
+            "id": ["pk", "key", "identifier"],
+            "name": ["nm", "title", "label"],
+            "email": ["mail", "email_addr", "e_mail"],
+            "created_at": ["created", "create_time", "creation_date"],
+            "updated_at": ["updated", "update_time", "last_modified"],
         }
 
     def generate_table_alias(self, table_name: str) -> str:
@@ -89,7 +94,7 @@ class QueryAliasGenerator:
             elif len(table_name) <= 4:
                 return table_name[:2]
             else:
-                return table_name[0] + table_name[len(table_name)//2]
+                return table_name[0] + table_name[len(table_name) // 2]
 
     def generate_column_alias(self, column_name: str) -> str:
         """Generate an alias for a column name."""
@@ -118,56 +123,51 @@ class QueryMutationEngine:
             # Case variations
             MutationRule(
                 mutation_type=MutationType.CASE_VARIATION,
-                pattern=r'\b(SELECT|FROM|WHERE|JOIN|GROUP|ORDER|BY|HAVING|UNION|INSERT|UPDATE|DELETE)\b',
-                replacement_options=['lowercase', 'uppercase', 'mixed'],
+                pattern=r"\b(SELECT|FROM|WHERE|JOIN|GROUP|ORDER|BY|HAVING|UNION|INSERT|UPDATE|DELETE)\b",
+                replacement_options=["lowercase", "uppercase", "mixed"],
                 probability=0.8,
-                preserve_semantics=True
+                preserve_semantics=True,
             ),
-
             # Alias variations
             MutationRule(
                 mutation_type=MutationType.ALIAS_VARIATION,
-                pattern=r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s+([a-zA-Z_][a-zA-Z0-9_]*)\b',
-                replacement_options=['add_alias', 'remove_alias', 'change_alias'],
+                pattern=r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s+([a-zA-Z_][a-zA-Z0-9_]*)\b",
+                replacement_options=["add_alias", "remove_alias", "change_alias"],
                 probability=0.6,
-                preserve_semantics=True
+                preserve_semantics=True,
             ),
-
             # JOIN syntax variations
             MutationRule(
                 mutation_type=MutationType.JOIN_SYNTAX,
-                pattern=r'\bINNER\s+JOIN\b',
-                replacement_options=['JOIN', 'INNER JOIN'],
+                pattern=r"\bINNER\s+JOIN\b",
+                replacement_options=["JOIN", "INNER JOIN"],
                 probability=0.7,
-                preserve_semantics=True
+                preserve_semantics=True,
             ),
-
             # Condition reordering
             MutationRule(
                 mutation_type=MutationType.CONDITION_REORDER,
-                pattern=r'WHERE\s+(.+?)(?:\s+(?:GROUP|ORDER|HAVING|LIMIT|$))',
-                replacement_options=['reorder_and', 'reorder_or'],
+                pattern=r"WHERE\s+(.+?)(?:\s+(?:GROUP|ORDER|HAVING|LIMIT|$))",
+                replacement_options=["reorder_and", "reorder_or"],
                 probability=0.5,
-                preserve_semantics=True
+                preserve_semantics=True,
             ),
-
             # Function equivalents
             MutationRule(
                 mutation_type=MutationType.FUNCTION_EQUIVALENT,
-                pattern=r'\bCOUNT\(\*\)\b',
-                replacement_options=['COUNT(1)', 'COUNT(*)'],
+                pattern=r"\bCOUNT\(\*\)\b",
+                replacement_options=["COUNT(1)", "COUNT(*)"],
                 probability=0.8,
-                preserve_semantics=True
+                preserve_semantics=True,
             ),
-
             # Literal variations
             MutationRule(
                 mutation_type=MutationType.LITERAL_VARIATION,
                 pattern=r"'([^']+)'",
-                replacement_options=['double_quotes', 'single_quotes'],
+                replacement_options=["double_quotes", "single_quotes"],
                 probability=0.6,
                 preserve_semantics=True,
-                database_specific=['mysql', 'sqlite']
+                database_specific=["mysql", "sqlite"],
             ),
         ]
         return rules
@@ -175,16 +175,17 @@ class QueryMutationEngine:
     def _initialize_keyword_synonyms(self) -> Dict[str, List[str]]:
         """Initialize keyword synonyms for different databases."""
         return {
-            'INNER JOIN': ['JOIN', 'INNER JOIN'],
-            'LEFT OUTER JOIN': ['LEFT JOIN', 'LEFT OUTER JOIN'],
-            'RIGHT OUTER JOIN': ['RIGHT JOIN', 'RIGHT OUTER JOIN'],
-            'COUNT(*)': ['COUNT(*)', 'COUNT(1)'],
-            'AUTOINCREMENT': ['AUTO_INCREMENT', 'AUTOINCREMENT'],  # SQLite vs MySQL
-            'LIMIT': ['LIMIT', 'TOP'],  # Standard vs SQL Server
+            "INNER JOIN": ["JOIN", "INNER JOIN"],
+            "LEFT OUTER JOIN": ["LEFT JOIN", "LEFT OUTER JOIN"],
+            "RIGHT OUTER JOIN": ["RIGHT JOIN", "RIGHT OUTER JOIN"],
+            "COUNT(*)": ["COUNT(*)", "COUNT(1)"],
+            "AUTOINCREMENT": ["AUTO_INCREMENT", "AUTOINCREMENT"],  # SQLite vs MySQL
+            "LIMIT": ["LIMIT", "TOP"],  # Standard vs SQL Server
         }
 
-    def mutate_query(self, query: str, num_mutations: int = 3,
-                    database_type: str = 'generic') -> List[MutationResult]:
+    def mutate_query(
+        self, query: str, num_mutations: int = 3, database_type: str = "generic"
+    ) -> List[MutationResult]:
         """
         Generate multiple mutations of a SQL query.
 
@@ -214,11 +215,13 @@ class QueryMutationEngine:
                         mutated_query, mutation_type, database_type
                     )
 
-                    if mutation_result['success']:
-                        mutated_query = mutation_result['query']
+                    if mutation_result["success"]:
+                        mutated_query = mutation_result["query"]
                         applied_mutations.append(mutation_type)
-                        complexity_change += mutation_result.get('complexity_change', 0)
-                        semantic_preserved = semantic_preserved and mutation_result.get('semantic_preserved', True)
+                        complexity_change += mutation_result.get("complexity_change", 0)
+                        semantic_preserved = semantic_preserved and mutation_result.get(
+                            "semantic_preserved", True
+                        )
 
                 # Validate the mutated query
                 is_valid = self._validate_mutated_query(mutated_query)
@@ -229,22 +232,24 @@ class QueryMutationEngine:
                     mutations_applied=applied_mutations,
                     semantic_preserved=semantic_preserved and is_valid,
                     complexity_change=complexity_change,
-                    success=is_valid and len(applied_mutations) > 0
+                    success=is_valid and len(applied_mutations) > 0,
                 )
 
                 results.append(result)
 
             except Exception as e:
                 logger.warning(f"Error in mutation {i}: {e}")
-                results.append(MutationResult(
-                    original_query=query,
-                    mutated_query=query,
-                    mutations_applied=[],
-                    semantic_preserved=False,
-                    complexity_change=0,
-                    success=False,
-                    error_message=str(e)
-                ))
+                results.append(
+                    MutationResult(
+                        original_query=query,
+                        mutated_query=query,
+                        mutations_applied=[],
+                        semantic_preserved=False,
+                        complexity_change=0,
+                        success=False,
+                        error_message=str(e),
+                    )
+                )
 
         return results
 
@@ -267,8 +272,9 @@ class QueryMutationEngine:
 
         return selected[:3]  # Limit to 3 mutations per query
 
-    def _apply_mutation(self, query: str, mutation_type: MutationType,
-                       database_type: str) -> Dict[str, Any]:
+    def _apply_mutation(
+        self, query: str, mutation_type: MutationType, database_type: str
+    ) -> Dict[str, Any]:
         """Apply a specific mutation to a query."""
         try:
             if mutation_type == MutationType.CASE_VARIATION:
@@ -290,34 +296,42 @@ class QueryMutationEngine:
             elif mutation_type == MutationType.PARENTHESES_VARIATION:
                 return self._apply_parentheses_variation(query)
             else:
-                return {'success': False, 'query': query, 'error': 'Unknown mutation type'}
+                return {
+                    "success": False,
+                    "query": query,
+                    "error": "Unknown mutation type",
+                }
 
         except Exception as e:
             logger.warning(f"Error applying {mutation_type}: {e}")
-            return {'success': False, 'query': query, 'error': str(e)}
+            return {"success": False, "query": query, "error": str(e)}
 
     def _apply_case_variation(self, query: str) -> Dict[str, Any]:
         """Apply case variations to SQL keywords."""
-        variation_type = random.choice(['lowercase', 'uppercase', 'mixed'])
+        variation_type = random.choice(["lowercase", "uppercase", "mixed"])
 
-        keywords_pattern = r'\b(SELECT|FROM|WHERE|JOIN|INNER|LEFT|RIGHT|OUTER|ON|GROUP|ORDER|BY|HAVING|UNION|ALL|DISTINCT|AS|AND|OR|NOT|IN|EXISTS|LIKE|BETWEEN|IS|NULL|COUNT|SUM|AVG|MIN|MAX|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|ALTER|DROP|INDEX)\b'
+        keywords_pattern = r"\b(SELECT|FROM|WHERE|JOIN|INNER|LEFT|RIGHT|OUTER|ON|GROUP|ORDER|BY|HAVING|UNION|ALL|DISTINCT|AS|AND|OR|NOT|IN|EXISTS|LIKE|BETWEEN|IS|NULL|COUNT|SUM|AVG|MIN|MAX|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|ALTER|DROP|INDEX)\b"
 
         def case_replacer(match):
             keyword = match.group(1)
-            if variation_type == 'lowercase':
+            if variation_type == "lowercase":
                 return keyword.lower()
-            elif variation_type == 'uppercase':
+            elif variation_type == "uppercase":
                 return keyword.upper()
             else:  # mixed
-                return keyword.capitalize() if random.random() > 0.5 else keyword.lower()
+                return (
+                    keyword.capitalize() if random.random() > 0.5 else keyword.lower()
+                )
 
-        mutated_query = re.sub(keywords_pattern, case_replacer, query, flags=re.IGNORECASE)
+        mutated_query = re.sub(
+            keywords_pattern, case_replacer, query, flags=re.IGNORECASE
+        )
 
         return {
-            'success': True,
-            'query': mutated_query,
-            'semantic_preserved': True,
-            'complexity_change': 0
+            "success": True,
+            "query": mutated_query,
+            "semantic_preserved": True,
+            "complexity_change": 0,
         }
 
     def _apply_alias_variation(self, query: str) -> Dict[str, Any]:
@@ -334,14 +348,23 @@ class QueryMutationEngine:
                 token = tokens[i]
 
                 # Look for table names after FROM or JOIN
-                if (token.ttype in keywords.Keyword and
-                    token.value.upper() in ['FROM', 'JOIN', 'INNER', 'LEFT', 'RIGHT']):
+                if token.ttype in keywords.Keyword and token.value.upper() in [
+                    "FROM",
+                    "JOIN",
+                    "INNER",
+                    "LEFT",
+                    "RIGHT",
+                ]:
 
                     mutated_tokens.append(token)
 
                     # Skip to the table name
                     j = i + 1
-                    while j < len(tokens) and (tokens[j].is_whitespace or tokens[j].value.upper() in ['INNER', 'LEFT', 'RIGHT', 'OUTER', 'JOIN']):
+                    while j < len(tokens) and (
+                        tokens[j].is_whitespace
+                        or tokens[j].value.upper()
+                        in ["INNER", "LEFT", "RIGHT", "OUTER", "JOIN"]
+                    ):
                         mutated_tokens.append(tokens[j])
                         j += 1
 
@@ -357,12 +380,18 @@ class QueryMutationEngine:
                             k += 1
 
                         # Add alias if none exists
-                        if (k >= len(tokens) or
-                            tokens[k].ttype in keywords.Keyword or
-                            tokens[k].value in [',', '(', ')']):
+                        if (
+                            k >= len(tokens)
+                            or tokens[k].ttype in keywords.Keyword
+                            or tokens[k].value in [",", "(", ")"]
+                        ):
 
-                            alias = self.alias_generator.generate_table_alias(table_name)
-                            mutated_tokens.append(sqlparse.sql.Token(tokens.Whitespace, ' '))
+                            alias = self.alias_generator.generate_table_alias(
+                                table_name
+                            )
+                            mutated_tokens.append(
+                                sqlparse.sql.Token(tokens.Whitespace, " ")
+                            )
                             mutated_tokens.append(sqlparse.sql.Token(None, alias))
 
                         i = k - 1
@@ -373,41 +402,41 @@ class QueryMutationEngine:
 
                 i += 1
 
-            mutated_query = ''.join(str(token) for token in mutated_tokens)
+            mutated_query = "".join(str(token) for token in mutated_tokens)
 
             return {
-                'success': True,
-                'query': mutated_query,
-                'semantic_preserved': True,
-                'complexity_change': 0
+                "success": True,
+                "query": mutated_query,
+                "semantic_preserved": True,
+                "complexity_change": 0,
             }
 
         except Exception as e:
             logger.warning(f"Error in alias variation: {e}")
-            return {'success': False, 'query': query, 'error': str(e)}
+            return {"success": False, "query": query, "error": str(e)}
 
     def _apply_whitespace_variation(self, query: str) -> Dict[str, Any]:
         """Apply whitespace variations while preserving syntax."""
         variations = [
             # Normalize multiple spaces to single space
-            lambda q: re.sub(r'\s+', ' ', q),
+            lambda q: re.sub(r"\s+", " ", q),
             # Add extra spaces around operators
-            lambda q: re.sub(r'([=<>!]+)', r' \1 ', q),
+            lambda q: re.sub(r"([=<>!]+)", r" \1 ", q),
             # Normalize spaces around commas
-            lambda q: re.sub(r'\s*,\s*', ', ', q),
+            lambda q: re.sub(r"\s*,\s*", ", ", q),
             # Normalize spaces around parentheses
-            lambda q: re.sub(r'\s*\(\s*', '(', q),
-            lambda q: re.sub(r'\s*\)\s*', ')', q),
+            lambda q: re.sub(r"\s*\(\s*", "(", q),
+            lambda q: re.sub(r"\s*\)\s*", ")", q),
         ]
 
         variation = random.choice(variations)
         mutated_query = variation(query.strip())
 
         return {
-            'success': True,
-            'query': mutated_query,
-            'semantic_preserved': True,
-            'complexity_change': 0
+            "success": True,
+            "query": mutated_query,
+            "semantic_preserved": True,
+            "complexity_change": 0,
         }
 
     def _apply_keyword_synonym(self, query: str, database_type: str) -> Dict[str, Any]:
@@ -423,105 +452,107 @@ class QueryMutationEngine:
                 break
 
         return {
-            'success': mutated_query != query,
-            'query': mutated_query,
-            'semantic_preserved': True,
-            'complexity_change': 0
+            "success": mutated_query != query,
+            "query": mutated_query,
+            "semantic_preserved": True,
+            "complexity_change": 0,
         }
 
     def _apply_condition_reorder(self, query: str) -> Dict[str, Any]:
         """Reorder conditions in WHERE clauses."""
-        where_pattern = r'WHERE\s+(.+?)(?=\s+(?:GROUP|ORDER|HAVING|LIMIT|UNION|$))'
+        where_pattern = r"WHERE\s+(.+?)(?=\s+(?:GROUP|ORDER|HAVING|LIMIT|UNION|$))"
         match = re.search(where_pattern, query, re.IGNORECASE | re.DOTALL)
 
         if not match:
-            return {'success': False, 'query': query, 'error': 'No WHERE clause found'}
+            return {"success": False, "query": query, "error": "No WHERE clause found"}
 
         where_conditions = match.group(1).strip()
 
         # Split on AND/OR and reorder
-        and_parts = re.split(r'\s+AND\s+', where_conditions, flags=re.IGNORECASE)
+        and_parts = re.split(r"\s+AND\s+", where_conditions, flags=re.IGNORECASE)
         if len(and_parts) > 1:
             random.shuffle(and_parts)
-            new_where = ' AND '.join(and_parts)
+            new_where = " AND ".join(and_parts)
             mutated_query = query.replace(match.group(1), new_where)
 
             return {
-                'success': True,
-                'query': mutated_query,
-                'semantic_preserved': True,
-                'complexity_change': 0
+                "success": True,
+                "query": mutated_query,
+                "semantic_preserved": True,
+                "complexity_change": 0,
             }
 
-        return {'success': False, 'query': query, 'error': 'No conditions to reorder'}
+        return {"success": False, "query": query, "error": "No conditions to reorder"}
 
     def _apply_join_syntax_variation(self, query: str) -> Dict[str, Any]:
         """Apply JOIN syntax variations."""
         variations = [
-            (r'\bINNER\s+JOIN\b', 'JOIN'),
-            (r'\bJOIN\b(?!\s+ON)', 'INNER JOIN'),
-            (r'\bLEFT\s+OUTER\s+JOIN\b', 'LEFT JOIN'),
-            (r'\bRIGHT\s+OUTER\s+JOIN\b', 'RIGHT JOIN'),
+            (r"\bINNER\s+JOIN\b", "JOIN"),
+            (r"\bJOIN\b(?!\s+ON)", "INNER JOIN"),
+            (r"\bLEFT\s+OUTER\s+JOIN\b", "LEFT JOIN"),
+            (r"\bRIGHT\s+OUTER\s+JOIN\b", "RIGHT JOIN"),
         ]
 
         for pattern, replacement in variations:
             if re.search(pattern, query, re.IGNORECASE):
                 mutated_query = re.sub(pattern, replacement, query, flags=re.IGNORECASE)
                 return {
-                    'success': True,
-                    'query': mutated_query,
-                    'semantic_preserved': True,
-                    'complexity_change': 0
+                    "success": True,
+                    "query": mutated_query,
+                    "semantic_preserved": True,
+                    "complexity_change": 0,
                 }
 
-        return {'success': False, 'query': query, 'error': 'No JOIN syntax to vary'}
+        return {"success": False, "query": query, "error": "No JOIN syntax to vary"}
 
     def _apply_function_equivalent(self, query: str) -> Dict[str, Any]:
         """Apply function equivalent transformations."""
         equivalents = [
-            (r'\bCOUNT\(\*\)', 'COUNT(1)'),
-            (r'\bCOUNT\(1\)', 'COUNT(*)'),
+            (r"\bCOUNT\(\*\)", "COUNT(1)"),
+            (r"\bCOUNT\(1\)", "COUNT(*)"),
         ]
 
         for pattern, replacement in equivalents:
             if re.search(pattern, query, re.IGNORECASE):
                 mutated_query = re.sub(pattern, replacement, query, flags=re.IGNORECASE)
                 return {
-                    'success': True,
-                    'query': mutated_query,
-                    'semantic_preserved': True,
-                    'complexity_change': 0
+                    "success": True,
+                    "query": mutated_query,
+                    "semantic_preserved": True,
+                    "complexity_change": 0,
                 }
 
-        return {'success': False, 'query': query, 'error': 'No functions to vary'}
+        return {"success": False, "query": query, "error": "No functions to vary"}
 
-    def _apply_literal_variation(self, query: str, database_type: str) -> Dict[str, Any]:
+    def _apply_literal_variation(
+        self, query: str, database_type: str
+    ) -> Dict[str, Any]:
         """Apply literal value variations."""
-        if database_type in ['mysql', 'sqlite']:
+        if database_type in ["mysql", "sqlite"]:
             # Convert single quotes to double quotes or vice versa
             if "'" in query and '"' not in query:
                 mutated_query = query.replace("'", '"')
                 return {
-                    'success': True,
-                    'query': mutated_query,
-                    'semantic_preserved': True,
-                    'complexity_change': 0
+                    "success": True,
+                    "query": mutated_query,
+                    "semantic_preserved": True,
+                    "complexity_change": 0,
                 }
             elif '"' in query and "'" not in query:
                 mutated_query = query.replace('"', "'")
                 return {
-                    'success': True,
-                    'query': mutated_query,
-                    'semantic_preserved': True,
-                    'complexity_change': 0
+                    "success": True,
+                    "query": mutated_query,
+                    "semantic_preserved": True,
+                    "complexity_change": 0,
                 }
 
-        return {'success': False, 'query': query, 'error': 'No literals to vary'}
+        return {"success": False, "query": query, "error": "No literals to vary"}
 
     def _apply_parentheses_variation(self, query: str) -> Dict[str, Any]:
         """Add or remove optional parentheses."""
         # Add parentheses around complex conditions
-        condition_pattern = r'(\w+\s*[=<>!]+\s*\w+)\s+AND\s+(\w+\s*[=<>!]+\s*\w+)'
+        condition_pattern = r"(\w+\s*[=<>!]+\s*\w+)\s+AND\s+(\w+\s*[=<>!]+\s*\w+)"
         match = re.search(condition_pattern, query)
 
         if match:
@@ -530,13 +561,17 @@ class QueryMutationEngine:
             mutated_query = query.replace(full_condition, parenthesized)
 
             return {
-                'success': True,
-                'query': mutated_query,
-                'semantic_preserved': True,
-                'complexity_change': 1
+                "success": True,
+                "query": mutated_query,
+                "semantic_preserved": True,
+                "complexity_change": 1,
             }
 
-        return {'success': False, 'query': query, 'error': 'No conditions for parentheses'}
+        return {
+            "success": False,
+            "query": query,
+            "error": "No conditions for parentheses",
+        }
 
     def _validate_mutated_query(self, query: str) -> bool:
         """Validate that the mutated query is syntactically correct."""
@@ -569,11 +604,7 @@ class QueryMutationEngine:
 
     def generate_complexity_variants(self, query: str) -> Dict[str, List[str]]:
         """Generate variants with different complexity levels."""
-        variants = {
-            'simplified': [],
-            'equivalent': [],
-            'enhanced': []
-        }
+        variants = {"simplified": [], "equivalent": [], "enhanced": []}
 
         mutations = self.mutate_query(query, num_mutations=10)
 
@@ -582,11 +613,11 @@ class QueryMutationEngine:
                 continue
 
             if mutation.complexity_change < 0:
-                variants['simplified'].append(mutation.mutated_query)
+                variants["simplified"].append(mutation.mutated_query)
             elif mutation.complexity_change == 0:
-                variants['equivalent'].append(mutation.mutated_query)
+                variants["equivalent"].append(mutation.mutated_query)
             else:
-                variants['enhanced'].append(mutation.mutated_query)
+                variants["enhanced"].append(mutation.mutated_query)
 
         return variants
 

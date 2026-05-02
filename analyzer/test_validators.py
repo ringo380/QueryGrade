@@ -1,5 +1,5 @@
-from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.test import TestCase
 
 from analyzer.forms.validators import validate_sql_query
 
@@ -16,7 +16,9 @@ class ValidateSqlQueryTestCase(TestCase):
         validate_sql_query("WITH cte AS (SELECT id FROM users) SELECT * FROM cte")
 
     def test_select_with_union_passes(self):
-        validate_sql_query("SELECT id FROM users UNION ALL SELECT id FROM archived_users")
+        validate_sql_query(
+            "SELECT id FROM users UNION ALL SELECT id FROM archived_users"
+        )
 
     def test_select_with_comments_passes(self):
         validate_sql_query("SELECT id FROM users -- filter by status\nWHERE active = 1")
@@ -46,7 +48,9 @@ class ValidateSqlQueryTestCase(TestCase):
         validate_sql_query("TRUNCATE TABLE sessions")
 
     def test_select_with_information_schema_passes(self):
-        validate_sql_query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+        validate_sql_query(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+        )
 
     def test_select_with_string_functions_passes(self):
         validate_sql_query("SELECT SUBSTRING(name, 1, 10), CHAR(65) FROM users")

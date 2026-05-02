@@ -11,76 +11,51 @@ This package contains intelligent recommendation systems:
 All recommendation engines are production-ready.
 """
 
-from .contextual_engine import (
-    ContextualRecommendationsEngine,
-    RecommendationContext,
-    Recommendation,
-    RecommendationSet,
-    RecommendationType,
-    RecommendationPriority,
-    ImplementationComplexity
-)
-
-from .personalization_engine import (
-    FeedbackPersonalizationEngine,
-    UserProfile,
-    PersonalizedFeedback,
-    LearningStyle,
-    FeedbackStyle,
-    UserPersonality
-)
-
-from .learning_paths import (
-    LearningPathGenerator,
-    PersonalizedLearningPath,
-    LearningModule,
-    LearningResource,
-    SkillLevel,
-    TopicCategory,
-    LearningFormat
-)
-
-from .natural_language import (
-    NaturalLanguageFeedbackGenerator,
-    ComprehensiveFeedback,
-    FeedbackMessage,
-    FeedbackTone,
-    FeedbackLevel,
-    FeedbackCategory
-)
+from .contextual_engine import (ContextualRecommendationsEngine,
+                                ImplementationComplexity, Recommendation,
+                                RecommendationContext, RecommendationPriority,
+                                RecommendationSet, RecommendationType)
+from .learning_paths import (LearningFormat, LearningModule,
+                             LearningPathGenerator, LearningResource,
+                             PersonalizedLearningPath, SkillLevel,
+                             TopicCategory)
+from .natural_language import (ComprehensiveFeedback, FeedbackCategory,
+                               FeedbackLevel, FeedbackMessage, FeedbackTone,
+                               NaturalLanguageFeedbackGenerator)
+from .personalization_engine import (FeedbackPersonalizationEngine,
+                                     FeedbackStyle, LearningStyle,
+                                     PersonalizedFeedback, UserPersonality,
+                                     UserProfile)
 
 __all__ = [
     # Contextual Engine
-    'ContextualRecommendationsEngine',
-    'RecommendationContext',
-    'Recommendation',
-    'RecommendationSet',
-    'RecommendationType',
-    'RecommendationPriority',
-    'ImplementationComplexity',
-
+    "ContextualRecommendationsEngine",
+    "RecommendationContext",
+    "Recommendation",
+    "RecommendationSet",
+    "RecommendationType",
+    "RecommendationPriority",
+    "ImplementationComplexity",
     # Personalization Engine
-    'FeedbackPersonalizationEngine',
-    'UserProfile',
-    'PersonalizedFeedback',
-    'LearningStyle',
-    'FeedbackStyle',
-    'UserPersonality',
-
+    "FeedbackPersonalizationEngine",
+    "UserProfile",
+    "PersonalizedFeedback",
+    "LearningStyle",
+    "FeedbackStyle",
+    "UserPersonality",
     # Learning Paths
-    'LearningPathGenerator',
-    'PersonalizedLearningPath',
-    'LearningModule',
-    'LearningResource',
-    'SkillLevel',
-    'TopicCategory',
-    'LearningFormat',
-
+    "LearningPathGenerator",
+    "PersonalizedLearningPath",
+    "LearningModule",
+    "LearningResource",
+    "SkillLevel",
+    "TopicCategory",
+    "LearningFormat",
     # Natural Language
-    'NaturalLanguageFeedbackGenerator',
-    'ComprehensiveFeedback',
-    'FeedbackMessage',
-    'FeedbackTone',
-    'FeedbackLevel',
-    'FeedbackCategory',
+    "NaturalLanguageFeedbackGenerator",
+    "ComprehensiveFeedback",
+    "FeedbackMessage",
+    "FeedbackTone",
+    "FeedbackLevel",
+    "FeedbackCategory",
 ]

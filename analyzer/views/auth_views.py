@@ -1,28 +1,29 @@
 """
 Authentication views for user login, logout, and registration.
 """
-from django.shortcuts import render, redirect
-from django.urls import reverse
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.forms import (
-    UserCreationForm, AuthenticationForm,
-    PasswordResetForm, SetPasswordForm, PasswordChangeForm
-)
+
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import (authenticate, login, logout,
+                                 update_session_auth_hash)
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import (AuthenticationForm, PasswordChangeForm,
+                                       PasswordResetForm, SetPasswordForm,
+                                       UserCreationForm)
+from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.models import User
-from django.contrib import messages
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.template.loader import render_to_string
-from django.core.mail import send_mail
-from django.conf import settings
 
 
-@ratelimit(key='ip', rate='5/5m', method='POST', block=True)
+@ratelimit(key="ip", rate="5/5m", method="POST", block=True)
 @never_cache
 def login_view(request):
     """
@@ -36,29 +37,30 @@ def login_view(request):
     """
     # Redirect authenticated users
     if request.user.is_authenticated:
-        return redirect('index')
+        return redirect("index")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            messages.success(request, f'Welcome back, {user.username}!')
+            messages.success(request, f"Welcome back, {user.username}!")
 
             # Handle next parameter for redirect after login
-            next_url = request.GET.get('next') or request.POST.get('next')
+            next_url = request.GET.get("next") or request.POST.get("next")
             if next_url:
                 return redirect(next_url)
-            return redirect('index')
+            return redirect("index")
         else:
-            messages.error(request, 'Invalid username or password.')
+            messages.error(request, "Invalid username or password.")
     else:
         form = AuthenticationForm()
 
-    return render(request, 'analyzer/login.html', {
-        'form': form,
-        'next': request.GET.get('next', '')
-    })
+    return render(
+        request,
+        "analyzer/login.html",
+        {"form": form, "next": request.GET.get("next", "")},
+    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -75,11 +77,11 @@ def logout_view(request):
     if request.user.is_authenticated:
         username = request.user.username
         logout(request)
-        messages.info(request, f'You have been logged out successfully, {username}.')
-    return redirect('login')
+        messages.info(request, f"You have been logged out successfully, {username}.")
+    return redirect("login")
 
 
-@ratelimit(key='ip', rate='3/h', method='POST', block=True)
+@ratelimit(key="ip", rate="3/h", method="POST", block=True)
 def register_view(request):
     """
     Handles the registration view.
@@ -92,27 +94,30 @@ def register_view(request):
     """
     # Redirect authenticated users
     if request.user.is_authenticated:
-        return redirect('index')
+        return redirect("index")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
+            username = form.cleaned_data.get("username")
+            raw_password = form.cleaned_data.get("password1")
             user = authenticate(username=username, password=raw_password)
             login(request, user)
-            messages.success(request, f'Welcome to QueryGrade, {username}! Your account has been created.')
+            messages.success(
+                request,
+                f"Welcome to QueryGrade, {username}! Your account has been created.",
+            )
             return redirect(f"{reverse('index')}?signup=1")
         else:
-            messages.error(request, 'Please correct the errors below.')
+            messages.error(request, "Please correct the errors below.")
     else:
         form = UserCreationForm()
 
-    return render(request, 'analyzer/register.html', {'form': form})
+    return render(request, "analyzer/register.html", {"form": form})
 
 
-@ratelimit(key='ip', rate='3/h', method='POST', block=True)
+@ratelimit(key="ip", rate="3/h", method="POST", block=True)
 @never_cache
 def password_reset_request(request):
     """
@@ -124,10 +129,10 @@ def password_reset_request(request):
     Returns:
         HttpResponse: The HTTP response object.
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PasswordResetForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data['email']
+            email = form.cleaned_data["email"]
             users = User.objects.filter(email=email)
 
             if users.exists():
@@ -138,15 +143,18 @@ def password_reset_request(request):
 
                     # Build reset URL
                     reset_url = request.build_absolute_uri(
-                        f'/password-reset-confirm/{uid}/{token}/'
+                        f"/password-reset-confirm/{uid}/{token}/"
                     )
 
                     # Send email (in production, use proper email backend)
-                    subject = 'QueryGrade - Password Reset Request'
-                    message = render_to_string('analyzer/password_reset_email.html', {
-                        'user': user,
-                        'reset_url': reset_url,
-                    })
+                    subject = "QueryGrade - Password Reset Request"
+                    message = render_to_string(
+                        "analyzer/password_reset_email.html",
+                        {
+                            "user": user,
+                            "reset_url": reset_url,
+                        },
+                    )
 
                     try:
                         send_mail(
@@ -158,14 +166,19 @@ def password_reset_request(request):
                         )
                     except Exception as e:
                         # In development, just show the reset URL
-                        messages.warning(request, f'Email not configured. Reset URL: {reset_url}')
+                        messages.warning(
+                            request, f"Email not configured. Reset URL: {reset_url}"
+                        )
 
-            messages.success(request, 'If an account exists with that email, a password reset link has been sent.')
-            return redirect('login')
+            messages.success(
+                request,
+                "If an account exists with that email, a password reset link has been sent.",
+            )
+            return redirect("login")
     else:
         form = PasswordResetForm()
 
-    return render(request, 'analyzer/password_reset.html', {'form': form})
+    return render(request, "analyzer/password_reset.html", {"form": form})
 
 
 @never_cache
@@ -188,22 +201,28 @@ def password_reset_confirm(request, uidb64, token):
         user = None
 
     if user is not None and default_token_generator.check_token(user, token):
-        if request.method == 'POST':
+        if request.method == "POST":
             form = SetPasswordForm(user, request.POST)
             if form.is_valid():
                 form.save()
-                messages.success(request, 'Your password has been reset successfully. You can now log in.')
-                return redirect('login')
+                messages.success(
+                    request,
+                    "Your password has been reset successfully. You can now log in.",
+                )
+                return redirect("login")
         else:
             form = SetPasswordForm(user)
 
-        return render(request, 'analyzer/password_reset_confirm.html', {
-            'form': form,
-            'validlink': True
-        })
+        return render(
+            request,
+            "analyzer/password_reset_confirm.html",
+            {"form": form, "validlink": True},
+        )
     else:
-        messages.error(request, 'The password reset link is invalid or has expired.')
-        return render(request, 'analyzer/password_reset_confirm.html', {'validlink': False})
+        messages.error(request, "The password reset link is invalid or has expired.")
+        return render(
+            request, "analyzer/password_reset_confirm.html", {"validlink": False}
+        )
 
 
 @login_required
@@ -218,20 +237,20 @@ def password_change(request):
     Returns:
         HttpResponse: The HTTP response object.
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
             # Keep user logged in after password change
             update_session_auth_hash(request, user)
-            messages.success(request, 'Your password has been changed successfully.')
-            return redirect('account')
+            messages.success(request, "Your password has been changed successfully.")
+            return redirect("account")
         else:
-            messages.error(request, 'Please correct the errors below.')
+            messages.error(request, "Please correct the errors below.")
     else:
         form = PasswordChangeForm(request.user)
 
-    return render(request, 'analyzer/password_change.html', {'form': form})
+    return render(request, "analyzer/password_change.html", {"form": form})
 
 
 @login_required
@@ -246,7 +265,7 @@ def account_view(request):
         HttpResponse: The HTTP response object.
     """
     # Get user statistics
-    from analyzer.models import UserQueryHistory, QueryFeedback
+    from analyzer.models import QueryFeedback, UserQueryHistory
 
     query_count = UserQueryHistory.objects.filter(user=request.user).count()
 
@@ -256,22 +275,25 @@ def account_view(request):
     ).count()
 
     # Get recent queries with their analyses
-    recent_queries = UserQueryHistory.objects.filter(
-        user=request.user
-    ).select_related('query').order_by('-submitted_at')[:5]
+    recent_queries = (
+        UserQueryHistory.objects.filter(user=request.user)
+        .select_related("query")
+        .order_by("-submitted_at")[:5]
+    )
 
     # Get analyses for these queries
     for history in recent_queries:
         try:
             from analyzer.models import QueryAnalysis
+
             history.analysis = QueryAnalysis.objects.filter(query=history.query).first()
         except Exception:
             history.analysis = None
 
     context = {
-        'query_count': query_count,
-        'feedback_count': feedback_count,
-        'recent_queries': recent_queries,
+        "query_count": query_count,
+        "feedback_count": feedback_count,
+        "recent_queries": recent_queries,
     }
 
-    return render(request, 'analyzer/account.html', context)
+    return render(request, "analyzer/account.html", context)
