@@ -160,11 +160,12 @@
         <div class="mt-1">{{ form.database_type }}</div>
         {% if form.database_type.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_type.help_text }}</p>{% endif %}
       </div>
-      <div>
+      <div id="db-version-wrapper">
         <label for="{{ form.database_version.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.database_version.label }}</label>
         <div class="mt-1">{{ form.database_version }}</div>
         {% if form.database_version.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.database_version.help_text }}</p>{% endif %}
       </div>
+      <datalist id="db-version-list"></datalist>
     </div>
 
     <div>
@@ -270,8 +271,35 @@ WHERE u.created_at > '2024-01-01' AND o.total > 100;</code></pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
 
+{{ db_versions|json_script:"db-versions-data" }}
 <script>
 let sqlEditor = null;
+
+const _dbVersionsEl = document.getElementById('db-versions-data');
+const DB_VERSIONS = _dbVersionsEl ? JSON.parse(_dbVersionsEl.textContent) : {};
+
+function updateVersionList(dbType) {
+  const versionInput = document.getElementById('{{ form.database_version.id_for_label }}');
+  const datalist = document.getElementById('db-version-list');
+  if (!versionInput || !datalist) return;
+
+  datalist.innerHTML = '';
+  const versions = DB_VERSIONS[dbType] || [];
+  versions.forEach(([value, label]) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.label = label;
+    datalist.appendChild(opt);
+  });
+
+  if (versions.length) {
+    versionInput.setAttribute('list', 'db-version-list');
+    versionInput.placeholder = 'Select or type a version…';
+  } else {
+    versionInput.removeAttribute('list');
+    versionInput.placeholder = 'e.g., 8.0, 13.4, etc.';
+  }
+}
 
 function toggleHistoryPanel() {
   const panel = document.getElementById('history-panel');
@@ -284,7 +312,10 @@ function loadFromHistory(btn) {
   // Populate form fields from data attributes
   if (sqlEditor) sqlEditor.setValue(btn.dataset.sql || '');
   const dbType = document.getElementById('{{ form.database_type.id_for_label }}');
-  if (dbType) dbType.value = btn.dataset.dbType || '';
+  if (dbType) {
+    dbType.value = btn.dataset.dbType || '';
+    updateVersionList(dbType.value);
+  }
   const dbVersion = document.getElementById('{{ form.database_version.id_for_label }}');
   if (dbVersion) dbVersion.value = btn.dataset.dbVersion || '';
   const useCase = document.getElementById('{{ form.use_case_notes.id_for_label }}');
@@ -313,6 +344,13 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  const dbTypeSelect = document.getElementById('{{ form.database_type.id_for_label }}');
+  if (dbTypeSelect) {
+    dbTypeSelect.addEventListener('change', () => updateVersionList(dbTypeSelect.value));
+    // Restore datalist if page reloaded with a pre-selected db type (e.g., after form error)
+    if (dbTypeSelect.value) updateVersionList(dbTypeSelect.value);
+  }
+
   const ta = document.getElementById('{{ form.sql_query.id_for_label }}');
   if (ta) {
     sqlEditor = CodeMirror.fromTextArea(ta, {
@@ -359,6 +397,7 @@ function clearForm() {
   if (dt) dt.selectedIndex = 0;
   if (dv) dv.value = '';
   if (un) un.value = '';
+  updateVersionList('');
 }
 
 const EXAMPLES = {
