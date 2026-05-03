@@ -1,0 +1,63 @@
+version: 2
+updates:
+  # Pin GitHub Actions to commit SHAs (see .github/workflows/*.yml).
+  # Dependabot opens PRs that update both the SHA and the trailing major-version
+  # comment so the workflows stay current without unpinning them.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      # Bundle minor/patch bumps into one PR per week to reduce noise.
+      # Major bumps still open as separate PRs for individual review.
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Python deps — same cadence, separate group so workflow PRs don't mix with app PRs.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker base images in Dockerfile.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
