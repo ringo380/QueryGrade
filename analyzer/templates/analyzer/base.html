@@ -1,13 +1,15 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
+  <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.remove('dark');}})();</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}QueryGrade{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: { mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'] }
@@ -15,6 +17,7 @@
       }
     }
   </script>
+  <link rel="stylesheet" href="{% static 'analyzer/css/dark-mode.css' %}">
   {% block extra_css %}{% endblock %}
   {% block extra_head %}{% endblock %}
   {% if GA4_MEASUREMENT_ID %}
@@ -51,11 +54,11 @@
   {% endif %}
   {% endif %}
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gray-50 dark:bg-[#0d1117] dark:text-[#e6edf3] min-h-screen flex flex-col">
 
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-3 py-2 rounded z-50">Skip to main content</a>
 
-  <nav class="bg-white border-b border-gray-200 shadow-sm" id="navigation">
+  <nav class="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d] shadow-sm dark:shadow-none" id="navigation">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-14">
         <a href="{% url 'index' %}" class="font-bold text-indigo-600 text-lg tracking-tight">QueryGrade</a>
@@ -79,19 +82,28 @@
               {% endif %}
             {% endwith %}
 
+            <button class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+              <svg class="icon-moon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+              <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+            </button>
+
             <div class="relative ml-2 group">
-              <button class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-1" type="button">
+              <button class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 dark:text-[#adbac7] hover:bg-gray-100 flex items-center gap-1" type="button">
                 {{ user.username }}
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
               </button>
-              <div class="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                <a href="{% url 'account' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Account</a>
-                <a href="{% url 'password_change' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Change Password</a>
-                <div class="border-t border-gray-100"></div>
-                <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
+              <div class="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white dark:bg-[#161b22] rounded-md shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-black ring-opacity-5 dark:ring-[#30363d] dark:ring-opacity-100 z-50">
+                <a href="{% url 'account' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">My Account</a>
+                <a href="{% url 'password_change' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Change Password</a>
+                <div class="border-t border-gray-100 dark:border-[#30363d]"></div>
+                <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-red-600 dark:text-[#f87171] hover:bg-red-50 dark:hover:bg-[rgba(220,38,38,0.1)]">Logout</a>
               </div>
             </div>
           {% else %}
+            <button class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+              <svg class="icon-moon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+              <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+            </button>
             {% if anon_trial_cap %}
             <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mr-1
                          {% if anon_trial_remaining == 0 %}bg-red-100 text-red-700
@@ -128,7 +140,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="bg-white border-t border-gray-200 mt-auto">
+  <footer class="bg-white dark:bg-[#161b22] border-t border-gray-200 dark:border-[#30363d] mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-500">
       <p>&copy; 2026 QueryGrade. SQL Query Analysis Platform</p>
       <div class="flex gap-4">
@@ -161,6 +173,13 @@
       }
     };
 
+    // Theme toggle
+    document.querySelector('.theme-toggle').addEventListener('click', function() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
     // Delegated nav click tracking. Reads `data-nav` from anchors inside the primary <nav>.
     document.addEventListener('click', function(e) {
       var a = e.target.closest && e.target.closest('nav#navigation a[data-nav]');
@@ -171,7 +190,7 @@
 
     // Apply Tailwind-friendly classes to Django-rendered form widgets that don't already have a `class` attr
     document.addEventListener('DOMContentLoaded', () => {
-      const inputClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white text-gray-900';
+      const inputClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#e6edf3] dark:focus:border-[#818cf8]';
       document.querySelectorAll('form input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=file]), form select, form textarea').forEach(el => {
         if (!el.className.trim()) el.className = inputClasses;
       });
