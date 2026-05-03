@@ -288,6 +288,13 @@ def grade_results(request, analysis_id):
         except Exception as e:
             logger.warning(f"Failed to generate optimization suggestions: {e}")
 
+    # Only show the inline upgrade CTA when the anon user is close to their cap
+    # (last 10 grades / 80% used). Earlier on, the navbar credits pill is enough.
+    show_upgrade_cta = False
+    if is_anon:
+        _, _, _remaining = anon_trial_state(request)
+        show_upgrade_cta = _remaining <= 10
+
     context = {
         "analysis": analysis,
         "query": analysis.query,
@@ -295,7 +302,7 @@ def grade_results(request, analysis_id):
         "optimization_result": optimization_result,
         "grade_colors": GRADE_COLORS,
         "is_anonymous": is_anon,
-        "show_upgrade_cta": is_anon,
+        "show_upgrade_cta": show_upgrade_cta,
     }
 
     return render(request, "analyzer/grade_results.html", context)

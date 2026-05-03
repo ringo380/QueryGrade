@@ -21,11 +21,11 @@
     <p class="mt-1 text-sm text-gray-500">Get instant feedback with letter grades (A–F) and optimization recommendations</p>
   </header>
 
-  {% if is_anonymous_trial and not trial_exhausted %}
+  {% if is_anonymous_trial and not trial_exhausted and trial_remaining <= 10 %}
   <div class="rounded-md bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
     <span class="text-xl">🎁</span>
     <div class="flex-1 text-sm text-amber-900">
-      <strong>Trial mode:</strong> You have <strong>{{ trial_remaining }}</strong> of {{ trial_cap }} free grades left this session.
+      <strong>Only {{ trial_remaining }} of {{ trial_cap }} free grades left</strong> this session.
       <a href="{% url 'register' %}" class="font-semibold underline hover:text-amber-950">Create a free account</a>
       for unlimited grading, AI rewrite suggestions, history, and personalized feedback.
     </div>
