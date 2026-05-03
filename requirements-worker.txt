@@ -4,7 +4,7 @@
 -r requirements-prod.txt
 
 # Heavy ML frameworks — only loaded by analyzer/ml/ensemble and analyzer/ml/training
-matplotlib>=3.4.0
+matplotlib>=3.10.9
 tensorflow>=2.10.0
 torch>=1.13.0
 transformers>=4.25.0
