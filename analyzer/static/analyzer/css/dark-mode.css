@@ -159,8 +159,9 @@ html.dark ::-webkit-scrollbar-track { background: #0d1117; }
 html.dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: #444c56; }
 
-/* ─── CodeMirror — already uses material-darker, stays consistent ─── */
-/* No overrides needed. */
+/* ─── CodeMirror — theme is toggled via window.QG.cmTheme() in base.html ─── */
+/* Light mode uses CodeMirror's built-in 'default' theme; dark mode uses 'material-darker'.
+   Editors register via window.QG.registerEditor() and re-theme on toggle. No CSS overrides needed. */
 
 /* ─── Theme toggle button ─── */
 .theme-toggle {

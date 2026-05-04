@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const ta = document.getElementById('{{ form.sql_query.id_for_label }}');
   if (ta) {
     sqlEditor = CodeMirror.fromTextArea(ta, {
-      mode: 'text/x-sql', theme: 'material-darker', lineNumbers: true,
+      mode: 'text/x-sql', theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'), lineNumbers: true,
       indentUnit: 2, smartIndent: true, lineWrapping: true,
       autoCloseBrackets: true, matchBrackets: true,
       foldGutter: true, gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
@@ -376,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.text[0].match(/\w/) || e.text[0] === '.') cm.showHint();
     });
     sqlEditor.on('change', () => sqlEditor.save());
+    if (window.QG && window.QG.registerEditor) window.QG.registerEditor(sqlEditor);
   }
 
   if (localStorage.getItem('querygrade_help_dismissed') === 'true') {

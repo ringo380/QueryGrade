@@ -173,11 +173,36 @@
       }
     };
 
+    // CodeMirror theme registry — keeps editors in sync with the global light/dark toggle.
+    // Templates that instantiate CodeMirror should:
+    //   theme: window.QG.cmTheme()    // initial theme
+    //   window.QG.registerEditor(ed)  // so it follows future toggles
+    window.QG = window.QG || {};
+    window.QG._cmEditors = [];
+    window.QG.cmTheme = function() {
+      return document.documentElement.classList.contains('dark') ? 'material-darker' : 'default';
+    };
+    window.QG.registerEditor = function(ed) {
+      if (ed) window.QG._cmEditors.push(ed);
+    };
+    window.QG.refreshEditorThemes = function() {
+      const t = window.QG.cmTheme();
+      window.QG._cmEditors.forEach(ed => {
+        try {
+          ed.setOption('theme', t);
+          // Defer refresh so the browser repaints before CodeMirror remeasures —
+          // covers editors that may be in a hidden tab when the toggle fires.
+          setTimeout(() => { try { ed.refresh(); } catch (e) {} }, 0);
+        } catch (e) {}
+      });
+    };
+
     // Theme toggle
     document.querySelector('.theme-toggle').addEventListener('click', function() {
       const html = document.documentElement;
       const isDark = html.classList.toggle('dark');
       localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      window.QG.refreshEditorThemes();
     });
 
     // Delegated nav click tracking. Reads `data-nav` from anchors inside the primary <nav>.

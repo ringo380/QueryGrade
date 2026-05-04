@@ -118,12 +118,13 @@
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('textarea.sql-display').forEach(ta => {
     const editor = CodeMirror.fromTextArea(ta, {
-      mode: 'text/x-sql', theme: 'material-darker',
+      mode: 'text/x-sql', theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'),
       lineNumbers: true, readOnly: true, lineWrapping: true,
       cursorBlinkRate: -1,
     });
     const lines = ta.value.split('\n').length;
     editor.setSize(null, Math.max(100, Math.min(240, lines * 20 + 30)));
+    if (window.QG && window.QG.registerEditor) window.QG.registerEditor(editor);
   });
 
   if (typeof gtag === 'function') {
