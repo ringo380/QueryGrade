@@ -493,12 +493,13 @@
     document.querySelectorAll('textarea.sql-display').forEach(ta => {
       const lines = ta.value.split('\n').length;
       const ed = CodeMirror.fromTextArea(ta, {
-        mode: 'text/x-sql', theme: 'material-darker',
+        mode: 'text/x-sql', theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'),
         lineNumbers: true, readOnly: true, lineWrapping: true,
         cursorBlinkRate: -1,
       });
       ed.setSize(null, Math.max(80, Math.min(500, lines * 20 + 40)));
       sqlEditors.push(ed);
+      if (window.QG && window.QG.registerEditor) window.QG.registerEditor(ed);
     });
 
     const issues = JSON.parse(document.getElementById('issues-json').textContent);

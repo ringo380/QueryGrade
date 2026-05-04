@@ -110,12 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const ta = document.getElementById(id);
     if (!ta || ta.tagName !== 'TEXTAREA') return;
     const editor = CodeMirror.fromTextArea(ta, {
-      mode: 'text/x-sql', theme: 'material-darker',
+      mode: 'text/x-sql', theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'),
       lineNumbers: true, indentUnit: 2, smartIndent: true,
       lineWrapping: true, autoCloseBrackets: true, matchBrackets: true,
     });
     editor.on('change', () => editor.save());
     sqlEditors.push(editor);
+    if (window.QG && window.QG.registerEditor) window.QG.registerEditor(editor);
   });
 });
 
