@@ -187,7 +187,14 @@
     };
     window.QG.refreshEditorThemes = function() {
       const t = window.QG.cmTheme();
-      window.QG._cmEditors.forEach(ed => { try { ed.setOption('theme', t); } catch (e) {} });
+      window.QG._cmEditors.forEach(ed => {
+        try {
+          ed.setOption('theme', t);
+          // Defer refresh so the browser repaints before CodeMirror remeasures —
+          // covers editors that may be in a hidden tab when the toggle fires.
+          setTimeout(() => { try { ed.refresh(); } catch (e) {} }, 0);
+        } catch (e) {}
+      });
     };
 
     // Theme toggle
