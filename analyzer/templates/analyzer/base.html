@@ -6,6 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}QueryGrade{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'analyzer/img/favicon.svg' %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -66,7 +67,15 @@
   <nav class="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d] shadow-sm dark:shadow-none" id="navigation">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-14">
-        <a href="{% url 'index' %}" class="font-bold text-indigo-600 text-lg tracking-tight">QueryGrade</a>
+        <a href="{% url 'index' %}" class="flex items-center gap-2 font-bold text-indigo-600 dark:text-[#a5b4fc] text-lg tracking-tight" aria-label="QueryGrade home">
+          <svg class="w-7 h-7" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="32" height="32" rx="7" fill="currentColor"/>
+            <rect x="7" y="20" width="7" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.55"/>
+            <rect x="7" y="14.5" width="12" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.8"/>
+            <rect x="7" y="9" width="17" height="3" rx="1.5" fill="#ffffff"/>
+          </svg>
+          <span>QueryGrade</span>
+        </a>
 
         <div class="flex gap-1 items-center">
           {% if user.is_authenticated %}
