@@ -105,12 +105,12 @@ def grade_query(request):
                     analysis_request = AnalysisRequest(
                         query=sql_query,
                         user_id=str(request.user.id),
-                        database_type=database_type,
-                        database_version=database_version,
                         context={
                             "use_case": use_case_notes,
                             "user_agent": request.META.get("HTTP_USER_AGENT", ""),
                             "ip_address": get_client_ip(request),
+                            "database_type": database_type,
+                            "database_version": database_version,
                         },
                     )
 
