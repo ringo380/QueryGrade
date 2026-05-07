@@ -81,6 +81,8 @@ def logout_view(request):
         username = request.user.username
         logout(request)
         messages.info(request, f"You have been logged out successfully, {username}.")
+        # GA4 one-shot event (logout flushes the session; the new empty session carries the flag)
+        request.session["_pending_gtag_event"] = "user_logout"
     return redirect("login")
 
 
@@ -111,7 +113,10 @@ def register_view(request):
                 request,
                 f"Welcome to QueryGrade, {username}! Your account has been created.",
             )
-            return redirect(f"{reverse('index')}?signup=1")
+            # GA4 one-shot event (replaces legacy ?signup=1 URL flag for new registrations)
+            request.session["_pending_gtag_event"] = "sign_up"
+            request.session["_pending_gtag_params"] = {"method": "email"}
+            return redirect("index")
         else:
             messages.error(request, "Please correct the errors below.")
     else:
@@ -177,6 +182,7 @@ def password_reset_request(request):
                 request,
                 "If an account exists with that email, a password reset link has been sent.",
             )
+            request.session["_pending_gtag_event"] = "password_reset_request"
             return redirect("login")
     else:
         form = PasswordResetForm()
@@ -248,6 +254,7 @@ def password_change(request):
             # Keep user logged in after password change
             update_session_auth_hash(request, user)
             messages.success(request, "Your password has been changed successfully.")
+            request.session["_pending_gtag_event"] = "password_change"
             return redirect("account")
         else:
             messages.error(request, "Please correct the errors below.")

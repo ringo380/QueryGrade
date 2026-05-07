@@ -6,6 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from ..analytics import send_ga4_event, synthetic_client_id
 from ..exceptions import QueryAnalysisError
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..query_analyzer import analyze_query
@@ -76,6 +77,20 @@ def grade_query_api(request):
         logger.info(
             f"API query graded for user {request.user.username}: {analysis.grade} ({analysis.score:.1f})"
         )
+
+        try:
+            send_ga4_event(
+                synthetic_client_id(request.user.id),
+                "api_query_graded",
+                {
+                    "grade": analysis.grade,
+                    "score": float(analysis.score),
+                    "analysis_type": "api",
+                },
+                user_id=request.user.id,
+            )
+        except Exception:
+            logger.debug("GA4 api_query_graded emit failed", exc_info=True)
 
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -221,5 +236,21 @@ def batch_analysis_api(request):
     logger.info(
         f"API batch analysis completed for user {request.user.username}: {successful_count}/{len(queries)} successful"
     )
+
+    try:
+        send_ga4_event(
+            synthetic_client_id(request.user.id),
+            "api_batch_analysis",
+            {
+                "query_count": len(queries),
+                "successful_count": successful_count,
+                "failed_count": failed_count,
+                "average_score": float(average_score),
+                "analysis_type": "api",
+            },
+            user_id=request.user.id,
+        )
+    except Exception:
+        logger.debug("GA4 api_batch_analysis emit failed", exc_info=True)
 
     return Response(response_data, status=status.HTTP_201_CREATED)

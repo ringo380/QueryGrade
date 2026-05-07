@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from ..analytics import send_ga4_event, synthetic_client_id
 from ..models import QueryFeedback, UserQueryHistory
 from ..serializers import QueryFeedbackSerializer
 
@@ -78,6 +79,20 @@ def submit_feedback_api(request, analysis_id):
         logger.info(
             f"Feedback {action} via API for user {request.user.username}, analysis {analysis_id}"
         )
+
+        try:
+            send_ga4_event(
+                synthetic_client_id(request.user.id),
+                "api_feedback_submitted",
+                {
+                    "feedback_type": "api",
+                    "action": action,
+                    "would_recommend": bool(getattr(feedback, "would_recommend", False)),
+                },
+                user_id=request.user.id,
+            )
+        except Exception:
+            logger.debug("GA4 api_feedback_submitted emit failed", exc_info=True)
 
         return Response(
             {"message": f"Feedback {action} successfully", "feedback_id": feedback.id},
