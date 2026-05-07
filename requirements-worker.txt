@@ -11,3 +11,6 @@ transformers>=4.25.0
 sentence-transformers>=2.2.0
 xgboost>=1.7.0
 lightgbm>=3.3.0
+
+# HuggingFace datasets — used by load_huggingface_queries to seed TrainingData
+datasets>=2.14.0

@@ -423,6 +423,8 @@ def compare_queries(request):
             # Store in session
             request.session["comparison_data"] = comparison_data
 
+            # GA4 event fired client-side from query_compare.html on form submit
+            # (event: comparison_started). Don't duplicate here.
             return redirect("compare_results")
         else:
             messages.error(request, "Please correct the errors in the form below.")
@@ -459,6 +461,8 @@ def batch_grade_queries(request):
                 "database_type": database_type,
             }
 
+            # GA4 event fired client-side from batch_analysis.html on form submit
+            # (event: batch_analysis_started). Don't duplicate here.
             return redirect("batch_results")
         else:
             messages.error(request, "Please correct the errors in the form below.")

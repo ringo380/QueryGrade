@@ -122,6 +122,11 @@ def index(request):
                         request,
                         f"File upload successful! Your {log_type} log is being processed in the background. You'll be notified when it's complete.",
                     )
+                    request.session["_pending_gtag_event"] = "log_file_uploaded"
+                    request.session["_pending_gtag_params"] = {
+                        "log_type": log_type,
+                        "processing_mode": "async",
+                    }
                     return redirect("async_processing_status")
 
                 except (OSError, IOError) as e:
@@ -193,6 +198,11 @@ def index(request):
                     page_number = request.GET.get("page")
                     page_obj = paginator.get_page(page_number)
 
+                    request.session["_pending_gtag_event"] = "log_file_uploaded"
+                    request.session["_pending_gtag_params"] = {
+                        "log_type": log_type,
+                        "processing_mode": "sync",
+                    }
                     return render(
                         request, "analyzer/results.html", {"page_obj": page_obj}
                     )
