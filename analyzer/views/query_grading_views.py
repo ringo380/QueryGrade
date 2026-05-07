@@ -423,12 +423,8 @@ def compare_queries(request):
             # Store in session
             request.session["comparison_data"] = comparison_data
 
-            query_count = 2 + (1 if comparison_data["query_3"] else 0)
-            request.session["_pending_gtag_event"] = "compare_queries_submitted"
-            request.session["_pending_gtag_params"] = {
-                "query_count": query_count,
-                "database_type": comparison_data["database_type"] or "unknown",
-            }
+            # GA4 event fired client-side from query_compare.html on form submit
+            # (event: comparison_started). Don't duplicate here.
             return redirect("compare_results")
         else:
             messages.error(request, "Please correct the errors in the form below.")
@@ -465,11 +461,8 @@ def batch_grade_queries(request):
                 "database_type": database_type,
             }
 
-            request.session["_pending_gtag_event"] = "batch_analysis_started"
-            request.session["_pending_gtag_params"] = {
-                "query_count": len(queries),
-                "database_type": database_type or "unknown",
-            }
+            # GA4 event fired client-side from batch_analysis.html on form submit
+            # (event: batch_analysis_started). Don't duplicate here.
             return redirect("batch_results")
         else:
             messages.error(request, "Please correct the errors in the form below.")
