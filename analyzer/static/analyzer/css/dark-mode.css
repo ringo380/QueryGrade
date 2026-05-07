@@ -72,7 +72,22 @@ html.dark .text-indigo-800  { color: #a5b4fc; }
 html.dark .text-indigo-900  { color: #c7d2fe; }  /* banner body text */
 html.dark .border-indigo-200{ border-color: rgba(129, 140, 248, 0.3); }
 html.dark .border-indigo-300{ border-color: rgba(129, 140, 248, 0.45); }
+html.dark .ring-indigo-100  { --tw-ring-color: rgba(129, 140, 248, 0.25); }
 html.dark .ring-indigo-500  { --tw-ring-color: #818cf8; }
+
+/* ─── Gradient stops (Tailwind from-*/to-* utilities don't auto-darken) ─── */
+html.dark .from-indigo-50 {
+  --tw-gradient-from: rgba(129, 140, 248, 0.12) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(129, 140, 248, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+html.dark .to-white      { --tw-gradient-to: #161b22 var(--tw-gradient-to-position); }
+html.dark .from-white    {
+  --tw-gradient-from: #161b22 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(22, 27, 34, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+html.dark .to-purple-50  { --tw-gradient-to: rgba(168, 85, 247, 0.12) var(--tw-gradient-to-position); }
 
 /* ─── Status banners ─── */
 /* Error / red */
