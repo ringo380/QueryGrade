@@ -62,7 +62,7 @@ def grade_query(request):
                 request,
                 "analyzer/grade_form.html",
                 {
-                    "form": QueryGradeForm(),
+                    "form": QueryGradeForm(user=request.user),
                     "recent_queries": [],
                     "is_anonymous_trial": True,
                     "trial_exhausted": True,
@@ -74,7 +74,7 @@ def grade_query(request):
                 },
             )
 
-        form = QueryGradeForm(request.POST)
+        form = QueryGradeForm(request.POST, user=request.user)
         if form.is_valid():
             sql_query = form.cleaned_data["sql_query"]
             database_type = form.cleaned_data.get("database_type", "")
@@ -87,6 +87,71 @@ def grade_query(request):
                 logger.info(
                     f"Query created: ID={query.id}, Analysis created: ID={analysis.id}"
                 )
+
+                # Schema-aware index recommendations (issue #7) — only for
+                # authenticated users with a saved connection selected.
+                db_connection = (
+                    form.cleaned_data.get("db_connection") if not is_anon else None
+                )
+                if db_connection is not None:
+                    try:
+                        from analyzer.services.index_recommender import \
+                            IndexRecommender
+                        from analyzer.services.live_schema_context import \
+                            build_live_context
+
+                        live_schema = build_live_context(db_connection)
+                        rec_result = IndexRecommender(
+                            connection=db_connection, live_schema=live_schema
+                        ).recommend(sql_query)
+                        payload = rec_result.to_dict()
+                        # Capture index-aware ML features for future training
+                        try:
+                            from analyzer.ml.core.feature_extractor import \
+                                FeatureExtractor
+
+                            payload["index_features"] = FeatureExtractor().extract_index_features(
+                                query,
+                                live_schema=live_schema,
+                                recommendation_count=len(rec_result.recommendations),
+                            )
+                        except Exception:
+                            logger.exception("index_features extraction failed")
+                        analysis.index_recommendations = payload
+                        analysis.save(update_fields=["index_recommendations"])
+                        db_connection.touch()
+                        # GA4 event: index_recommendation_generated.
+                        try:
+                            high_conf = sum(
+                                1
+                                for r in rec_result.recommendations
+                                if r.confidence.value == "HIGH"
+                            )
+                            request.session["_pending_gtag_event"] = (
+                                "index_recommendation_generated"
+                            )
+                            request.session["_pending_gtag_params"] = {
+                                "recommendation_count": len(rec_result.recommendations),
+                                "database_engine": db_connection.engine,
+                                "confidence_high_count": high_conf,
+                                "redundant_filtered_count": rec_result.filtered_redundant,
+                            }
+                            request.session.modified = True
+                        except Exception:
+                            logger.exception("Failed to set GA4 pending event")
+                        logger.info(
+                            "Index recommendations: %d candidates, %d kept, %d redundant",
+                            rec_result.total_candidates,
+                            len(rec_result.recommendations),
+                            rec_result.filtered_redundant,
+                        )
+                    except Exception as rec_err:
+                        # Never fail the grade because of recommender problems.
+                        logger.exception(
+                            "IndexRecommender failed for analysis %s: %s",
+                            analysis.id,
+                            rec_err,
+                        )
 
                 if is_anon:
                     # Track which analyses this anon visitor may view
@@ -211,7 +276,7 @@ def grade_query(request):
         else:
             messages.error(request, "Please correct the errors in the form below.")
     else:
-        form = QueryGradeForm()
+        form = QueryGradeForm(user=request.user)
 
     recent_queries = (
         (
