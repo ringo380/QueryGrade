@@ -20,6 +20,8 @@ from .ml_models import FeedbackLearning, LearningMetrics, MLModel, TrainingData
 from .query_models import Query, QueryAnalysis
 # User interaction models
 from .user_models import QueryFeedback, UserQueryHistory
+# Live database connection profiles
+from .connection_models import UserDatabaseConnection
 
 __all__ = [
     # Query models
@@ -28,6 +30,8 @@ __all__ = [
     # User models
     "UserQueryHistory",
     "QueryFeedback",
+    # Connection models
+    "UserDatabaseConnection",
     # ML models
     "MLModel",
     "TrainingData",
