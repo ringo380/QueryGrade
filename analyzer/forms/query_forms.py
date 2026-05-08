@@ -69,6 +69,30 @@ class QueryGradeForm(forms.Form):
         help_text="Enable for large query batches (recommended for > 10 queries)",
     )
 
+    # Populated in __init__ when an authenticated user is supplied.
+    db_connection = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label="(none — text-only analysis)",
+        label="Database connection",
+        help_text=(
+            "Optional. Select a saved connection for schema-aware index "
+            "recommendations powered by EXPLAIN and live statistics."
+        ),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from analyzer.models import UserDatabaseConnection
+
+        if user is not None and getattr(user, "is_authenticated", False):
+            self.fields["db_connection"].queryset = (
+                UserDatabaseConnection.objects.filter(user=user)
+            )
+        else:
+            # Anon users: hide the picker entirely.
+            self.fields.pop("db_connection", None)
+
     def clean_sql_query(self):
         """Additional cleaning for SQL query field."""
         sql_query = self.cleaned_data.get("sql_query")

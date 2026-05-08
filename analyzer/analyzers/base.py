@@ -39,6 +39,10 @@ class AnalysisContext:
     issues: List[Dict] = field(default_factory=list)
     recommendations: List[Dict] = field(default_factory=list)
     performance_notes: List[str] = field(default_factory=list)
+    # Optional live schema snapshot. When present, schema-aware analyzers
+    # (e.g. IndexingAnalyzer, IndexRecommender) use real table/index/column
+    # metadata instead of relying on query text alone.
+    live_schema: Optional[object] = None  # analyzer.services.live_schema_context.LiveSchemaContext
 
 
 class BaseAnalyzer(ABC):

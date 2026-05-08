@@ -1,0 +1,67 @@
+{% extends 'analyzer/base.html' %}
+
+{% block title %}Database connections · QueryGrade{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <header class="flex items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Database connections</h1>
+      <p class="mt-1 text-sm text-gray-500">Connect a database so QueryGrade can recommend indexes based on real schema and statistics.</p>
+    </div>
+    <a href="{% url 'connection_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">+ New connection</a>
+  </header>
+
+  {% if connections %}
+    <ul class="divide-y divide-gray-200 bg-white rounded-lg border border-gray-200">
+      {% for c in connections %}
+        <li class="p-4 flex items-center justify-between gap-4">
+          <div>
+            <div class="font-medium text-gray-900">{{ c.name }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">{{ c.get_engine_display }} · {{ c.host|default:"-" }}{% if c.port %}:{{ c.port }}{% endif %} · {{ c.db_name }}</div>
+            {% if c.last_used_at %}<div class="text-xs text-gray-400 mt-0.5">Last used {{ c.last_used_at|date:"F j, Y g:i A" }}</div>{% endif %}
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" data-test-url="{% url 'connection_test' c.id %}" class="js-test-conn px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Test</button>
+            <a href="{% url 'connection_edit' c.id %}" class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Edit</a>
+            <a href="{% url 'connection_delete' c.id %}" class="px-3 py-1.5 text-sm border border-red-300 text-red-700 rounded-md hover:bg-red-50">Delete</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="rounded-lg border border-dashed border-gray-300 p-12 text-center bg-white">
+      <p class="text-gray-700">No saved connections yet.</p>
+      <p class="text-sm text-gray-500 mt-1">Add a PostgreSQL, MySQL, or SQLite connection to unlock schema-aware index recommendations.</p>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+document.querySelectorAll('.js-test-conn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const url = btn.dataset.testUrl;
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Testing…';
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrfToken()},
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('Connection OK', 'success');
+      } else {
+        showToast(data.error || 'Connection failed', 'error');
+      }
+    } catch (e) {
+      showToast('Network error', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -76,6 +76,13 @@ class QueryAnalysis(models.Model):
     recommendations = models.JSONField(
         default=list, help_text="List of improvement recommendations"
     )
+    # Schema-aware index recommendations from IndexRecommender (issue #7).
+    # Empty when no live DB connection was supplied. Shape:
+    # {"recommendations": [...], "total_candidates": int,
+    #  "filtered_redundant": int, "advisories": [str, ...]}
+    index_recommendations = models.JSONField(
+        default=dict, blank=True, help_text="Schema-aware index recommendations"
+    )
     performance_notes = models.TextField(
         blank=True, help_text="Performance analysis notes"
     )

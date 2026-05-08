@@ -1,0 +1,15 @@
+{% extends 'analyzer/base.html' %}
+
+{% block title %}Delete {{ instance.name }} · QueryGrade{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white rounded-lg border border-red-200 p-6 space-y-4">
+  <h1 class="text-xl font-bold text-gray-900">Delete connection?</h1>
+  <p class="text-sm text-gray-700">"<strong>{{ instance.name }}</strong>" ({{ instance.get_engine_display }}) will be permanently removed. Past query analyses are unaffected.</p>
+  <form method="post" class="flex items-center gap-3">
+    {% csrf_token %}
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">Delete</button>
+    <a href="{% url 'connections_list' %}" class="px-4 py-2 border border-gray-300 text-sm rounded-md hover:bg-gray-50">Cancel</a>
+  </form>
+</div>
+{% endblock %}

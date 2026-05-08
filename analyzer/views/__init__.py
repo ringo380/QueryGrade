@@ -23,6 +23,10 @@ from .auth_views import (account_view, login_view, logout_view,
                          password_reset_request, register_view)
 # Comparison and batch analysis views
 from .comparison_views import batch_analysis, compare_results, query_compare
+# Saved DB connection management
+from .connection_views import (connection_create, connection_delete,
+                               connection_edit, connection_test,
+                               connections_list)
 # Database introspection views
 from .database_views import (contextualized_results, database_analyze,
                              database_schema, query_with_context)
@@ -81,6 +85,12 @@ __all__ = [
     "database_schema",
     "query_with_context",
     "contextualized_results",
+    # Saved connections
+    "connections_list",
+    "connection_create",
+    "connection_edit",
+    "connection_delete",
+    "connection_test",
     # Async API
     "batch_analysis_view",
     "performance_report_view",

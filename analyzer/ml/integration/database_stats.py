@@ -228,11 +228,33 @@ class DatabaseStatisticsManager:
                 )
                 self.column_stats[col_stat.table_name][col_stat.column_name] = col_stat
 
-    def _fetch_live_statistics(self, connection_string: str):
-        """Fetch statistics from a live database connection"""
-        # This would connect to a real database and fetch statistics
-        # Implementation depends on the database type
-        pass
+    def _fetch_live_statistics(self, connection_string):
+        """Fetch statistics from a live database connection.
+
+        Accepts either:
+          * a ``UserDatabaseConnection`` instance (preferred), or
+          * a ``LiveSchemaContext`` (already-fetched snapshot).
+
+        The historical signature was a connection_string placeholder. The
+        method is kept duck-typed so callers can pass whichever they have.
+        """
+        from analyzer.services.live_schema_context import (
+            LiveSchemaContext, build_live_context)
+
+        ctx = None
+        if isinstance(connection_string, LiveSchemaContext):
+            ctx = connection_string
+        elif hasattr(connection_string, "to_connection_config"):
+            ctx = build_live_context(connection_string)
+        else:
+            self.logger.warning(
+                "_fetch_live_statistics: unsupported source %r", type(connection_string)
+            )
+            return
+
+        if ctx is None:
+            return
+        ctx.hydrate_statistics_manager(self)
 
     def _load_pickle_statistics(self, data: Dict[str, Any]):
         """Load statistics from pickle format"""

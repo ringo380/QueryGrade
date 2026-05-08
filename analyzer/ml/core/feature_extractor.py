@@ -128,6 +128,70 @@ class FeatureExtractor:
             logger.error(f"Error extracting features from query {query.id}: {str(e)}")
             return None
 
+    # Index-aware features (issue #7 Layer 6).
+    #
+    # These are intentionally kept *separate* from ``feature_names`` and the
+    # main feature vector so deployed HYBRID_SCORER models trained on the
+    # current 45-feature shape continue to load. Use
+    # ``extract_index_features`` to produce a companion dict that gets
+    # persisted alongside training samples; once enough labeled rows exist
+    # we'll roll the dimensions into the main vector and bump the model
+    # version.
+    INDEX_FEATURE_NAMES = [
+        "existing_index_count",
+        "unindexed_join_columns",
+        "unindexed_where_columns",
+        "largest_table_rows",
+        "recommended_index_count",
+    ]
+
+    def extract_index_features(
+        self,
+        query: Query,
+        *,
+        live_schema=None,
+        recommendation_count: int = 0,
+    ) -> Dict[str, float]:
+        """Index-aware companion features. Safe defaults when no schema."""
+        out = {name: 0.0 for name in self.INDEX_FEATURE_NAMES}
+        out["recommended_index_count"] = float(recommendation_count)
+
+        if live_schema is None:
+            return out
+
+        from analyzer.services.index_recommender import extract_candidates
+
+        try:
+            candidates = extract_candidates(query.sql_text, live_schema)
+        except Exception:
+            return out
+
+        existing_total = 0
+        max_rows = 0
+        for tbl in live_schema.tables.values():
+            existing_total += len(tbl.indexes)
+            if tbl.row_count and tbl.row_count > max_rows:
+                max_rows = tbl.row_count
+        out["existing_index_count"] = float(existing_total)
+        out["largest_table_rows"] = float(max_rows)
+
+        for cand in candidates:
+            snap = live_schema.get_table(cand.table)
+            existing_keys = set(snap.index_columns_set()) if snap else set()
+            cand_key = tuple(c.lower() for c in cand.columns)
+            covered = any(
+                len(cand_key) <= len(k) and k[: len(cand_key)] == cand_key
+                for k in existing_keys
+            )
+            if covered:
+                continue
+            if "join" in cand.clauses:
+                out["unindexed_join_columns"] += 1
+            if "where_eq" in cand.clauses or "where_range" in cand.clauses:
+                out["unindexed_where_columns"] += 1
+
+        return out
+
     def _extract_basic_features(self, sql_text: str, parsed: Statement) -> List[float]:
         """Extract basic structural features."""
         token_list = list(parsed.flatten())

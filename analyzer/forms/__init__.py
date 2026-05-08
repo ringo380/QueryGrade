@@ -15,6 +15,7 @@ with existing imports: `from analyzer.forms import QueryGradeForm`
 from .database_forms import DatabaseConnectionForm
 from .feedback_forms import QueryFeedbackForm
 from .query_forms import BatchQueryForm, QueryCompareForm, QueryGradeForm
+from .saved_connection_forms import SavedConnectionForm
 from .upload_forms import UploadLogForm
 from .validators import validate_log_file, validate_sql_query
 
@@ -32,4 +33,5 @@ __all__ = [
     "QueryFeedbackForm",
     # Database forms
     "DatabaseConnectionForm",
+    "SavedConnectionForm",
 ]

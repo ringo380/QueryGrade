@@ -10,10 +10,11 @@ from django.urls import path
 # ML Dashboard views (separate module)
 from .ml import dashboard_views
 # Import from modular views package
-from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views
+from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views; Saved connection views
     account_view, analyze, api_unified_query_analysis, async_processing_status,
     async_results, batch_analysis, batch_analysis_view, batch_results,
-    check_task_status, compare_results, contextualized_results,
+    check_task_status, compare_results, connection_create, connection_delete,
+    connection_edit, connection_test, connections_list, contextualized_results,
     database_analyze, database_schema, enhanced_grade_results,
     feedback_analytics, grade_query, grade_results, index, login_view,
     logout_view, password_change, password_reset_confirm,
@@ -44,6 +45,24 @@ urlpatterns = [
     path("feedback/<int:analysis_id>/", submit_feedback, name="submit_feedback"),
     path("feedback/quick/<int:analysis_id>/", quick_feedback, name="quick_feedback"),
     path("feedback/analytics/", feedback_analytics, name="feedback_analytics"),
+    # Saved DB connections (live schema for index recommendations)
+    path("connections/", connections_list, name="connections_list"),
+    path("connections/new/", connection_create, name="connection_create"),
+    path(
+        "connections/<int:connection_id>/edit/",
+        connection_edit,
+        name="connection_edit",
+    ),
+    path(
+        "connections/<int:connection_id>/delete/",
+        connection_delete,
+        name="connection_delete",
+    ),
+    path(
+        "connections/<int:connection_id>/test/",
+        connection_test,
+        name="connection_test",
+    ),
     # Database introspection
     path("database/", database_analyze, name="database_analyze"),
     path("database/schema/", database_schema, name="database_schema"),
