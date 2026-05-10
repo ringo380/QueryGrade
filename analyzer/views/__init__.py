@@ -37,7 +37,8 @@ from .history_views import query_history
 # Query grading views
 from .query_grading_views import (batch_grade_queries, batch_results,
                                   compare_queries, enhanced_grade_results,
-                                  grade_query, grade_results)
+                                  grade_query, grade_query_ajax,
+                                  grade_results)
 # Upload and async processing views
 from .upload_views import (analyze, async_processing_status, async_results,
                            check_task_status, index)
@@ -58,6 +59,7 @@ __all__ = [
     "account_view",
     # Grading
     "grade_query",
+    "grade_query_ajax",
     "grade_results",
     "enhanced_grade_results",
     "compare_queries",

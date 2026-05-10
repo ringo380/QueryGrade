@@ -1,16 +1,15 @@
 {% extends 'analyzer/base.html' %}
 {% load static %}
 
-{% block title %}Dashboard · QueryGrade{% endblock %}
+{% block title %}{% if user.is_authenticated %}Dashboard · QueryGrade{% else %}QueryGrade · Grade any SQL query{% endif %}{% endblock %}
 
 {% block content %}
+{% if user.is_authenticated %}
 <div class="space-y-8">
   <header>
     <h1 class="text-3xl font-bold text-gray-900">QueryGrade</h1>
     <p class="mt-1 text-gray-600">SQL query analysis and database optimization platform</p>
-    {% if user.is_authenticated %}
     <p class="mt-2 text-sm text-gray-500">Welcome back, <span class="font-medium text-gray-700">{{ user.username }}</span>.</p>
-    {% endif %}
   </header>
 
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -40,7 +39,6 @@
     </a>
   </section>
 
-  {% if user.is_authenticated %}
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <a href="{% url 'grade_query' %}" class="bg-white rounded-lg border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-sm transition flex items-center gap-3">
       <span class="text-2xl">⚡</span>
@@ -92,70 +90,6 @@
     </form>
   </section>
   {% endif %}
-  {% else %}
-  {# Anonymous trial: inline grade form + upgrade CTA #}
-  {% if trial_exhausted %}
-  <section class="bg-white rounded-lg border border-indigo-200 p-8 text-center space-y-4">
-    <div class="text-4xl">🚀</div>
-    <h2 class="text-2xl font-semibold text-gray-900">You've used all {{ trial_cap }} free trials</h2>
-    <p class="text-gray-600 max-w-xl mx-auto">Create a free account to keep grading queries — plus unlock AI rewrite suggestions, personalized feedback, query history, and saved reports.</p>
-    <div class="flex gap-3 justify-center pt-2">
-      <a href="{% url 'register' %}" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Create free account</a>
-      <a href="{% url 'login' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Log in</a>
-    </div>
-  </section>
-  {% else %}
-  <section class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-    {% if trial_remaining <= 10 %}
-    <div class="rounded-md bg-amber-50 border border-amber-200 p-3 flex items-start gap-3">
-      <span class="text-xl">🎁</span>
-      <div class="flex-1 text-sm text-amber-900">
-        <strong>Only {{ trial_remaining }} of {{ trial_cap }} free grades left</strong> this session.
-        <a href="{% url 'register' %}" class="font-semibold underline hover:text-amber-950">Sign up</a>
-        for unlimited grading + AI rewrite suggestions, history, and saved reports.
-      </div>
-    </div>
-    {% endif %}
-
-    <form method="post" action="{% url 'grade_query' %}" class="space-y-4">
-      {% csrf_token %}
-      <div>
-        <label for="{{ grade_form.sql_query.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ grade_form.sql_query.label }} <span class="text-red-600">*</span></label>
-        <div class="mt-1">{{ grade_form.sql_query }}</div>
-        {% if grade_form.sql_query.help_text %}<p class="mt-1 text-xs text-gray-500">{{ grade_form.sql_query.help_text }}</p>{% endif %}
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label for="{{ grade_form.database_type.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ grade_form.database_type.label }}</label>
-          <div class="mt-1">{{ grade_form.database_type }}</div>
-        </div>
-        <div>
-          <label for="{{ grade_form.database_version.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ grade_form.database_version.label }}</label>
-          <div class="mt-1">{{ grade_form.database_version }}</div>
-        </div>
-      </div>
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-        📊 Grade my query
-      </button>
-    </form>
-  </section>
-
-  <section class="bg-white rounded-lg border border-gray-200 p-6">
-    <h2 class="text-lg font-semibold text-gray-900">Unlock more with a free account</h2>
-    <p class="mt-1 text-sm text-gray-500">Registered users get advanced ML-powered insights and persistent storage.</p>
-    <ul class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-      <li class="flex items-start gap-2"><span>🤖</span><div><strong class="text-gray-900">AI rewrite suggestions</strong><p class="text-xs text-gray-500">Automatic query optimizations.</p></div></li>
-      <li class="flex items-start gap-2"><span>🎯</span><div><strong class="text-gray-900">Personalized feedback</strong><p class="text-xs text-gray-500">Based on your query patterns.</p></div></li>
-      <li class="flex items-start gap-2"><span>🕒</span><div><strong class="text-gray-900">Query history</strong><p class="text-xs text-gray-500">Browse and reload past analyses.</p></div></li>
-      <li class="flex items-start gap-2"><span>💾</span><div><strong class="text-gray-900">Saved reports</strong><p class="text-xs text-gray-500">Persistent records of every grade.</p></div></li>
-    </ul>
-    <div class="mt-5 flex gap-3">
-      <a href="{% url 'register' %}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Create free account</a>
-      <a href="{% url 'login' %}" class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">Log in</a>
-    </div>
-  </section>
-  {% endif %}
-  {% endif %}
 </div>
 
 <script>
@@ -176,4 +110,393 @@ if (document.getElementById('uploadForm')) {
   });
 }
 </script>
+
+{% else %}
+{# ─── Anonymous landing: minimalist inline grader ─── #}
+<div class="max-w-3xl mx-auto space-y-10">
+
+  <header class="text-center space-y-3 pt-2">
+    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">Grade any SQL query in seconds.</h1>
+    <p class="text-lg text-gray-600 dark:text-gray-300">Paste a query, get a letter grade and concrete fixes. Free, no signup required.</p>
+    {% if not trial_exhausted and trial_remaining %}
+    <p class="text-xs text-gray-500">
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+        {{ trial_remaining }} of {{ trial_cap }} free grades remaining this session
+      </span>
+    </p>
+    {% endif %}
+  </header>
+
+  {% if trial_exhausted %}
+  <section class="bg-white dark:bg-[#161b22] rounded-xl border border-indigo-200 dark:border-indigo-900 p-8 text-center space-y-4 shadow-sm">
+    <div class="text-4xl">🚀</div>
+    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">You've used all {{ trial_cap }} free trials</h2>
+    <p class="text-gray-600 dark:text-gray-300 max-w-xl mx-auto">Create a free account to keep grading queries — plus unlock AI rewrite suggestions, personalized feedback, query history, and saved reports.</p>
+    <div class="flex gap-3 justify-center pt-2">
+      <a href="{% url 'register' %}" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Create free account</a>
+      <a href="{% url 'login' %}" class="px-6 py-2.5 border border-gray-300 dark:border-[#30363d] text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md hover:bg-gray-50 dark:hover:bg-[#21262d]">Log in</a>
+    </div>
+  </section>
+  {% else %}
+
+  {# Input card #}
+  <section class="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-[#30363d] shadow-sm p-6 sm:p-8">
+    <form id="inlineGradeForm" class="space-y-4" novalidate>
+      {% csrf_token %}
+      <div>
+        <label for="id_sql_query" class="sr-only">SQL query</label>
+        <textarea id="id_sql_query" name="sql_query" rows="8"
+                  class="w-full px-4 py-3 border border-gray-300 dark:border-[#30363d] rounded-lg text-sm font-mono bg-gray-50 dark:bg-[#0d1117] dark:text-[#e6edf3] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="SELECT u.name, COUNT(o.id)&#10;FROM users u&#10;LEFT JOIN orders o ON o.user_id = u.id&#10;WHERE u.created_at >= '2024-01-01'&#10;GROUP BY u.name&#10;ORDER BY 2 DESC;"></textarea>
+        <p id="sqlError" class="mt-2 text-sm text-red-600 hidden"></p>
+      </div>
+
+      <details class="text-sm text-gray-600 dark:text-gray-400">
+        <summary class="cursor-pointer select-none hover:text-gray-900 dark:hover:text-white">Database details (optional)</summary>
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="id_database_type" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Database</label>
+            <select id="id_database_type" name="database_type" class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-[#30363d] rounded-md text-sm bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+              <option value="">Any / not sure</option>
+              <option value="mysql">MySQL</option>
+              <option value="postgresql">PostgreSQL</option>
+              <option value="sqlite">SQLite</option>
+              <option value="oracle">Oracle</option>
+              <option value="sqlserver">SQL Server</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="id_database_version" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Version</label>
+            <input id="id_database_version" name="database_version" type="text" placeholder="e.g. 8.0, 15"
+                   class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-[#30363d] rounded-md text-sm bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
+          </div>
+        </div>
+      </details>
+
+      <div class="flex items-center justify-between">
+        <button type="submit" id="gradeBtn"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Grade my query
+        </button>
+        <p class="text-xs text-gray-500">Press <kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] text-[10px] font-mono">⌘ ↵</kbd> to submit</p>
+      </div>
+    </form>
+  </section>
+
+  {# Loading panel #}
+  <section id="loadingPanel" class="hidden bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-[#30363d] shadow-sm p-6">
+    <div class="flex items-center gap-3">
+      <svg class="animate-spin w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+      <p id="loadingLabel" class="text-sm font-medium text-gray-700 dark:text-gray-200">Parsing SQL…</p>
+    </div>
+    <div class="mt-3 h-2 bg-gray-100 dark:bg-[#0d1117] rounded overflow-hidden">
+      <div id="loadingBar" class="h-full bg-indigo-600 transition-all duration-500 ease-out" style="width: 0%"></div>
+    </div>
+    <ul class="mt-3 grid grid-cols-4 gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+      <li data-stage="0">Parse</li>
+      <li data-stage="1">Analyze clauses</li>
+      <li data-stage="2">Check indexes</li>
+      <li data-stage="3">Score</li>
+    </ul>
+  </section>
+
+  {# Result panel #}
+  <section id="resultPanel" class="hidden space-y-4"></section>
+
+  {# How it works #}
+  <section class="space-y-4 pt-4">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center">How QueryGrade works</h2>
+    <p class="text-center text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">Every grade is the product of deterministic rules <em>and</em> a model that keeps learning from real engineers like you.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+      <div class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+        <div class="text-2xl">📐</div>
+        <h3 class="mt-2 font-semibold text-gray-900 dark:text-white">Rule-based grading</h3>
+        <p class="mt-1.5 text-sm text-gray-600 dark:text-gray-300">Nine specialized analyzers (SELECT, JOIN, WHERE, indexing, subqueries, ORDER BY, GROUP BY, plus MySQL- and PostgreSQL-specific patterns) detect <strong>18+ issue types</strong> and emit <strong>27+ recommendation types</strong>. Output is a letter grade A–F with a 0–100 score.</p>
+      </div>
+
+      <div class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+        <div class="text-2xl">🤖</div>
+        <h3 class="mt-2 font-semibold text-gray-900 dark:text-white">ML-powered refinement</h3>
+        <p class="mt-1.5 text-sm text-gray-600 dark:text-gray-300">A hybrid model trained on curated query corpora and user feedback weights the rule-based score. When the model is confident, its prediction nudges the final grade so it reflects how queries actually perform — not just how strict our rules are.</p>
+      </div>
+
+      <div class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+        <div class="text-2xl">🧠</div>
+        <h3 class="mt-2 font-semibold text-gray-900 dark:text-white">You make it smarter</h3>
+        <p class="mt-1.5 text-sm text-gray-600 dark:text-gray-300">Every thumbs-up / thumbs-down on an analysis becomes training data. Periodic retraining means today's grades reflect what real engineers found helpful yesterday.</p>
+        <a href="{% url 'register' %}" class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:underline">Create a free account →</a>
+      </div>
+    </div>
+  </section>
+
+  {% endif %}
+</div>
+
+{# Inline JS — keeps things self-contained; no new static file. #}
+<script>
+(function() {
+  const form = document.getElementById('inlineGradeForm');
+  if (!form) return;
+
+  const sqlInput = document.getElementById('id_sql_query');
+  const sqlError = document.getElementById('sqlError');
+  const submitBtn = document.getElementById('gradeBtn');
+  const loadingPanel = document.getElementById('loadingPanel');
+  const loadingBar = document.getElementById('loadingBar');
+  const loadingLabel = document.getElementById('loadingLabel');
+  const resultPanel = document.getElementById('resultPanel');
+
+  const STAGES = [
+    { label: 'Parsing SQL…',         pct: 22 },
+    { label: 'Analyzing clauses…',   pct: 48 },
+    { label: 'Checking indexes…',    pct: 72 },
+    { label: 'Scoring…',             pct: 90 },
+  ];
+
+  let stageTimers = [];
+  function clearStageTimers() {
+    stageTimers.forEach(t => clearTimeout(t));
+    stageTimers = [];
+  }
+
+  function startStaged() {
+    loadingPanel.classList.remove('hidden');
+    loadingBar.style.width = '0%';
+    loadingLabel.textContent = STAGES[0].label;
+    clearStageTimers();
+    STAGES.forEach((s, i) => {
+      stageTimers.push(setTimeout(() => {
+        loadingLabel.textContent = s.label;
+        loadingBar.style.width = s.pct + '%';
+        document.querySelectorAll('#loadingPanel li').forEach((el, idx) => {
+          el.classList.toggle('text-indigo-700', idx <= i);
+          el.classList.toggle('dark:text-indigo-300', idx <= i);
+          el.classList.toggle('font-semibold', idx <= i);
+        });
+      }, 400 + i * 380));
+    });
+  }
+
+  function finishStaged() {
+    clearStageTimers();
+    loadingBar.style.width = '100%';
+    loadingLabel.textContent = 'Done.';
+    setTimeout(() => { loadingPanel.classList.add('hidden'); }, 280);
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  const GRADE_THEME = {
+    A: { surface: 'bg-emerald-50 ring-emerald-200', text: 'text-emerald-700', label: 'Excellent' },
+    B: { surface: 'bg-lime-50 ring-lime-200',       text: 'text-lime-700',    label: 'Good' },
+    C: { surface: 'bg-amber-50 ring-amber-200',     text: 'text-amber-700',   label: 'Average' },
+    D: { surface: 'bg-orange-50 ring-orange-200',   text: 'text-orange-700',  label: 'Poor' },
+    F: { surface: 'bg-red-50 ring-red-200',         text: 'text-red-700',     label: 'Failing' },
+  };
+
+  function renderIssue(issue) {
+    const sev = (issue.severity || 'medium').toLowerCase();
+    const sevClass = sev === 'critical' || sev === 'high'
+      ? 'bg-red-50 text-red-700'
+      : sev === 'medium' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-700';
+    const msg = issue.message || issue.description || issue.type || 'Issue';
+    return `<li class="flex items-start gap-2">
+      <span class="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${sevClass}">${escapeHtml(sev)}</span>
+      <span class="text-sm text-gray-700 dark:text-gray-200">${escapeHtml(msg)}</span>
+    </li>`;
+  }
+
+  function renderRec(rec) {
+    const text = typeof rec === 'string'
+      ? rec
+      : (rec.message || rec.description || rec.recommendation || rec.suggestion || rec.type || '');
+    if (!text) return '';
+    return `<li class="flex items-start gap-2">
+      <span class="mt-0.5 text-emerald-600">✓</span>
+      <span class="text-sm text-gray-700 dark:text-gray-200">${escapeHtml(text)}</span>
+    </li>`;
+  }
+
+  function renderResult(d) {
+    const grade = (d.grade || 'F').toUpperCase();
+    const theme = GRADE_THEME[grade] || GRADE_THEME.F;
+    const issuesHtml = (d.issues_found || []).map(renderIssue).join('') || `<li class="text-sm text-gray-500">No issues detected — nice work.</li>`;
+    const recsHtml = (d.recommendations || []).map(renderRec).join('') || `<li class="text-sm text-gray-500">No further recommendations.</li>`;
+    const score = typeof d.score === 'number' ? d.score.toFixed(1) : d.score;
+    const upgradeHtml = d.show_upgrade_cta
+      ? `<div class="rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-800 p-4 flex items-start gap-3">
+           <span class="text-2xl">🎁</span>
+           <div class="flex-1 text-sm text-indigo-900 dark:text-indigo-200">
+             <strong>Only ${d.remaining} of ${d.cap} free grades left.</strong>
+             <a href="/register/" class="font-semibold underline">Sign up</a> for unlimited grading, AI rewrite suggestions, and history.
+           </div>
+         </div>`
+      : '';
+
+    resultPanel.innerHTML = `
+      <section class="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-[#30363d] p-6 flex flex-col md:flex-row gap-6 shadow-sm">
+        <div class="flex-shrink-0 flex flex-col items-center justify-center text-center md:w-40 p-4 rounded-lg ring-1 ${theme.surface}">
+          <div class="text-6xl font-bold leading-none ${theme.text}">${escapeHtml(grade)}</div>
+          <div class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">${escapeHtml(score)}<span class="text-base text-gray-500">/100</span></div>
+          <div class="mt-1 text-xs uppercase tracking-wide text-gray-500">${theme.label}</div>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Summary</h2>
+          <dl class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+            <div><dt class="text-gray-500">Query type</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">${escapeHtml(d.query_type || '—')}</dd></div>
+            <div><dt class="text-gray-500">Complexity</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">${escapeHtml(d.complexity)}/100</dd></div>
+            <div><dt class="text-gray-500">Tables</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">${escapeHtml(d.table_count)}</dd></div>
+            <div><dt class="text-gray-500">Joins</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">${escapeHtml(d.join_count)}</dd></div>
+            <div><dt class="text-gray-500">Analysis time</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">${escapeHtml(d.execution_time_ms)}ms</dd></div>
+            <div><dt class="text-gray-500">Issues found</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">${(d.issues_found || []).length}</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-[#30363d] p-5">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Issues detected</h3>
+          <ul class="mt-3 space-y-2">${issuesHtml}</ul>
+        </div>
+        <div class="bg-white dark:bg-[#161b22] rounded-xl border border-gray-200 dark:border-[#30363d] p-5">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recommendations</h3>
+          <ul class="mt-3 space-y-2">${recsHtml}</ul>
+        </div>
+      </section>
+
+      ${d.performance_notes ? `<section class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-900 dark:text-amber-200">${escapeHtml(d.performance_notes)}</section>` : ''}
+
+      ${upgradeHtml}
+
+      <div class="flex flex-wrap gap-2 pt-1">
+        <a href="${escapeHtml(d.results_url)}" class="px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#21262d]">View full report</a>
+        <button type="button" id="gradeAgainBtn" class="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700">Grade another</button>
+      </div>
+    `;
+    resultPanel.classList.remove('hidden');
+
+    const again = document.getElementById('gradeAgainBtn');
+    if (again) {
+      again.addEventListener('click', () => {
+        resultPanel.classList.add('hidden');
+        sqlInput.value = '';
+        sqlInput.focus();
+        window.scrollTo({ top: form.offsetTop - 24, behavior: 'smooth' });
+      });
+    }
+
+    window.trackEvent('query_graded', {
+      grade: grade,
+      score: typeof d.score === 'number' ? d.score : parseFloat(d.score) || 0,
+      analysis_type: 'inline_anon'
+    });
+  }
+
+  function renderExhausted(d) {
+    resultPanel.innerHTML = `
+      <section class="bg-white dark:bg-[#161b22] rounded-xl border border-indigo-200 dark:border-indigo-900 p-8 text-center space-y-4 shadow-sm">
+        <div class="text-4xl">🚀</div>
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">You've used all ${d.cap} free trials</h2>
+        <p class="text-gray-600 dark:text-gray-300 max-w-xl mx-auto">Create a free account to keep grading queries — plus unlock AI rewrite suggestions, personalized feedback, query history, and saved reports.</p>
+        <div class="flex gap-3 justify-center pt-2">
+          <a href="${escapeHtml(d.register_url)}" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Create free account</a>
+          <a href="${escapeHtml(d.login_url)}" class="px-6 py-2.5 border border-gray-300 dark:border-[#30363d] text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md hover:bg-gray-50 dark:hover:bg-[#21262d]">Log in</a>
+        </div>
+      </section>
+    `;
+    resultPanel.classList.remove('hidden');
+    submitBtn.disabled = true;
+    window.trackEvent('trial_exhausted', { trial_cap: d.cap, queries_used: d.cap });
+  }
+
+  function renderErrors(errors) {
+    const sqlErrs = errors && errors.sql_query;
+    if (sqlErrs && sqlErrs.length) {
+      sqlError.textContent = sqlErrs.map(e => e.message || e).join(' ');
+      sqlError.classList.remove('hidden');
+    } else {
+      sqlError.textContent = 'Please check your query and try again.';
+      sqlError.classList.remove('hidden');
+    }
+  }
+
+  function updateCreditsPill(remaining) {
+    const el = document.querySelector('[data-anon-credits]');
+    if (el && typeof remaining === 'number') el.textContent = remaining;
+  }
+
+  async function submitQuery(e) {
+    e.preventDefault();
+    sqlError.classList.add('hidden');
+    resultPanel.classList.add('hidden');
+
+    const sql = (sqlInput.value || '').trim();
+    if (!sql) {
+      sqlError.textContent = 'Please paste a SQL query first.';
+      sqlError.classList.remove('hidden');
+      sqlInput.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    startStaged();
+
+    try {
+      const fd = new FormData(form);
+      const resp = await fetch('{% url "grade_query_ajax" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+        credentials: 'same-origin',
+      });
+
+      let data = {};
+      try { data = await resp.json(); } catch (e) { /* non-JSON error */ }
+
+      finishStaged();
+
+      if (resp.status === 429) {
+        showToast('Too many requests. Slow down a moment and try again.', 'error');
+        return;
+      }
+
+      if (data.status === 'trial_exhausted') {
+        renderExhausted(data);
+        updateCreditsPill(0);
+        return;
+      }
+      if (data.status === 'invalid') {
+        renderErrors(data.errors);
+        return;
+      }
+      if (data.status === 'ok') {
+        updateCreditsPill(data.remaining);
+        renderResult(data);
+        return;
+      }
+      showToast(data.message || 'Analysis failed. Please try again.', 'error');
+    } catch (err) {
+      finishStaged();
+      showToast('Network error. Please try again.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  form.addEventListener('submit', submitQuery);
+  sqlInput.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      submitQuery(e);
+    }
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

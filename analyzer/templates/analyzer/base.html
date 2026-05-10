@@ -118,13 +118,15 @@
               <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
             </button>
             {% if anon_trial_cap %}
-            <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mr-1
+            <span id="anon-credits-pill"
+                  data-anon-cap="{{ anon_trial_cap }}"
+                  class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mr-1
                          {% if anon_trial_remaining == 0 %}bg-red-100 text-red-700
                          {% elif anon_trial_remaining <= 5 %}bg-amber-100 text-amber-700
                          {% else %}bg-emerald-100 text-emerald-700{% endif %}"
                   title="Free queries remaining this session. Sign up for unlimited.">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              {{ anon_trial_remaining }}/{{ anon_trial_cap }} credits
+              <span data-anon-credits>{{ anon_trial_remaining }}</span>/{{ anon_trial_cap }} credits
             </span>
             {% endif %}
             <a href="{% url 'login' %}" data-nav="login" class="px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">Login</a>

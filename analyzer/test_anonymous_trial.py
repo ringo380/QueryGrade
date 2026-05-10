@@ -62,12 +62,13 @@ class AnonymousTrialTestCase(TransactionTestCase):
     # ---------- Landing & form rendering ----------
 
     def test_anon_landing_renders_inline_grade_form(self):
-        """GET / for anon shows the inline grade form + trial banner."""
+        """GET / for anon shows the minimalist inline grade form + trial counter."""
         response = self.client.get(reverse("index"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Try QueryGrade free")
-        self.assertContains(response, "3 of 3 grades left")
-        self.assertContains(response, "Create free account")
+        self.assertContains(response, "Grade any SQL query in seconds")
+        self.assertContains(response, "inlineGradeForm")
+        self.assertContains(response, "3 of 3 free grades remaining")
+        self.assertContains(response, "How QueryGrade works")
 
     def test_anon_grade_page_shows_trial_banner(self):
         """GET /grade/ for anon shows the trial banner and form."""
