@@ -16,7 +16,7 @@ from .views import (  # Authentication views; Query grading views; Comparison vi
     check_task_status, compare_results, connection_create, connection_delete,
     connection_edit, connection_test, connections_list, contextualized_results,
     database_analyze, database_schema, enhanced_grade_results,
-    feedback_analytics, grade_query, grade_results, index, login_view,
+    feedback_analytics, grade_query, grade_query_ajax, grade_results, index, login_view,
     logout_view, password_change, password_reset_confirm,
     password_reset_request, performance_report_view, query_compare,
     query_history, query_with_context, quick_feedback, register_view,
@@ -28,6 +28,7 @@ urlpatterns = [
     path("analyze/", analyze, name="analyze"),
     # Query grading
     path("grade/", grade_query, name="grade_query"),
+    path("grade/ajax/", grade_query_ajax, name="grade_query_ajax"),
     path("grade/results/<int:analysis_id>/", grade_results, name="grade_results"),
     path(
         "grade/enhanced/<int:analysis_id>/",

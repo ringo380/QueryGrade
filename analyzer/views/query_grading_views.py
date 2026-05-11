@@ -16,7 +16,10 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
 from ..db_versions import DATABASE_VERSIONS
@@ -300,6 +303,98 @@ def grade_query(request):
             "trial_remaining": remaining,
             "db_versions": DATABASE_VERSIONS,
         },
+    )
+
+
+@transaction.non_atomic_requests
+@require_POST
+@ratelimit(key=_anon_ip_key, rate=ANON_QUERY_RATE_LIMIT, method="POST", block=True)
+@ratelimit(key="user", rate=QUERY_RATE_LIMIT, method="POST", block=True)
+def grade_query_ajax(request):
+    """
+    AJAX endpoint backing the inline grading flow on the anonymous landing page.
+
+    Returns JSON. Mirrors the anon branch of ``grade_query``: enforces the trial
+    cap, tracks analysis IDs in the session so ``/grade/results/<id>/`` keeps
+    working for a "View full report" link, but never redirects.
+
+    Anonymous-only — authenticated users have the full /grade/ flow (which
+    creates UserQueryHistory and runs ML enhancement). Routing auth users
+    through this endpoint would create analyses with no UserQueryHistory row,
+    which ``grade_results`` then rejects with "permission denied".
+    """
+    if request.user.is_authenticated:
+        return JsonResponse(
+            {"status": "auth_required_redirect", "redirect": reverse("grade_query")},
+            status=403,
+        )
+
+    cap, count, remaining = anon_trial_state(request)
+
+    if remaining <= 0:
+        return JsonResponse(
+            {
+                "status": "trial_exhausted",
+                "cap": cap,
+                "remaining": 0,
+                "register_url": reverse("register"),
+                "login_url": reverse("login"),
+            }
+        )
+
+    form = QueryGradeForm(request.POST, user=request.user)
+    if not form.is_valid():
+        return JsonResponse(
+            {"status": "invalid", "errors": form.errors.get_json_data()}, status=400
+        )
+
+    sql_query = form.cleaned_data["sql_query"]
+    database_type = form.cleaned_data.get("database_type", "")
+
+    try:
+        query, analysis = analyze_query(sql_query, database_type)
+    except ValueError as e:
+        return JsonResponse(
+            {"status": "invalid", "errors": {"sql_query": [{"message": str(e)}]}},
+            status=400,
+        )
+    except Exception as e:
+        logger.error("Unexpected error in grade_query_ajax for anonymous: %s", e)
+        return JsonResponse(
+            {"status": "error", "message": "Analysis failed. Please try again."},
+            status=500,
+        )
+
+    ids = list(request.session.get(ANON_ANALYSIS_SESSION_KEY, []))
+    ids.append(analysis.id)
+    request.session[ANON_ANALYSIS_SESSION_KEY] = ids[-ANON_ANALYSIS_HISTORY_LIMIT:]
+    new_count = count + 1
+    request.session[ANON_TRIAL_COUNT_KEY] = new_count
+    request.session.modified = True
+    new_remaining = max(cap - new_count, 0)
+
+    show_upgrade_cta = new_remaining <= 10
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "analysis_id": analysis.id,
+            "grade": analysis.grade,
+            "score": float(analysis.score),
+            "query_type": query.query_type,
+            "complexity": query.estimated_complexity,
+            "table_count": query.table_count,
+            "join_count": query.join_count,
+            "execution_time_ms": analysis.execution_time_ms,
+            "issues_found": analysis.issues_found or [],
+            "recommendations": analysis.recommendations or [],
+            "performance_notes": analysis.performance_notes or "",
+            "remaining": new_remaining,
+            "cap": cap,
+            "show_upgrade_cta": show_upgrade_cta,
+            "is_anonymous": True,
+            "results_url": reverse("grade_results", args=[analysis.id]),
+        }
     )
 
 
