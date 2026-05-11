@@ -597,7 +597,17 @@
       });
     }, 100);
 
-    if (typeof gtag === 'function') {
+    // Skip if the inline landing-page flow already emitted query_graded for
+    // this analysis (anon "View full report" path). One-shot — clear after.
+    var _inlineKey = 'qg_inline_counted_{{ analysis.id }}';
+    var _alreadyCounted = false;
+    try {
+      if (sessionStorage.getItem(_inlineKey)) {
+        _alreadyCounted = true;
+        sessionStorage.removeItem(_inlineKey);
+      }
+    } catch (e) {}
+    if (!_alreadyCounted && typeof gtag === 'function') {
       gtag('event', 'query_graded', {
         grade: '{{ analysis.grade|escapejs }}',
         score: {{ analysis.score|default:0 }},

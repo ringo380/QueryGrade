@@ -157,13 +157,10 @@ if (document.getElementById('uploadForm')) {
           <div>
             <label for="id_database_type" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Database</label>
             <select id="id_database_type" name="database_type" class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-[#30363d] rounded-md text-sm bg-white dark:bg-[#0d1117] dark:text-[#e6edf3]">
-              <option value="">Any / not sure</option>
-              <option value="mysql">MySQL</option>
-              <option value="postgresql">PostgreSQL</option>
-              <option value="sqlite">SQLite</option>
-              <option value="oracle">Oracle</option>
-              <option value="sqlserver">SQL Server</option>
-              <option value="other">Other</option>
+              {# Choices sourced from QueryGradeForm.DATABASE_CHOICES so this stays in sync if the form changes. #}
+              {% for value, label in grade_form.database_type.field.choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
             </select>
           </div>
           <div>
@@ -392,6 +389,9 @@ if (document.getElementById('uploadForm')) {
       });
     }
 
+    // GA4 dedup: mark this analysis as already-counted so /grade/results/<id>/
+    // skips its own query_graded emit (it fires on page load unconditionally).
+    try { sessionStorage.setItem('qg_inline_counted_' + d.analysis_id, '1'); } catch (e) {}
     window.trackEvent('query_graded', {
       grade: grade,
       score: typeof d.score === 'number' ? d.score : parseFloat(d.score) || 0,
@@ -399,6 +399,7 @@ if (document.getElementById('uploadForm')) {
     });
   }
 
+  let formLocked = false;
   function renderExhausted(d) {
     resultPanel.innerHTML = `
       <section class="bg-white dark:bg-[#161b22] rounded-xl border border-indigo-200 dark:border-indigo-900 p-8 text-center space-y-4 shadow-sm">
@@ -412,8 +413,18 @@ if (document.getElementById('uploadForm')) {
       </section>
     `;
     resultPanel.classList.remove('hidden');
+    formLocked = true;
     submitBtn.disabled = true;
-    window.trackEvent('trial_exhausted', { trial_cap: d.cap, queries_used: d.cap });
+    // One-shot per session — also gates against duplicate emits if the user later
+    // hits the legacy /grade/ POST exhausted branch (which fires server-side).
+    try {
+      if (!sessionStorage.getItem('qg_trial_exhausted_fired')) {
+        sessionStorage.setItem('qg_trial_exhausted_fired', '1');
+        window.trackEvent('trial_exhausted', { trial_cap: d.cap, queries_used: d.cap });
+      }
+    } catch (e) {
+      window.trackEvent('trial_exhausted', { trial_cap: d.cap, queries_used: d.cap });
+    }
   }
 
   function renderErrors(errors) {
@@ -486,7 +497,8 @@ if (document.getElementById('uploadForm')) {
       finishStaged();
       showToast('Network error. Please try again.', 'error');
     } finally {
-      submitBtn.disabled = false;
+      // Don't re-enable if renderExhausted locked the form — the trial is over.
+      if (!formLocked) submitBtn.disabled = false;
     }
   }
 

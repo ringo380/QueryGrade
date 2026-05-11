@@ -316,14 +316,22 @@ def grade_query_ajax(request):
 
     Returns JSON. Mirrors the anon branch of ``grade_query``: enforces the trial
     cap, tracks analysis IDs in the session so ``/grade/results/<id>/`` keeps
-    working for a "View full report" link, but never redirects. Authenticated
-    users may also use it for the same inline flow (no ML enhancement here —
-    that still lives at /grade/).
+    working for a "View full report" link, but never redirects.
+
+    Anonymous-only — authenticated users have the full /grade/ flow (which
+    creates UserQueryHistory and runs ML enhancement). Routing auth users
+    through this endpoint would create analyses with no UserQueryHistory row,
+    which ``grade_results`` then rejects with "permission denied".
     """
-    is_anon = not request.user.is_authenticated
+    if request.user.is_authenticated:
+        return JsonResponse(
+            {"status": "auth_required_redirect", "redirect": reverse("grade_query")},
+            status=403,
+        )
+
     cap, count, remaining = anon_trial_state(request)
 
-    if is_anon and remaining <= 0:
+    if remaining <= 0:
         return JsonResponse(
             {
                 "status": "trial_exhausted",
@@ -351,25 +359,21 @@ def grade_query_ajax(request):
             status=400,
         )
     except Exception as e:
-        who = "anonymous" if is_anon else request.user.username
-        logger.error("Unexpected error in grade_query_ajax for %s: %s", who, e)
+        logger.error("Unexpected error in grade_query_ajax for anonymous: %s", e)
         return JsonResponse(
             {"status": "error", "message": "Analysis failed. Please try again."},
             status=500,
         )
 
-    if is_anon:
-        ids = list(request.session.get(ANON_ANALYSIS_SESSION_KEY, []))
-        ids.append(analysis.id)
-        request.session[ANON_ANALYSIS_SESSION_KEY] = ids[-ANON_ANALYSIS_HISTORY_LIMIT:]
-        new_count = count + 1
-        request.session[ANON_TRIAL_COUNT_KEY] = new_count
-        request.session.modified = True
-        new_remaining = max(cap - new_count, 0)
-    else:
-        new_remaining = remaining
+    ids = list(request.session.get(ANON_ANALYSIS_SESSION_KEY, []))
+    ids.append(analysis.id)
+    request.session[ANON_ANALYSIS_SESSION_KEY] = ids[-ANON_ANALYSIS_HISTORY_LIMIT:]
+    new_count = count + 1
+    request.session[ANON_TRIAL_COUNT_KEY] = new_count
+    request.session.modified = True
+    new_remaining = max(cap - new_count, 0)
 
-    show_upgrade_cta = is_anon and new_remaining <= 10
+    show_upgrade_cta = new_remaining <= 10
 
     return JsonResponse(
         {
@@ -388,7 +392,7 @@ def grade_query_ajax(request):
             "remaining": new_remaining,
             "cap": cap,
             "show_upgrade_cta": show_upgrade_cta,
-            "is_anonymous": is_anon,
+            "is_anonymous": True,
             "results_url": reverse("grade_results", args=[analysis.id]),
         }
     )
