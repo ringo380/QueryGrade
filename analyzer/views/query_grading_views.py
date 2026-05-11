@@ -113,7 +113,9 @@ def grade_query(request):
                             from analyzer.ml.core.feature_extractor import \
                                 FeatureExtractor
 
-                            payload["index_features"] = FeatureExtractor().extract_index_features(
+                            payload[
+                                "index_features"
+                            ] = FeatureExtractor().extract_index_features(
                                 query,
                                 live_schema=live_schema,
                                 recommendation_count=len(rec_result.recommendations),

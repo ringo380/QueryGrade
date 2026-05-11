@@ -13,10 +13,10 @@ from django.test import TestCase, override_settings
 from analyzer.models import UserDatabaseConnection
 from analyzer.services import connection_crypto, live_schema_context
 from analyzer.services.live_schema_context import (IndexSnapshot,
-                                                    LiveSchemaContext,
-                                                    TableSnapshot,
-                                                    build_live_context,
-                                                    schema_fingerprint)
+                                                   LiveSchemaContext,
+                                                   TableSnapshot,
+                                                   build_live_context,
+                                                   schema_fingerprint)
 
 TEST_FERNET_KEY = Fernet.generate_key().decode()
 
@@ -63,8 +63,16 @@ class LiveSchemaContextTests(TestCase):
                 {"name": "customer_id", "type": "integer", "nullable": True},
             ],
             indexes=(
-                [IndexSnapshot(name=f"{name}_pkey", columns=["id"], unique=True, primary=True)]
-                + ([IndexSnapshot(name=f"{name}_cust_idx", columns=["customer_id"])] if has_idx else [])
+                [
+                    IndexSnapshot(
+                        name=f"{name}_pkey", columns=["id"], unique=True, primary=True
+                    )
+                ]
+                + (
+                    [IndexSnapshot(name=f"{name}_cust_idx", columns=["customer_id"])]
+                    if has_idx
+                    else []
+                )
             ),
             foreign_keys=[],
         )
@@ -157,7 +165,14 @@ class LiveSchemaContextTests(TestCase):
             row_count=1_000_000,
             size_mb=12.5,
             columns=[{"name": "id", "type": "integer", "nullable": False}],
-            indexes=[{"name": "orders_pkey", "columns": ["id"], "unique": True, "primary": True}],
+            indexes=[
+                {
+                    "name": "orders_pkey",
+                    "columns": ["id"],
+                    "unique": True,
+                    "primary": True,
+                }
+            ],
             foreign_keys=[],
         )
         with mock.patch(

@@ -43,8 +43,8 @@ def _get_fernet() -> Fernet:
     if not settings.DEBUG:
         raise ConnectionCryptoError(
             "DB_CONNECTION_KEY env var is required in production. "
-            "Generate one with: python -c \"from cryptography.fernet import "
-            "Fernet; print(Fernet.generate_key().decode())\""
+            'Generate one with: python -c "from cryptography.fernet import '
+            'Fernet; print(Fernet.generate_key().decode())"'
         )
 
     derived = hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest()

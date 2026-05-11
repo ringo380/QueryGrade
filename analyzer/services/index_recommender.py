@@ -47,10 +47,10 @@ from sqlparse.sql import Identifier, IdentifierList, Where
 from sqlparse.tokens import Keyword
 
 from analyzer.services.index_script_generator import (create_index_sql,
-                                                       drop_index_sql,
-                                                       suggest_index_name)
+                                                      drop_index_sql,
+                                                      suggest_index_name)
 from analyzer.services.live_schema_context import (LiveSchemaContext,
-                                                    TableSnapshot)
+                                                   TableSnapshot)
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,9 @@ class IndexRecommendation:
 class IndexCandidate:
     table: str
     columns: Tuple[str, ...]
-    clauses: List[str]  # which clause types contributed: where_eq, where_range, join, order, group
+    clauses: List[
+        str
+    ]  # which clause types contributed: where_eq, where_range, join, order, group
 
     def column_key(self) -> tuple:
         return tuple(c.lower() for c in self.columns)
@@ -124,8 +126,12 @@ _JOIN_ON = re.compile(
     r"(?=\s+(?:LEFT|RIGHT|INNER|OUTER|CROSS|JOIN|WHERE|GROUP|ORDER|LIMIT|HAVING)\b|\s*$)",
     re.IGNORECASE | re.DOTALL,
 )
-_ORDER_BY = re.compile(r"\bORDER\s+BY\s+([^\)]+?)(?=\s+(?:LIMIT|OFFSET|HAVING|$))", re.IGNORECASE)
-_GROUP_BY = re.compile(r"\bGROUP\s+BY\s+([^\)]+?)(?=\s+(?:HAVING|ORDER|LIMIT|$))", re.IGNORECASE)
+_ORDER_BY = re.compile(
+    r"\bORDER\s+BY\s+([^\)]+?)(?=\s+(?:LIMIT|OFFSET|HAVING|$))", re.IGNORECASE
+)
+_GROUP_BY = re.compile(
+    r"\bGROUP\s+BY\s+([^\)]+?)(?=\s+(?:HAVING|ORDER|LIMIT|$))", re.IGNORECASE
+)
 
 
 def _split_qualified(token: str) -> Tuple[Optional[str], str]:
@@ -202,7 +208,9 @@ def extract_candidates(
     # JOIN ON
     for m in _JOIN_ON.finditer(sql_clean + " "):  # trailing space helps the lookahead
         clause = m.group(1)
-        for eq in re.finditer(r"([A-Za-z_][A-Za-z0-9_\.]*)\s*=\s*([A-Za-z_][A-Za-z0-9_\.]*)", clause):
+        for eq in re.finditer(
+            r"([A-Za-z_][A-Za-z0-9_\.]*)\s*=\s*([A-Za-z_][A-Za-z0-9_\.]*)", clause
+        ):
             for side in (eq.group(1), eq.group(2)):
                 tbl, col = _split_qualified(side)
                 if not tbl:
@@ -301,7 +309,7 @@ def _heuristic_improvement(
         # don't actually have NDV; assume best case 1/sqrt(N) for primary-
         # key-like columns, which keeps us conservative on small datasets.
         if "where_eq" in clauses and row_count > 10_000:
-            selectivity = min(selectivity, max(1.0 / (row_count ** 0.5), 1e-4))
+            selectivity = min(selectivity, max(1.0 / (row_count**0.5), 1e-4))
         confidence = Confidence.MEDIUM
         rationale = (
             f"Heuristic estimate: ~{1 - selectivity:.0%} reduction in rows "
@@ -338,9 +346,7 @@ def _try_hypopg_improvement(
         if not introspector.connect():
             return None
         with introspector.connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT 1 FROM pg_extension WHERE extname = 'hypopg'"
-            )
+            cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'hypopg'")
             if not cursor.fetchone():
                 return None
 
@@ -473,12 +479,16 @@ class IndexRecommender:
                             "Install with `CREATE EXTENSION hypopg;` for "
                             "EXPLAIN-grounded predictions."
                         )
-                    improvement, confidence, rationale = _heuristic_improvement(cand, snap)
+                    improvement, confidence, rationale = _heuristic_improvement(
+                        cand, snap
+                    )
 
             engine = self.engine or "postgresql"
-            full_text = "where_range" in cand.clauses and any(
-                "%" in (sql or "") for _ in [None]
-            ) and self.engine == "mysql"
+            full_text = (
+                "where_range" in cand.clauses
+                and any("%" in (sql or "") for _ in [None])
+                and self.engine == "mysql"
+            )
             create_sql = create_index_sql(
                 engine=engine,
                 table=cand.table,

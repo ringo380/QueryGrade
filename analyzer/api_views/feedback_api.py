@@ -87,7 +87,9 @@ def submit_feedback_api(request, analysis_id):
                 {
                     "feedback_type": "api",
                     "action": action,
-                    "would_recommend": bool(getattr(feedback, "would_recommend", False)),
+                    "would_recommend": bool(
+                        getattr(feedback, "would_recommend", False)
+                    ),
                 },
                 user_id=request.user.id,
             )

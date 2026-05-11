@@ -14,14 +14,14 @@ IMPORTANT: This package maintains the same import paths as the original
 monolithic models.py to ensure Django migrations continue to work correctly.
 """
 
+# Live database connection profiles
+from .connection_models import UserDatabaseConnection
 # Machine learning models
 from .ml_models import FeedbackLearning, LearningMetrics, MLModel, TrainingData
 # Core query models
 from .query_models import Query, QueryAnalysis
 # User interaction models
 from .user_models import QueryFeedback, UserQueryHistory
-# Live database connection profiles
-from .connection_models import UserDatabaseConnection
 
 __all__ = [
     # Query models
