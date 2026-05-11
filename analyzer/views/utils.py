@@ -3,6 +3,7 @@ Utility functions shared across view modules.
 """
 
 from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
 from .constants import ANON_TRIAL_COUNT_KEY
@@ -38,11 +39,27 @@ def csrf_failure(request, reason=""):
     """
     Custom CSRF failure view.
 
-    Args:
-        request: The HTTP request object.
-        reason: The reason for the CSRF failure.
-
-    Returns:
-        HttpResponse: A rendered template with the CSRF error message.
+    Returns JSON for AJAX/fetch callers and a minimal HTML body otherwise.
+    Previously rendered a ``403_csrf.html`` template that doesn't exist in
+    this repo, so every CSRF rejection bubbled up as a 500.
     """
-    return render(request, "403_csrf.html", {"reason": reason}, status=403)
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("Accept", "")
+        or request.path.endswith("/ajax/")
+    )
+    if wants_json:
+        return JsonResponse(
+            {
+                "status": "csrf_failure",
+                "reason": reason or "CSRF verification failed.",
+                "message": "Your session expired. Please refresh the page and try again.",
+            },
+            status=403,
+        )
+    body = (
+        "<!doctype html><meta charset=utf-8><title>403 Forbidden</title>"
+        "<h1>403 Forbidden</h1>"
+        "<p>CSRF verification failed. Refresh the page and try again.</p>"
+    )
+    return HttpResponse(body, status=403, content_type="text/html; charset=utf-8")
