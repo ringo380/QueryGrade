@@ -5,7 +5,7 @@
 {% block content %}
 <div class="space-y-8">
   <header>
-    <h1 class="text-2xl font-bold text-gray-900">My account</h1>
+    <h1 class="font-mono text-2xl font-bold text-gray-900 dark:text-white">My account</h1>
     <p class="mt-1 text-sm text-gray-500">Manage your QueryGrade profile and settings</p>
   </header>
 
@@ -23,12 +23,12 @@
     <section class="bg-white rounded-lg border border-gray-200 p-6">
       <h2 class="text-lg font-semibold text-gray-900">Activity</h2>
       <div class="mt-4 grid grid-cols-2 gap-4">
-        <div class="text-center p-4 rounded-md bg-indigo-50">
-          <div class="text-2xl font-bold text-indigo-700">{{ query_count }}</div>
+        <div class="text-center p-4 rounded-md bg-slate-100">
+          <div class="font-mono tabular-nums text-2xl font-bold text-slate-700">{{ query_count }}</div>
           <div class="text-xs text-gray-600 mt-1">Queries analyzed</div>
         </div>
         <div class="text-center p-4 rounded-md bg-emerald-50">
-          <div class="text-2xl font-bold text-emerald-700">{{ feedback_count }}</div>
+          <div class="font-mono tabular-nums text-2xl font-bold text-emerald-700">{{ feedback_count }}</div>
           <div class="text-xs text-gray-600 mt-1">Feedback given</div>
         </div>
       </div>
@@ -51,7 +51,7 @@
         {% for history in recent_queries %}
         <li class="py-3 flex items-center gap-4">
           {% if history.analysis %}
-          <span class="inline-flex items-center justify-center h-9 w-9 rounded-full text-sm font-bold {% with g=history.analysis.grade|lower %}{% if g == 'a' %}bg-emerald-100 text-emerald-700{% elif g == 'b' %}bg-lime-100 text-lime-700{% elif g == 'c' %}bg-amber-100 text-amber-700{% elif g == 'd' %}bg-orange-100 text-orange-700{% else %}bg-red-100 text-red-700{% endif %}{% endwith %}">{{ history.analysis.grade }}</span>
+          {% include 'analyzer/_grade_pill.html' with grade=history.analysis.grade score=history.analysis.score size='lg' %}
           {% endif %}
           <div class="flex-1 min-w-0">
             <p class="text-sm font-mono text-gray-800 truncate">{{ history.query.query_text|truncatechars:80 }}</p>

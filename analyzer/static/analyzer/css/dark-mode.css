@@ -1,7 +1,23 @@
 /* QueryGrade Dark Theme
    Activated via html.dark class. Default: dark. Toggle persists to localStorage.
    Palette: deep space / developer-grade — navy blacks, precise type, vivid accents.
+
+   Surface tokens (Slice C). Reusable design tokens for opt-in surfaces.
+   Do not retrofit every Tailwind class; reach for these in NEW code where Tailwind
+   does not already cover the case (e.g. chip rows, custom shells).
+     --qg-surface     primary card / panel background
+     --qg-surface-2   page background (slightly recessed in light mode)
+     --qg-border      hairline boundary
+     --qg-ink         primary text ink
+     --qg-ink-muted   secondary text ink
 */
+:root {
+  --qg-surface:   #ffffff;
+  --qg-surface-2: #f8fafc;
+  --qg-border:    #e2e8f0;
+  --qg-ink:       #0f172a;
+  --qg-ink-muted: #475569;
+}
 
 /* ─── Smooth theme transition (structural elements only, not all children) ─── */
 html,
@@ -15,6 +31,12 @@ main,
 
 /* ─── CSS custom properties ─── */
 html.dark {
+  --qg-surface:   #0a0a0a;
+  --qg-surface-2: #111113;
+  --qg-border:    #1f1f23;
+  --qg-ink:       #e5e7eb;
+  --qg-ink-muted: #94a3b8;
+
   --bg-base:     #0d1117;
   --bg-surface:  #161b22;
   --bg-elevated: #21262d;
@@ -111,18 +133,26 @@ html.dark .text-amber-900   { color: #fde68a; }
 html.dark .text-amber-950   { color: #fef3c7; }
 html.dark .border-amber-200 { border-color: rgba(217, 119, 6, 0.3); }
 
-/* ─── Grade pill backgrounds (keep them vibrant, just darken the bg tint) ─── */
-html.dark .bg-emerald-100   { background-color: rgba(16, 185, 129, 0.15); }
+/* ─── Grade pill backgrounds (Slice C tightened — was too uniform at 15% bg)
+   Per-color bg opacity bumps + brighter -300 text gives each grade a distinct read
+   in dark mode while preserving WCAG AA contrast. Compound selectors (.bg-X.text-Y)
+   beat the generic single-class fallbacks below.                                  */
+html.dark .bg-emerald-100.text-emerald-700 { background-color: rgba(16, 185, 129, 0.22); color: #6ee7b7; }
+html.dark .bg-lime-100.text-lime-700       { background-color: rgba(132, 204, 22, 0.22); color: #bef264; }
+html.dark .bg-amber-100.text-amber-700     { background-color: rgba(217, 119, 6, 0.25); color: #fcd34d; }
+html.dark .bg-orange-100.text-orange-700   { background-color: rgba(234, 88, 12, 0.28); color: #fdba74; }
+html.dark .bg-red-100.text-red-700         { background-color: rgba(239, 68, 68, 0.28); color: #fca5a5; }
+
+/* Single-class fallbacks (used outside the pill compound — e.g. icon backgrounds) */
+html.dark .bg-emerald-100   { background-color: rgba(16, 185, 129, 0.18); }
 html.dark .text-emerald-700 { color: #34d399; }
-html.dark .bg-lime-100      { background-color: rgba(101, 163, 13, 0.15); }
+html.dark .bg-lime-100      { background-color: rgba(101, 163, 13, 0.18); }
 html.dark .text-lime-700    { color: #a3e635; }
-html.dark .bg-orange-100    { background-color: rgba(234, 88, 12, 0.15); }
+html.dark .bg-amber-100     { background-color: rgba(217, 119, 6, 0.18); }
+html.dark .bg-orange-100    { background-color: rgba(234, 88, 12, 0.18); }
 html.dark .text-orange-700  { color: #fb923c; }
 
-/* ─── Navbar credits pill ─── */
-html.dark .bg-emerald-100.text-emerald-700 { background-color: rgba(16,185,129,0.15); color: #34d399; }
-html.dark .bg-amber-100.text-amber-700     { background-color: rgba(217,119,6,0.15); color: #fbbf24; }
-html.dark .bg-red-100.text-red-700         { background-color: rgba(220,38,38,0.15); color: #f87171; }
+/* ─── Navbar credits pill — handled by the grade-pill compound rules above ─── */
 
 /* ─── Hover utility overrides ─── */
 html.dark .hover\:bg-gray-100:hover { background-color: #21262d; }
@@ -208,3 +238,118 @@ html.dark .theme-toggle:hover {
 .theme-toggle .icon-sun  { display: none; }
 html.dark .theme-toggle .icon-moon { display: none; }
 html.dark .theme-toggle .icon-sun  { display: block; }
+
+/* ─── Slate scale (Slice A chip row + asymmetric CTA secondary text) ─── */
+html.dark .bg-slate-100        { background-color: #21262d; }
+html.dark .bg-slate-800        { background-color: #21262d; }
+html.dark .bg-slate-900        { background-color: #e6edf3; }
+html.dark .text-slate-200      { color: #adbac7; }
+html.dark .text-slate-300      { color: #adbac7; }
+html.dark .text-slate-600      { color: #8b949e; }
+html.dark .text-slate-700      { color: #cdd9e5; }
+html.dark .text-slate-900      { color: #0d1117; }
+html.dark .hover\:bg-slate-200:hover { background-color: #2d333b; }
+html.dark .hover\:bg-slate-700:hover { background-color: #2d333b; }
+
+/* ─── Indeterminate loading bar (honest loading copy in anon path) ─── */
+@keyframes qg-indeterminate-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .qg-indeterminate-bar {
+    animation: qg-indeterminate-slide 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+
+/* ─── Field-error border (dark mode) ─── */
+html.dark .border-red-500      { border-color: #f87171; }
+html.dark .dark\:border-red-400 { border-color: #fca5a5; }
+
+/* ─── Slice B: results-page anchor / pulse / line-highlight ─── */
+
+/* Anchor targets clear the sticky navbar height when jumped to. */
+.qg-anchor-target { scroll-margin-top: 5rem; }
+.qg-anchor-target:focus { outline: none; }
+
+/* CodeMirror line-highlight for the top-issue hero. Added via
+   ed.addLineClass(line, 'wrap', 'qg-line-issue'). Class-based, no Tailwind purge concern. */
+.CodeMirror .qg-line-issue {
+  background: rgba(254, 226, 226, 0.6);
+  border-left: 3px solid #ef4444;
+}
+html.dark .CodeMirror .qg-line-issue {
+  background: rgba(127, 29, 29, 0.3);
+  border-left: 3px solid #f87171;
+}
+
+/* Brief pulse on a jumped-to anchor target. Gated behind reduced-motion. */
+@keyframes qg-pulse {
+  0%   { background-color: rgba(99, 102, 241, 0.15); }
+  100% { background-color: transparent; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .qg-pulse-target {
+    animation: qg-pulse 1.2s ease-out 1;
+  }
+}
+
+/* TOC current-link marker */
+#issues-toc-list a[aria-current="true"] {
+  background-color: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+  font-weight: 600;
+}
+html.dark #issues-toc-list a[aria-current="true"] {
+  background-color: rgba(129, 140, 248, 0.2);
+  color: #c7d2fe;
+}
+
+/* Custom <details> chevron for index-recs collapse */
+#index-recommendations summary::-webkit-details-marker { display: none; }
+#index-recommendations summary { position: relative; padding-right: 1.5rem; }
+#index-recommendations summary::after {
+  content: "▾";
+  position: absolute;
+  right: 0;
+  top: 0.25rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  transition: transform 0.15s ease;
+}
+#index-recommendations[open] summary::after { transform: rotate(180deg); }
+html.dark #index-recommendations summary::after { color: #8b949e; }
+
+
+/* Shortcuts <dialog> — Slice D */
+dialog#qg-shortcuts-dialog {
+  max-width: calc(100vw - 2rem);
+  width: 28rem;
+  max-height: 80dvh;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  color: #111827;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+dialog#qg-shortcuts-dialog::backdrop {
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+}
+html.dark dialog#qg-shortcuts-dialog {
+  background: #161b22;
+  color: #e6edf3;
+  border-color: #30363d;
+  box-shadow: 0 20px 40px -5px rgba(0,0,0,0.7);
+}
+html.dark dialog#qg-shortcuts-dialog::backdrop {
+  background: rgba(0,0,0,0.65);
+}
+
+/* Mobile nav drawer — Slice D */
+#qg-mobile-nav a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}

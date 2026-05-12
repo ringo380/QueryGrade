@@ -12,25 +12,38 @@
 {% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+{% with g=analysis.grade|lower %}
 
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-bold text-gray-900">Query analysis results</h1>
-    <div class="flex flex-wrap gap-2 text-sm">
-      <a href="{% url 'grade_query' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Grade another</a>
-      {% if is_anonymous %}
-      <a href="{% url 'register' %}" class="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700">Sign up to save</a>
-      {% else %}
-      <a href="{% url 'query_history' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">History</a>
-      {% endif %}
-      <a href="{% url 'index' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Dashboard</a>
+<div class="lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-8">
+
+  {# Main column #}
+  <div class="space-y-6 min-w-0">
+
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      {% include 'analyzer/_grade_pill.html' with grade=analysis.grade score=analysis.score size='lg' %}
+      <div class="flex flex-col">
+        <span class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Score</span>
+        <span class="text-xl font-semibold text-gray-900 dark:text-white tabular-nums">{{ analysis.score|floatformat:0 }} <span class="text-sm font-normal text-slate-500">/ 100</span></span>
+      </div>
     </div>
-  </div>
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      <a href="{% url 'grade_query' %}"
+         class="inline-flex items-center justify-center px-5 py-3 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
+        Grade another query →
+      </a>
+      {% if is_anonymous %}
+      <a href="{% url 'register' %}" class="text-sm text-slate-600 dark:text-slate-300 hover:underline">Sign up to save</a>
+      {% else %}
+      <a href="{% url 'query_history' %}" class="text-sm text-slate-600 dark:text-slate-300 hover:underline">History</a>
+      {% endif %}
+    </div>
+  </header>
 
   {% if show_upgrade_cta %}
   <section class="rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6">
     <div class="flex items-start gap-4">
-      <div class="text-3xl">🔓</div>
+      <div class="text-3xl" aria-hidden="true">🔓</div>
       <div class="flex-1">
         <h2 class="text-lg font-semibold text-gray-900">Unlock advanced reporting</h2>
         <p class="mt-1 text-sm text-gray-600">You're viewing a basic trial result. Create a free account to unlock:</p>
@@ -49,52 +62,81 @@
   </section>
   {% endif %}
 
-  {% with g=analysis.grade|lower %}
-  <section class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col md:flex-row gap-6">
-    <div class="flex-shrink-0 flex flex-col items-center justify-center text-center md:w-48 p-4 rounded-lg
-      {% if g == 'a' %}bg-emerald-50 ring-1 ring-emerald-200
-      {% elif g == 'b' %}bg-lime-50 ring-1 ring-lime-200
-      {% elif g == 'c' %}bg-amber-50 ring-1 ring-amber-200
-      {% elif g == 'd' %}bg-orange-50 ring-1 ring-orange-200
-      {% else %}bg-red-50 ring-1 ring-red-200{% endif %}">
-      <div class="text-6xl font-bold leading-none
-        {% if g == 'a' %}text-emerald-700
-        {% elif g == 'b' %}text-lime-700
-        {% elif g == 'c' %}text-amber-700
-        {% elif g == 'd' %}text-orange-700
-        {% else %}text-red-700{% endif %}">{{ analysis.grade }}</div>
-      <div class="mt-2 text-2xl font-semibold text-gray-900">{{ analysis.score|floatformat:1 }}<span class="text-base text-gray-500">/100</span></div>
-      <div class="mt-1 text-xs uppercase tracking-wide text-gray-500">
-        {% if g == 'a' %}Excellent{% elif g == 'b' %}Good{% elif g == 'c' %}Average{% elif g == 'd' %}Poor{% else %}Failing{% endif %}
+  {# Top-issue hero (populated by JS) #}
+  <section id="top-issue-hero" class="qg-anchor-target bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-6" hidden>
+    <div class="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+      <span class="font-semibold">Top issue</span>
+      <span aria-hidden="true">·</span>
+      <span id="top-issue-severity-label" class="inline-flex items-center gap-1.5"></span>
+    </div>
+    <h2 id="top-issue-title" class="text-xl font-semibold text-gray-900 dark:text-white"></h2>
+    <p id="top-issue-description" class="mt-1 text-sm text-slate-700 dark:text-slate-300"></p>
+
+    <div class="mt-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Your query</span>
+        <span id="top-issue-location" class="hidden text-xs font-medium px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"></span>
+      </div>
+      <textarea class="sql-display" id="top-issue-sql">{{ query.sql_text }}</textarea>
+    </div>
+
+    <div id="top-issue-fix" class="mt-5 border-t border-gray-100 dark:border-[#21262d] pt-4 hidden">
+      <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1.5">Suggested fix</div>
+      <p id="top-issue-fix-text" class="text-sm text-slate-800 dark:text-slate-200"></p>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <a id="top-issue-fix-link" href="#"
+           class="inline-flex items-center justify-center px-3 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-emerald-500">
+          Show rewrite ↓
+        </a>
+        <button type="button" id="top-issue-copy-btn"
+           class="inline-flex items-center justify-center px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium min-h-[44px] hover:bg-slate-50 dark:hover:bg-[#21262d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
+          Copy fix
+        </button>
       </div>
     </div>
-
-    <div class="flex-1">
-      <h2 class="text-lg font-semibold text-gray-900">Summary</h2>
-      <dl class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-        <div><dt class="text-gray-500">Query type</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.query_type }}</dd></div>
-        <div><dt class="text-gray-500">Complexity</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.estimated_complexity }}/100</dd></div>
-        <div><dt class="text-gray-500">Tables</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.table_count }}</dd></div>
-        <div><dt class="text-gray-500">Joins</dt><dd class="mt-0.5 font-medium text-gray-900">{{ query.join_count }}</dd></div>
-        <div><dt class="text-gray-500">Analysis time</dt><dd class="mt-0.5 font-medium text-gray-900">{{ analysis.execution_time_ms }}ms</dd></div>
-        <div><dt class="text-gray-500">Issues found</dt><dd class="mt-0.5 font-medium text-gray-900">{{ analysis.issues_found|length }}</dd></div>
-      </dl>
-    </div>
   </section>
-  {% endwith %}
+
+  {# Empty state #}
+  <section id="no-issues-state" class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-6 text-center" hidden>
+    <div class="text-3xl mb-2" aria-hidden="true">✨</div>
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Nothing to fix.</h2>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">This query already follows the patterns we look for.</p>
+  </section>
+
+  {# Other issues feed #}
+  <section id="other-issues-section" class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5" hidden>
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+      <span>Other issues</span>
+      <span id="other-issues-count" class="text-xs font-normal text-slate-500 dark:text-slate-400"></span>
+    </h3>
+    <ul id="other-issues-list" role="list" class="mt-3 divide-y divide-gray-100 dark:divide-[#21262d]"></ul>
+  </section>
+
+  {# Summary card #}
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Summary</h3>
+    <dl class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+      <div><dt class="text-gray-500">Query type</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ query.query_type }}</dd></div>
+      <div><dt class="text-gray-500">Complexity</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ query.estimated_complexity }}/100</dd></div>
+      <div><dt class="text-gray-500">Tables</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ query.table_count }}</dd></div>
+      <div><dt class="text-gray-500">Joins</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ query.join_count }}</dd></div>
+      <div><dt class="text-gray-500">Analysis time</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ analysis.execution_time_ms }}ms</dd></div>
+      <div><dt class="text-gray-500">Issues found</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ analysis.issues_found|length }}</dd></div>
+    </dl>
+  </section>
 
   {% if not is_anonymous %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5">
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <p class="text-sm font-medium text-gray-700">Was this analysis helpful?</p>
+      <p class="text-sm font-medium text-gray-700 dark:text-slate-200">Was this analysis helpful?</p>
       <div class="flex gap-2">
-        <button id="thumbs-up" onclick="submitQuickFeedback(true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50 transition">
+        <button id="thumbs-up" onclick="submitQuickFeedback(true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] text-sm hover:bg-gray-50 dark:hover:bg-[#21262d] transition">
           <span>👍</span><span>Helpful</span>
         </button>
-        <button id="thumbs-down" onclick="submitQuickFeedback(false)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50 transition">
+        <button id="thumbs-down" onclick="submitQuickFeedback(false)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] text-sm hover:bg-gray-50 dark:hover:bg-[#21262d] transition">
           <span>👎</span><span>Not helpful</span>
         </button>
-        <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 text-sm text-indigo-700 hover:bg-indigo-50 transition">
+        <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 dark:border-[#30363d] text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition">
           <span>💬</span><span>Detailed feedback</span>
         </a>
       </div>
@@ -103,111 +145,35 @@
   </section>
   {% endif %}
 
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="bg-white rounded-lg border border-gray-200 p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-700">Overall score</h3>
-        <span class="text-sm font-medium text-gray-900">{{ analysis.score|floatformat:1 }}/100</span>
-      </div>
-      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
-        {% with g=analysis.grade|lower %}
-        <div class="progress-fill h-full transition-all duration-700
-          {% if g == 'a' %}bg-emerald-500
-          {% elif g == 'b' %}bg-lime-500
-          {% elif g == 'c' %}bg-amber-500
-          {% elif g == 'd' %}bg-orange-500
-          {% else %}bg-red-500{% endif %}" style="width: {{ analysis.score }}%"></div>
-        {% endwith %}
-      </div>
-      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>0</span><span>50</span><span>100</span></div>
-    </div>
-
-    <div class="bg-white rounded-lg border border-gray-200 p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-700">Query complexity</h3>
-        <span class="text-sm font-medium text-gray-900">{{ query.estimated_complexity }}/100</span>
-      </div>
-      <div class="mt-3 h-2 bg-gray-100 rounded overflow-hidden">
-        <div class="progress-fill h-full transition-all duration-700
-          {% if query.estimated_complexity <= 25 %}bg-emerald-500
-          {% elif query.estimated_complexity <= 50 %}bg-amber-500
-          {% elif query.estimated_complexity <= 75 %}bg-orange-500
-          {% else %}bg-red-500{% endif %}" style="width: {{ query.estimated_complexity }}%"></div>
-      </div>
-      <div class="mt-2 flex justify-between text-xs text-gray-400"><span>Simple</span><span>Moderate</span><span>Complex</span><span>Very</span></div>
-    </div>
-
-    <div class="bg-white rounded-lg border border-gray-200 p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-gray-700">Issues by severity</h3>
-        <span class="text-sm font-medium text-gray-900">{{ analysis.issues_found|length }} total</span>
-      </div>
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <div class="flex items-center justify-between px-3 py-2 rounded bg-red-50">
-          <span class="text-red-700">🔴 Critical</span><span id="critical-count" class="font-bold text-red-700">0</span>
-        </div>
-        <div class="flex items-center justify-between px-3 py-2 rounded bg-orange-50">
-          <span class="text-orange-700">🟠 High</span><span id="high-count" class="font-bold text-orange-700">0</span>
-        </div>
-        <div class="flex items-center justify-between px-3 py-2 rounded bg-amber-50">
-          <span class="text-amber-700">🟡 Medium</span><span id="medium-count" class="font-bold text-amber-700">0</span>
-        </div>
-        <div class="flex items-center justify-between px-3 py-2 rounded bg-sky-50">
-          <span class="text-sky-700">🔵 Low</span><span id="low-count" class="font-bold text-sky-700">0</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-lg border border-gray-200 p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-700">Performance impact</h3>
-        <span class="text-sm font-medium text-gray-900">
-          {% if analysis.score >= 90 %}Minimal
-          {% elif analysis.score >= 80 %}Low
-          {% elif analysis.score >= 70 %}Moderate
-          {% elif analysis.score >= 60 %}High
-          {% else %}Critical{% endif %}
-        </span>
-      </div>
-      <div class="mt-4 w-full max-w-xs mx-auto">
-        <div class="relative h-3 rounded-full overflow-hidden bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500"></div>
-        <div class="relative h-0">
-          <div class="w-3 h-3 rounded-full bg-gray-900 ring-2 ring-white shadow transition-all duration-700 -mt-2.5" style="margin-left: calc({{ analysis.score }}% - 6px);"></div>
-        </div>
-        <div class="mt-3 flex justify-between text-xs text-gray-400"><span>Critical</span><span>Optimal</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="bg-white rounded-lg border border-gray-200">
-    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-      <h3 class="text-sm font-semibold text-gray-700">Analyzed query</h3>
-      <button onclick="copyToClipboard('analyzed-query', 'Query copied!')" class="text-xs text-indigo-600 hover:underline">📋 Copy</button>
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d]">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-[#21262d]">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Analyzed query</h3>
+      <button onclick="copyToClipboard('analyzed-query', 'Query copied!')" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">📋 Copy</button>
     </div>
     <textarea class="sql-display" id="analyzed-query">{{ query.sql_text }}</textarea>
   </section>
 
   {% if analysis.issues_found %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5">
-    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🔍</span><span>Issues found</span></h3>
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2"><span>🔍</span><span>All issues</span></h3>
     <ul class="mt-4 space-y-3">
       {% for issue in analysis.issues_found %}
-      <li class="issue-item rounded-md border-l-4 p-3
+      <li id="issue-{{ forloop.counter0 }}" tabindex="-1" class="qg-anchor-target issue-item rounded-md border-l-4 p-3
         {% if issue.severity == 'critical' %}border-red-500 bg-red-50
         {% elif issue.severity == 'high' %}border-orange-500 bg-orange-50
         {% elif issue.severity == 'medium' %}border-amber-500 bg-amber-50
         {% else %}border-sky-500 bg-sky-50{% endif %}">
         <div class="flex items-center justify-between gap-2">
-          <span class="issue-type text-sm font-semibold text-gray-900">{{ issue.type|title }}</span>
+          <span class="issue-type text-sm font-semibold text-gray-900 dark:text-white">{{ issue.type|title }}</span>
           <span class="severity-badge text-xs font-medium px-2 py-0.5 rounded
             {% if issue.severity == 'critical' %}bg-red-100 text-red-700
             {% elif issue.severity == 'high' %}bg-orange-100 text-orange-700
             {% elif issue.severity == 'medium' %}bg-amber-100 text-amber-700
             {% else %}bg-sky-100 text-sky-700{% endif %}">
-            {% if issue.severity == 'critical' %}🔴 Critical{% elif issue.severity == 'high' %}🟠 High{% elif issue.severity == 'medium' %}🟡 Medium{% else %}🔵 Low{% endif %}
+            {% if issue.severity == 'critical' %}● Critical{% elif issue.severity == 'high' %}● High{% elif issue.severity == 'medium' %}■ Medium{% else %}▲ Low{% endif %}
           </span>
         </div>
-        <p class="issue-description mt-1 text-sm text-gray-700">{{ issue.description }}</p>
+        <p class="issue-description mt-1 text-sm text-gray-700 dark:text-slate-300">{{ issue.description }}</p>
       </li>
       {% endfor %}
     </ul>
@@ -215,16 +181,16 @@
   {% endif %}
 
   {% if analysis.recommendations %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5">
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
     <div class="flex items-center justify-between">
-      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>💡</span><span>Recommendations</span></h3>
-      <button onclick="copyAllRecommendations()" class="text-xs text-indigo-600 hover:underline">📋 Copy all</button>
+      <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2"><span>💡</span><span>Recommendations</span></h3>
+      <button onclick="copyAllRecommendations()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">📋 Copy all</button>
     </div>
     <ul id="recommendations-list" class="mt-4 space-y-3">
       {% for rec in analysis.recommendations %}
-      <li class="recommendation-item rounded-md border border-gray-200 p-4">
+      <li id="fix-{{ forloop.counter0 }}" tabindex="-1" class="qg-anchor-target recommendation-item rounded-md border border-gray-200 dark:border-[#30363d] p-4">
         <div class="flex items-center justify-between gap-2">
-          <span class="recommendation-type text-sm font-semibold text-gray-900">{{ rec.type|title }}</span>
+          <span class="recommendation-type text-sm font-semibold text-gray-900 dark:text-white">{{ rec.type|title }}</span>
           <span class="priority-badge text-xs font-medium px-2 py-0.5 rounded
             {% if rec.priority == 'critical' %}bg-red-100 text-red-700
             {% elif rec.priority == 'high' %}bg-orange-100 text-orange-700
@@ -233,16 +199,19 @@
             {% if rec.priority == 'critical' %}⚡ Critical{% elif rec.priority == 'high' %}🔥 High{% elif rec.priority == 'medium' %}📈 Medium{% else %}💡 Suggestion{% endif %}
           </span>
         </div>
-        <p class="recommendation-description mt-2 text-sm text-gray-700">{{ rec.description }}</p>
+        <p class="recommendation-description mt-2 text-sm text-gray-700 dark:text-slate-300">{{ rec.description }}</p>
         {% if rec.example %}
         <div class="recommendation-example mt-3">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-semibold text-gray-500">Example</span>
-            <button class="text-xs text-indigo-600 hover:underline" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')">📋 Copy</button>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Example</span>
+            <button class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline" onclick="copyToClipboard('example-{{ forloop.counter }}', 'Example copied!')">📋 Copy</button>
           </div>
           <textarea class="sql-display" id="example-{{ forloop.counter }}">{{ rec.example }}</textarea>
         </div>
         {% endif %}
+        <div class="mt-3 hidden qg-back-to-issue" data-fix-index="{{ forloop.counter0 }}">
+          <a href="#" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">↑ Back to issue</a>
+        </div>
       </li>
       {% endfor %}
     </ul>
@@ -251,19 +220,21 @@
 
   {% with idx_block=analysis.index_recommendations %}
   {% if idx_block.recommendations %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5" id="index-recommendations">
-    <div class="flex items-center justify-between flex-wrap gap-2">
-      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+  <details id="index-recommendations" class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5" {% if g == 'c' or g == 'd' or g == 'f' %}open{% endif %}>
+    <summary class="cursor-pointer flex items-center justify-between flex-wrap gap-2 list-none">
+      <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
         <span>🗂️</span><span>Index recommendations</span>
         <span class="text-xs font-normal text-gray-500">schema-aware · live DB</span>
       </h3>
-      <button onclick="copyAllIndexDDL()" class="text-xs text-indigo-600 hover:underline">📋 Copy all DDL</button>
+      <span class="text-xs text-slate-500 dark:text-slate-400">{{ idx_block.recommendations|length }} ranked</span>
+    </summary>
+    <div class="mt-3 flex items-center justify-between flex-wrap gap-2">
+      <p class="text-xs text-gray-500">
+        {{ idx_block.total_candidates }} candidate{{ idx_block.total_candidates|pluralize }} considered ·
+        {{ idx_block.filtered_redundant }} filtered as redundant
+      </p>
+      <button onclick="copyAllIndexDDL()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">📋 Copy all DDL</button>
     </div>
-    <p class="mt-1 text-xs text-gray-500">
-      {{ idx_block.total_candidates }} candidate{{ idx_block.total_candidates|pluralize }} considered ·
-      {{ idx_block.filtered_redundant }} filtered as redundant ·
-      {{ idx_block.recommendations|length }} ranked
-    </p>
 
     {% for advisory in idx_block.advisories %}
       <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">⚠️ {{ advisory }}</div>
@@ -271,9 +242,9 @@
 
     <ul class="mt-4 space-y-3">
       {% for rec in idx_block.recommendations %}
-      <li class="rounded-md border border-gray-200 p-4">
+      <li class="rounded-md border border-gray-200 dark:border-[#30363d] p-4">
         <div class="flex items-center justify-between gap-2 flex-wrap">
-          <span class="text-sm font-semibold text-gray-900">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">
             {{ rec.table }}({{ rec.columns|join:", " }})
           </span>
           <div class="flex items-center gap-2">
@@ -292,15 +263,15 @@
             {% endif %}
           </div>
         </div>
-        <p class="mt-2 text-sm text-gray-700">{{ rec.rationale }}</p>
+        <p class="mt-2 text-sm text-gray-700 dark:text-slate-300">{{ rec.rationale }}</p>
         {% if rec.affected_clauses %}
           <p class="mt-1 text-xs text-gray-500">Helps: {{ rec.affected_clauses|join:", " }}</p>
         {% endif %}
         {% if rec.redundancy != 'REDUNDANT_EXACT' %}
         <div class="mt-3">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-semibold text-gray-500">DDL</span>
-            <button class="text-xs text-indigo-600 hover:underline" onclick="copyToClipboard('idx-ddl-{{ forloop.counter }}', 'DDL copied!')">📋 Copy</button>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">DDL</span>
+            <button class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline" onclick="copyToClipboard('idx-ddl-{{ forloop.counter }}', 'DDL copied!')">📋 Copy</button>
           </div>
           <textarea class="sql-display idx-ddl" id="idx-ddl-{{ forloop.counter }}">{{ rec.create_sql }}</textarea>
         </div>
@@ -308,22 +279,22 @@
       </li>
       {% endfor %}
     </ul>
-  </section>
+  </details>
   {% endif %}
   {% endwith %}
 
   {% if optimization_result and optimization_result.optimizations_applied %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5">
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
     <div class="flex items-center justify-between">
-      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>🚀</span><span>Optimization suggestions</span></h3>
-      <button onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" class="text-xs text-indigo-600 hover:underline">📋 Copy optimized</button>
+      <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2"><span>🚀</span><span>Optimization suggestions</span></h3>
+      <button onclick="copyToClipboard('optimized-query', 'Optimized query copied!')" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">📋 Copy optimized</button>
     </div>
     <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-      <div class="rounded bg-gray-50 p-3 flex items-center gap-2"><span>🔧</span><span class="text-gray-500">Optimizations applied:</span><span class="ml-auto font-semibold text-gray-900">{{ optimization_result.optimizations_applied|length }}</span></div>
+      <div class="rounded bg-gray-50 dark:bg-[#21262d] p-3 flex items-center gap-2"><span>🔧</span><span class="text-gray-500">Optimizations applied:</span><span class="ml-auto font-semibold text-gray-900 dark:text-white">{{ optimization_result.optimizations_applied|length }}</span></div>
       <div class="rounded bg-emerald-50 p-3 flex items-center gap-2"><span>📈</span><span class="text-gray-500">Estimated improvement:</span><span class="ml-auto font-semibold text-emerald-700">{{ optimization_result.improvement_estimate }}%</span></div>
     </div>
 
-    <div class="mt-4 border-b border-gray-200 flex gap-1">
+    <div class="mt-4 border-b border-gray-200 dark:border-[#30363d] flex gap-1">
       <button id="optimized-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-indigo-700 border-b-2 border-indigo-600 -mb-px" onclick="showOptimizationTab('optimized')">Optimized</button>
       <button id="comparison-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent -mb-px" onclick="showOptimizationTab('comparison')">Side-by-side</button>
       <button id="explanations-tab" class="opt-tab-btn px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent -mb-px" onclick="showOptimizationTab('explanations')">Explanations</button>
@@ -351,19 +322,19 @@
 
     <div id="explanations-content" class="opt-tab-content mt-4 hidden space-y-4">
       <div>
-        <h4 class="text-sm font-semibold text-gray-700 mb-2">What was changed</h4>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">What was changed</h4>
         <ul class="space-y-1.5 text-sm">
           {% for opt in optimization_result.optimizations_applied %}
-          <li class="flex gap-2"><span class="text-emerald-600 flex-shrink-0">✅</span><span class="text-gray-700">{{ opt }}</span></li>
+          <li class="flex gap-2"><span class="text-emerald-600 flex-shrink-0">✅</span><span class="text-gray-700 dark:text-slate-300">{{ opt }}</span></li>
           {% endfor %}
         </ul>
       </div>
       {% if optimization_result.explanation %}
       <div>
-        <h4 class="text-sm font-semibold text-gray-700 mb-2">Detailed explanations</h4>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Detailed explanations</h4>
         <ul class="space-y-1.5 text-sm">
           {% for explanation in optimization_result.explanation %}
-          <li class="flex gap-2"><span class="text-amber-500 flex-shrink-0">💡</span><span class="text-gray-700">{{ explanation }}</span></li>
+          <li class="flex gap-2"><span class="text-amber-500 flex-shrink-0">💡</span><span class="text-gray-700 dark:text-slate-300">{{ explanation }}</span></li>
           {% endfor %}
         </ul>
       </div>
@@ -377,43 +348,81 @@
   {% endif %}
 
   {% if analysis.performance_notes %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5">
-    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📊</span><span>Performance notes</span></h3>
-    <p class="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{{ analysis.performance_notes }}</p>
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2"><span>📊</span><span>Performance notes</span></h3>
+    <p class="mt-2 text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{{ analysis.performance_notes }}</p>
   </section>
   {% endif %}
 
   {% if user_history.database_type or user_history.database_version or user_history.use_case_notes %}
-  <section class="bg-white rounded-lg border border-gray-200 p-5">
-    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2"><span>📝</span><span>Query context</span></h3>
+  <section class="bg-white dark:bg-[#161b22] rounded-lg border border-gray-200 dark:border-[#30363d] p-5">
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2"><span>📝</span><span>Query context</span></h3>
     <dl class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-      {% if user_history.database_type %}<div><dt class="text-gray-500">Database</dt><dd class="mt-0.5 font-medium text-gray-900">{{ user_history.database_type|title }}</dd></div>{% endif %}
-      {% if user_history.database_version %}<div><dt class="text-gray-500">Version</dt><dd class="mt-0.5 font-medium text-gray-900">{{ user_history.database_version }}</dd></div>{% endif %}
+      {% if user_history.database_type %}<div><dt class="text-gray-500">Database</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ user_history.database_type|title }}</dd></div>{% endif %}
+      {% if user_history.database_version %}<div><dt class="text-gray-500">Version</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ user_history.database_version }}</dd></div>{% endif %}
     </dl>
     {% if user_history.use_case_notes %}
     <div class="mt-3">
       <dt class="text-sm text-gray-500">Use case notes</dt>
-      <dd class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ user_history.use_case_notes }}</dd>
+      <dd class="mt-1 text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap">{{ user_history.use_case_notes }}</dd>
     </div>
     {% endif %}
   </section>
   {% endif %}
 
-  <div class="flex flex-wrap gap-2 pt-2">
-    <a href="{% url 'grade_query' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Grade another query</a>
+  <div class="flex flex-wrap items-center gap-3 pt-2">
+    <a href="{% url 'grade_query' %}"
+       class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
+      Grade another query
+    </a>
     {% if not is_anonymous %}
-    <a href="{% url 'query_history' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">View history</a>
-    <a href="{% url 'submit_feedback' analysis.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">💬 Detailed feedback</a>
+    <a href="{% url 'query_history' %}" class="inline-flex items-center gap-1 px-3 py-2 border border-gray-300 dark:border-[#30363d] text-gray-700 dark:text-gray-200 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-[#21262d]">View history</a>
+    <a href="{% url 'submit_feedback' analysis.id %}" class="text-sm text-slate-600 dark:text-slate-300 hover:underline">💬 Detailed feedback</a>
     {% endif %}
-    <button onclick="copyFullReport()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">📋 Copy full report</button>
-    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50">🖨️ Print</button>
+    <button onclick="copyFullReport()" class="text-sm text-slate-600 dark:text-slate-300 hover:underline">📋 Copy report</button>
+    <button onclick="window.print()" class="text-sm text-slate-600 dark:text-slate-300 hover:underline">🖨️ Print</button>
   </div>
+
+  </div>{# /main column #}
+
+  {# Sticky right-rail TOC (lg+ only) #}
+  <aside class="hidden lg:block">
+    <nav id="issues-toc" aria-label="Issues in this query" class="sticky top-20">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Issues in this query</h2>
+      <ul id="issues-toc-list" role="list" class="space-y-1 text-sm"></ul>
+      <p id="issues-toc-empty" class="text-xs text-slate-500 dark:text-slate-400 italic hidden">No issues detected.</p>
+    </nav>
+  </aside>
+
 </div>
 
+{% endwith %}
+
 {{ analysis.issues_found|json_script:"issues-json" }}
+{{ analysis.recommendations|json_script:"recs-json" }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script>
+  const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
+  function severityGlyph(sev) {
+    if (sev === 'critical' || sev === 'high') return '●';
+    if (sev === 'medium') return '■';
+    return '▲';
+  }
+  function severityLabel(sev) {
+    if (!sev) return '';
+    return sev.charAt(0).toUpperCase() + sev.slice(1);
+  }
+  function severityColorClasses(sev) {
+    if (sev === 'critical') return 'text-red-700 dark:text-red-400';
+    if (sev === 'high')     return 'text-orange-700 dark:text-orange-400';
+    if (sev === 'medium')   return 'text-amber-700 dark:text-amber-400';
+    return 'text-sky-700 dark:text-sky-400';
+  }
+  function titleCaseIssueType(t) {
+    return (t || 'Issue').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
   async function copyText(text, msg) {
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -434,7 +443,6 @@
       showToast('Copy failed', 'error');
     }
   }
-
   function _copyContentType(elementId) {
     if (!elementId) return 'unknown';
     if (elementId === 'analyzed-query') return 'query';
@@ -443,7 +451,6 @@
     if (elementId.indexOf('rewrite-') === 0) return 'rewrite';
     return elementId;
   }
-
   async function copyToClipboard(elementId, msg) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -451,7 +458,6 @@
     if (window.trackEvent) window.trackEvent('content_copied', { content_type: _copyContentType(elementId) });
     await copyText(text, msg);
   }
-
   async function copyAllRecommendations() {
     if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'recommendations' });
     const list = document.getElementById('recommendations-list');
@@ -470,7 +476,6 @@
     summary += `\nGenerated by QueryGrade - ${new Date().toLocaleString()}\n`;
     await copyText(summary, 'All recommendations copied');
   }
-
   async function copyAllIndexDDL() {
     if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'index_ddl' });
     const blocks = document.querySelectorAll('#index-recommendations textarea.idx-ddl');
@@ -486,7 +491,6 @@
     });
     await copyText(out, 'All DDL copied');
   }
-
   async function copyFullReport() {
     if (window.trackEvent) window.trackEvent('content_copied', { content_type: 'report' });
     let r = "SQL Query Analysis Report\n========================\n\n";
@@ -516,7 +520,6 @@
     r += `\nGenerated by QueryGrade - ${new Date().toLocaleString()}\n`;
     await copyText(r, 'Full report copied');
   }
-
   function showOptimizationTab(tab) {
     document.querySelectorAll('.opt-tab-content').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.opt-tab-btn').forEach(btn => {
@@ -531,7 +534,6 @@
     }
     if (typeof sqlEditors !== 'undefined') setTimeout(() => sqlEditors.forEach(ed => ed.refresh()), 0);
   }
-
   async function submitQuickFeedback(isHelpful) {
     const up = document.getElementById('thumbs-up');
     const down = document.getElementById('thumbs-down');
@@ -567,38 +569,301 @@
     status.classList.remove('hidden');
   }
 
+  // ─── issue → recommendation matching ───
+  const ISSUE_REC_MAP = {
+    'SELECT_STAR': ['SELECT_SPECIFIC', 'COLUMN'],
+    'LIKE_LEADING_WILDCARD': ['FULL_TEXT', 'INDEX'],
+    'FUNCTION_ON_COLUMN': ['COMPUTED_COLUMN', 'FUNCTION'],
+    'ORDER_BY_RAND': ['ORDER_BY', 'RAND'],
+    'CORRELATED_SUBQUERY': ['JOIN_INSTEAD', 'CTE'],
+    'SCALAR_SUBQUERY': ['JOIN_INSTEAD'],
+    'NOT_IN': ['NOT_EXISTS'],
+    'HAVING_WITHOUT_AGGREGATE': ['MOVE_HAVING', 'HAVING'],
+    'IMPLICIT_JOIN': ['EXPLICIT_JOIN'],
+    'CROSS_JOIN': ['JOIN'],
+    'CARTESIAN': ['JOIN'],
+    'ORDER_BY_WITHOUT_LIMIT': ['ADD_LIMIT', 'LIMIT'],
+  };
+  function issueClauseHint(type) {
+    const t = (type || '').toUpperCase();
+    if (t.includes('WHERE')) return 'WHERE clause';
+    if (t.includes('JOIN') || t.includes('CARTESIAN') || t.includes('CROSS')) return 'JOIN';
+    if (t.includes('SELECT') || t.includes('STAR')) return 'SELECT list';
+    if (t.includes('ORDER')) return 'ORDER BY';
+    if (t.includes('GROUP')) return 'GROUP BY';
+    if (t.includes('HAVING')) return 'HAVING';
+    if (t.includes('LIKE') || t.includes('WILDCARD')) return 'WHERE clause';
+    if (t.includes('SUBQUERY')) return 'subquery';
+    return null;
+  }
+  function findIssueLine(sql, issue) {
+    const lines = sql.split('\n');
+    const type = (issue.type || '').toUpperCase();
+    const findRe = (re) => {
+      for (let i = 0; i < lines.length; i++) {
+        if (re.test(lines[i])) return i;
+      }
+      return -1;
+    };
+    if (type.includes('SELECT_STAR') || type === 'SELECT_ALL_COLUMNS')
+      return findRe(/SELECT\s+\*/i);
+    if (type.includes('LIKE') && type.includes('WILDCARD'))
+      return findRe(/LIKE\s+['"]\s*%/i);
+    if (type.includes('ORDER_BY_RAND'))
+      return findRe(/ORDER\s+BY\s+RAND\s*\(/i);
+    if (type.includes('ORDER_BY'))
+      return findRe(/ORDER\s+BY/i);
+    if (type.includes('GROUP_BY'))
+      return findRe(/GROUP\s+BY/i);
+    if (type.includes('HAVING'))
+      return findRe(/HAVING/i);
+    if (type.includes('CARTESIAN') || type.includes('CROSS_JOIN'))
+      return findRe(/CROSS\s+JOIN|FROM\s+\w+\s*,\s*\w+/i);
+    if (type.includes('JOIN'))
+      return findRe(/\bJOIN\b/i);
+    if (type.includes('NOT_IN'))
+      return findRe(/NOT\s+IN\s*\(/i);
+    if (type.includes('DISTINCT'))
+      return findRe(/\bDISTINCT\b/i);
+    if (type.includes('SUBQUERY'))
+      return findRe(/\(\s*SELECT/i);
+    return -1;
+  }
+  function pickMatchingRec(issue, recs, usedIndices) {
+    if (!recs || !recs.length) return -1;
+    const type = (issue.type || '').toUpperCase();
+    const hints = ISSUE_REC_MAP[type] || [];
+    for (let i = 0; i < recs.length; i++) {
+      if (usedIndices.has(i)) continue;
+      const rt = (recs[i].type || '').toUpperCase();
+      if (hints.some(h => rt.includes(h))) return i;
+    }
+    const tokens = type.split('_').filter(t => t.length > 2);
+    for (let i = 0; i < recs.length; i++) {
+      if (usedIndices.has(i)) continue;
+      const rt = (recs[i].type || '').toUpperCase();
+      if (tokens.some(t => rt.includes(t))) return i;
+    }
+    for (let i = 0; i < recs.length; i++) {
+      if (!usedIndices.has(i)) return i;
+    }
+    return -1;
+  }
+
+  function focusAnchorFromHash() {
+    const hash = location.hash || '';
+    if (!hash || hash.length < 2) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (!el) return;
+    setTimeout(() => {
+      try { el.focus({ preventScroll: true }); } catch (e) {}
+      el.classList.add('qg-pulse-target');
+      setTimeout(() => el.classList.remove('qg-pulse-target'), 1400);
+      document.querySelectorAll('#issues-toc-list a').forEach(a => a.removeAttribute('aria-current'));
+      const link = document.querySelector(`#issues-toc-list a[href="${hash}"]`);
+      if (link) link.setAttribute('aria-current', 'true');
+    }, 60);
+  }
+
   const sqlEditors = [];
+
   document.addEventListener('DOMContentLoaded', () => {
+    const issues = JSON.parse(document.getElementById('issues-json').textContent) || [];
+    const recs   = JSON.parse(document.getElementById('recs-json').textContent) || [];
+    const sql    = (document.getElementById('analyzed-query')?.value || '').trim();
+
+    // Pick top issue (highest severity, tiebreak: original order)
+    let topIdx = -1, topRank = -1;
+    issues.forEach((iss, i) => {
+      const rank = SEVERITY_RANK[iss.severity] || 0;
+      if (rank > topRank) { topRank = rank; topIdx = i; }
+    });
+
+    // Match recommendations
+    const usedRecIdx = new Set();
+    const issueToFix = new Array(issues.length).fill(-1);
+    if (topIdx >= 0) {
+      const r = pickMatchingRec(issues[topIdx], recs, usedRecIdx);
+      issueToFix[topIdx] = r;
+      if (r >= 0) usedRecIdx.add(r);
+    }
+    issues.forEach((iss, i) => {
+      if (i === topIdx) return;
+      const r = pickMatchingRec(iss, recs, usedRecIdx);
+      issueToFix[i] = r;
+      if (r >= 0) usedRecIdx.add(r);
+    });
+
+    // Render hero / empty state
+    const heroSection = document.getElementById('top-issue-hero');
+    const emptyState = document.getElementById('no-issues-state');
+    let topIssueLineIdx = -1;
+
+    if (topIdx === -1) {
+      heroSection.hidden = true;
+      emptyState.hidden = false;
+    } else {
+      const iss = issues[topIdx];
+      heroSection.hidden = false;
+      emptyState.hidden = true;
+
+      const sevLabel = document.getElementById('top-issue-severity-label');
+      const colorCls = severityColorClasses(iss.severity);
+      sevLabel.className = 'inline-flex items-center gap-1.5 ' + colorCls;
+      sevLabel.innerHTML = `<span aria-hidden="true" class="font-bold">${severityGlyph(iss.severity)}</span><span class="font-semibold">${severityLabel(iss.severity)} severity</span>`;
+
+      document.getElementById('top-issue-title').textContent = titleCaseIssueType(iss.type);
+      document.getElementById('top-issue-description').textContent = iss.description || '';
+
+      topIssueLineIdx = findIssueLine(sql, iss);
+      if (topIssueLineIdx < 0) {
+        const hint = issueClauseHint(iss.type);
+        const loc = document.getElementById('top-issue-location');
+        if (hint) {
+          loc.textContent = 'Found in ' + hint;
+          loc.classList.remove('hidden');
+        }
+      }
+
+      const fixIdx = issueToFix[topIdx];
+      if (fixIdx >= 0) {
+        const rec = recs[fixIdx];
+        document.getElementById('top-issue-fix').classList.remove('hidden');
+        document.getElementById('top-issue-fix-text').textContent = rec.description || '';
+        document.getElementById('top-issue-fix-link').href = '#fix-' + fixIdx;
+        document.getElementById('top-issue-copy-btn').addEventListener('click', async () => {
+          let txt = rec.description || '';
+          if (rec.example) txt += '\n\n' + rec.example;
+          await copyText(txt.trim(), 'Fix copied');
+        });
+      }
+    }
+
+    // Initialize CodeMirror for all sql-display textareas
     document.querySelectorAll('textarea.sql-display').forEach(ta => {
       const lines = ta.value.split('\n').length;
       const ed = CodeMirror.fromTextArea(ta, {
-        mode: 'text/x-sql', theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'),
-        lineNumbers: true, readOnly: true, lineWrapping: true,
+        mode: 'text/x-sql',
+        theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'),
+        lineNumbers: true,
+        readOnly: true,
+        lineWrapping: true,
         cursorBlinkRate: -1,
       });
       ed.setSize(null, Math.max(80, Math.min(500, lines * 20 + 40)));
       sqlEditors.push(ed);
       if (window.QG && window.QG.registerEditor) window.QG.registerEditor(ed);
+
+      if (ta.id === 'top-issue-sql' && topIssueLineIdx >= 0) {
+        try {
+          ed.addLineClass(topIssueLineIdx, 'wrap', 'qg-line-issue');
+          ed.scrollIntoView({ line: topIssueLineIdx, ch: 0 }, 40);
+        } catch (e) { /* ignore */ }
+      }
     });
 
-    const issues = JSON.parse(document.getElementById('issues-json').textContent);
-    const counts = {critical: 0, high: 0, medium: 0, low: 0};
-    issues.forEach(i => { if (counts.hasOwnProperty(i.severity)) counts[i.severity]++; });
-    ['critical', 'high', 'medium', 'low'].forEach(k => {
-      const el = document.getElementById(`${k}-count`);
-      if (el) el.textContent = counts[k];
-    });
+    // Render "Other issues" feed
+    const otherSection = document.getElementById('other-issues-section');
+    const otherList = document.getElementById('other-issues-list');
+    const otherIssues = issues
+      .map((iss, i) => ({ iss, i }))
+      .filter(x => x.i !== topIdx);
+    if (otherIssues.length === 0) {
+      otherSection.hidden = true;
+    } else {
+      otherSection.hidden = false;
+      document.getElementById('other-issues-count').textContent = `(${otherIssues.length})`;
+      otherList.innerHTML = '';
+      otherIssues.forEach(({ iss, i }) => {
+        const fixIdx = issueToFix[i];
+        const li = document.createElement('li');
+        li.className = 'py-2.5 flex items-start gap-3';
+        const sev = iss.severity || 'low';
+        const colorCls = severityColorClasses(sev);
 
-    setTimeout(() => {
-      document.querySelectorAll('.progress-fill').forEach(bar => {
-        const w = bar.style.width;
-        bar.style.width = '0%';
-        requestAnimationFrame(() => { bar.style.width = w; });
+        const sevSpan = document.createElement('span');
+        sevSpan.className = `inline-flex items-center gap-1 text-xs font-semibold ${colorCls} shrink-0 min-w-[5rem]`;
+        const glyph = document.createElement('span');
+        glyph.setAttribute('aria-hidden', 'true');
+        glyph.textContent = severityGlyph(sev);
+        const sevLabelText = document.createElement('span');
+        sevLabelText.textContent = severityLabel(sev);
+        sevSpan.appendChild(glyph);
+        sevSpan.appendChild(sevLabelText);
+        li.appendChild(sevSpan);
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'flex-1 text-sm text-slate-800 dark:text-slate-200 truncate';
+        titleSpan.textContent = titleCaseIssueType(iss.type);
+        li.appendChild(titleSpan);
+
+        if (fixIdx >= 0) {
+          const link = document.createElement('a');
+          link.href = '#fix-' + fixIdx;
+          link.className = 'text-xs text-indigo-600 dark:text-indigo-400 hover:underline shrink-0 min-h-[36px] inline-flex items-center px-2';
+          link.textContent = 'Jump to fix →';
+          li.appendChild(link);
+        } else {
+          const pill = document.createElement('span');
+          pill.className = 'text-xs text-slate-400 dark:text-slate-500 shrink-0 px-2 py-1 italic';
+          pill.textContent = 'No automatic fix';
+          li.appendChild(pill);
+        }
+        otherList.appendChild(li);
       });
-    }, 100);
+    }
 
-    // Skip if the inline landing-page flow already emitted query_graded for
-    // this analysis (anon "View full report" path). One-shot — clear after.
+    // Wire "Back to issue" links
+    document.querySelectorAll('.qg-back-to-issue').forEach(holder => {
+      const fixIdx = parseInt(holder.dataset.fixIndex, 10);
+      const issueIdx = issueToFix.indexOf(fixIdx);
+      if (issueIdx >= 0) {
+        const a = holder.querySelector('a');
+        a.href = '#issue-' + issueIdx;
+        holder.classList.remove('hidden');
+      }
+    });
+
+    // Right-rail TOC
+    const tocList = document.getElementById('issues-toc-list');
+    const tocEmpty = document.getElementById('issues-toc-empty');
+    if (issues.length === 0) {
+      tocEmpty.classList.remove('hidden');
+    } else {
+      tocList.innerHTML = '';
+      issues.forEach((iss, i) => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#issue-' + i;
+        a.className = 'flex items-start gap-2 px-2 py-1.5 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#21262d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500';
+        const sev = iss.severity || 'low';
+        const colorCls = severityColorClasses(sev);
+        const glyph = document.createElement('span');
+        glyph.setAttribute('aria-hidden', 'true');
+        glyph.className = `text-xs font-bold ${colorCls} shrink-0 mt-0.5`;
+        glyph.textContent = severityGlyph(sev);
+        a.appendChild(glyph);
+
+        const srOnly = document.createElement('span');
+        srOnly.className = 'sr-only';
+        srOnly.textContent = severityLabel(sev) + ' severity: ';
+        a.appendChild(srOnly);
+
+        const label = document.createElement('span');
+        label.className = 'truncate';
+        label.textContent = titleCaseIssueType(iss.type);
+        a.appendChild(label);
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+    }
+
+    // Hash change focus shift + pulse
+    window.addEventListener('hashchange', focusAnchorFromHash);
+    if (location.hash) focusAnchorFromHash();
+
+    // GA4 query_graded one-shot (kept)
     var _inlineKey = 'qg_inline_counted_{{ analysis.id }}';
     var _alreadyCounted = false;
     try {
