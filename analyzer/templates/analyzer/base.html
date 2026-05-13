@@ -78,11 +78,11 @@
   {% endif %}
   {% endif %}
 </head>
-<body class="bg-gray-50 dark:bg-[#0d1117] dark:text-[#e6edf3] min-h-screen flex flex-col">
+<body class="bg-gray-50 dark:bg-[#0a0a0a] dark:text-[#e7e5e0] min-h-screen flex flex-col">
 
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-3 py-2 rounded z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">Skip to main content</a>
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-3 py-2 rounded z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] focus-visible:ring-indigo-500">Skip to main content</a>
 
-  <nav class="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d] shadow-sm dark:shadow-none" id="navigation">
+  <nav class="bg-white dark:bg-[#111113] border-b border-gray-200 dark:border-[#1f1f23] shadow-sm dark:shadow-none" id="navigation">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-14">
         <a href="{% url 'index' %}" class="flex items-center gap-2 font-mono font-semibold text-indigo-600 dark:text-[#a5b4fc] text-lg tracking-tight" aria-label="QueryGrade home">
@@ -97,7 +97,7 @@
           {% if user.is_authenticated %}
             <button type="button" id="qg-mobile-nav-toggle"
                     aria-expanded="false" aria-controls="qg-mobile-nav" aria-label="Open navigation"
-                    class="md:hidden inline-flex items-center justify-center w-9 h-9 rounded text-gray-600 dark:text-[#adbac7] hover:bg-gray-100 dark:hover:bg-[#21262d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
+                    class="md:hidden inline-flex items-center justify-center w-9 h-9 rounded text-gray-600 dark:text-[#adbac7] hover:bg-gray-100 dark:hover:bg-[#17181c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] focus-visible:ring-indigo-500">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
             <div class="hidden md:flex gap-1 items-center">
@@ -130,16 +130,16 @@
                       aria-haspopup="true"
                       aria-expanded="false"
                       aria-controls="user-menu"
-                      class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 dark:text-[#adbac7] hover:bg-gray-100 dark:hover:bg-[#21262d] flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
+                      class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 dark:text-[#adbac7] hover:bg-gray-100 dark:hover:bg-[#17181c] flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] focus-visible:ring-indigo-500">
                 {{ user.username }}
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
               </button>
               <div id="user-menu" role="menu" aria-labelledby="user-menu-button"
-                   class="hidden absolute right-0 mt-1 w-48 bg-white dark:bg-[#161b22] rounded-md shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-black ring-opacity-5 dark:ring-[#30363d] dark:ring-opacity-100 z-50">
-                <a href="{% url 'account' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">My Account</a>
-                <a href="{% url 'connections_list' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Database Connections</a>
-                <a href="{% url 'password_change' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Change Password</a>
-                <div class="border-t border-gray-100 dark:border-[#30363d]"></div>
+                   class="hidden absolute right-0 mt-1 w-48 bg-white dark:bg-[#111113] rounded-md shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-black ring-opacity-5 dark:ring-[#1f1f23] dark:ring-opacity-100 z-50">
+                <a href="{% url 'account' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#17181c]">My Account</a>
+                <a href="{% url 'connections_list' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#17181c]">Database Connections</a>
+                <a href="{% url 'password_change' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#17181c]">Change Password</a>
+                <div class="border-t border-gray-100 dark:border-[#1f1f23]"></div>
                 <a href="{% url 'logout' %}" role="menuitem" class="block px-4 py-2 text-sm text-red-600 dark:text-[#f87171] hover:bg-red-50 dark:hover:bg-[rgba(220,38,38,0.1)]">Logout</a>
               </div>
             </div>
@@ -177,20 +177,20 @@
     </div>
     {% if user.is_authenticated %}
     {% with url_name=request.resolver_match.url_name %}
-    <div id="qg-mobile-nav" class="hidden md:hidden border-t border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22]">
+    <div id="qg-mobile-nav" class="hidden md:hidden border-t border-gray-200 dark:border-[#1f1f23] bg-white dark:bg-[#111113]">
       <a href="{% url 'index' %}" data-nav="dashboard"
-         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'index' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Dashboard</a>
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'index' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#17181c]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Dashboard</a>
       <a href="{% url 'grade_query' %}" data-nav="grade"
-         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'grade_query' or url_name == 'grade_results' or url_name == 'enhanced_grade_results' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Grade</a>
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'grade_query' or url_name == 'grade_results' or url_name == 'enhanced_grade_results' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#17181c]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Grade</a>
       <a href="{% url 'batch_analysis' %}" data-nav="batch"
-         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'batch_analysis' or url_name == 'batch_results' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Batch</a>
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'batch_analysis' or url_name == 'batch_results' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#17181c]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Batch</a>
       <a href="{% url 'database_analyze' %}" data-nav="database"
-         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'database_analyze' or url_name == 'database_schema' or url_name == 'query_with_context' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Database</a>
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'database_analyze' or url_name == 'database_schema' or url_name == 'query_with_context' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#17181c]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Database</a>
       <a href="{% url 'query_history' %}" data-nav="history"
-         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'query_history' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">History</a>
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'query_history' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#17181c]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">History</a>
       {% if user.is_staff %}
       <a href="{% url 'ml_dashboard' %}" data-nav="ml"
-         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'ml_dashboard' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">ML</a>
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'ml_dashboard' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#17181c]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">ML</a>
       {% endif %}
     </div>
     {% endwith %}
@@ -216,7 +216,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="bg-white dark:bg-[#161b22] border-t border-slate-200 dark:border-slate-700 mt-auto">
+  <footer class="bg-white dark:bg-[#111113] border-t border-slate-200 dark:border-slate-700 mt-auto">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-6 text-sm text-slate-600 dark:text-slate-400">
       <div class="flex items-center gap-2">
         <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">QueryGrade</span>
@@ -379,7 +379,7 @@
 
     // Apply Tailwind-friendly classes to Django-rendered form widgets that don't already have a `class` attr
     document.addEventListener('DOMContentLoaded', () => {
-      const inputClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white text-gray-900 dark:bg-[#0d1117] dark:border-[#30363d] dark:text-[#e6edf3] dark:focus:border-[#818cf8]';
+      const inputClasses = 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white text-gray-900 dark:bg-[#0a0a0a] dark:border-[#1f1f23] dark:text-[#e7e5e0] dark:focus:border-[#818cf8]';
       document.querySelectorAll('form input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=file]), form select, form textarea').forEach(el => {
         if (!el.className.trim()) el.className = inputClasses;
       });

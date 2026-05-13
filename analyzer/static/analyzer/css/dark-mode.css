@@ -37,16 +37,16 @@ html.dark {
   --qg-ink:       #e5e7eb;
   --qg-ink-muted: #94a3b8;
 
-  --bg-base:     #0d1117;
-  --bg-surface:  #161b22;
-  --bg-elevated: #21262d;
-  --bg-hover:    #2d333b;
+  --bg-base:     #0a0a0a;
+  --bg-surface:  #111113;
+  --bg-elevated: #17181c;
+  --bg-hover:    #25272d;
 
-  --border:      #30363d;
-  --border-muted:#21262d;
+  --border:      #1f1f23;
+  --border-muted:#17181c;
   --border-focus: #818cf8;
 
-  --text-primary:   #e6edf3;
+  --text-primary:   #e7e5e0;
   --text-secondary: #8b949e;
   --text-muted:     #6e7681;
   --text-link:      #a5b4fc;
@@ -61,14 +61,14 @@ html.dark {
 }
 
 /* ─── Background scale ─── */
-html.dark .bg-white         { background-color: #161b22; }
-html.dark .bg-gray-50       { background-color: #0d1117; }
-html.dark .bg-gray-100      { background-color: #21262d; }
-html.dark .bg-gray-200      { background-color: #2d333b; }
+html.dark .bg-white         { background-color: #111113; }
+html.dark .bg-gray-50       { background-color: #0a0a0a; }
+html.dark .bg-gray-100      { background-color: #17181c; }
+html.dark .bg-gray-200      { background-color: #25272d; }
 
 /* ─── Text scale ─── */
-html.dark .text-gray-950    { color: #e6edf3; }
-html.dark .text-gray-900    { color: #e6edf3; }
+html.dark .text-gray-950    { color: #e7e5e0; }
+html.dark .text-gray-900    { color: #e7e5e0; }
 html.dark .text-gray-800    { color: #cdd9e5; }
 html.dark .text-gray-700    { color: #adbac7; }
 html.dark .text-gray-600    { color: #8b949e; }
@@ -76,8 +76,8 @@ html.dark .text-gray-500    { color: #8b949e; }  /* was #6e7681, below WCAG AA o
 html.dark .text-gray-400    { color: #6e7681; }
 
 /* ─── Borders ─── */
-html.dark .border-gray-100  { border-color: #21262d; }
-html.dark .border-gray-200  { border-color: #30363d; }
+html.dark .border-gray-100  { border-color: #17181c; }
+html.dark .border-gray-200  { border-color: #1f1f23; }
 html.dark .border-gray-300  { border-color: #444c56; }
 
 /* ─── Shadows ─── */
@@ -103,9 +103,9 @@ html.dark .from-indigo-50 {
   --tw-gradient-to: rgba(129, 140, 248, 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
-html.dark .to-white      { --tw-gradient-to: #161b22 var(--tw-gradient-to-position); }
+html.dark .to-white      { --tw-gradient-to: #111113 var(--tw-gradient-to-position); }
 html.dark .from-white    {
-  --tw-gradient-from: #161b22 var(--tw-gradient-from-position);
+  --tw-gradient-from: #111113 var(--tw-gradient-from-position);
   --tw-gradient-to: rgba(22, 27, 34, 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
@@ -155,9 +155,9 @@ html.dark .text-orange-700  { color: #fb923c; }
 /* ─── Navbar credits pill — handled by the grade-pill compound rules above ─── */
 
 /* ─── Hover utility overrides ─── */
-html.dark .hover\:bg-gray-100:hover { background-color: #21262d; }
-html.dark .hover\:bg-gray-50:hover  { background-color: #21262d; }
-html.dark .hover\:text-gray-900:hover { color: #e6edf3; }
+html.dark .hover\:bg-gray-100:hover { background-color: #17181c; }
+html.dark .hover\:bg-gray-50:hover  { background-color: #17181c; }
+html.dark .hover\:text-gray-900:hover { color: #e7e5e0; }
 html.dark .hover\:bg-red-50:hover   { background-color: rgba(220,38,38,0.12); }
 
 /* ─── Dropdown menus ─── */
@@ -168,9 +168,9 @@ html.dark .ring-opacity-5           { --tw-ring-opacity: 1; }
 html.dark input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=range]),
 html.dark select,
 html.dark textarea {
-  background-color: #0d1117;
-  border-color: #30363d;
-  color: #e6edf3;
+  background-color: #0a0a0a;
+  border-color: #1f1f23;
+  color: #e7e5e0;
   color-scheme: dark;
 }
 html.dark input::placeholder,
@@ -187,21 +187,21 @@ html.dark textarea:focus {
 /* ─── Code / pre ─── */
 html.dark pre,
 html.dark code {
-  background-color: #161b22;
-  border-color: #30363d;
-  color: #e6edf3;
+  background-color: #111113;
+  border-color: #1f1f23;
+  color: #e7e5e0;
 }
 
 /* ─── Table ─── */
-html.dark table { border-color: #30363d; }
-html.dark thead { background-color: #161b22; }
-html.dark tbody tr:hover { background-color: #21262d; }
-html.dark th, html.dark td { border-color: #30363d; color: #e6edf3; }
+html.dark table { border-color: #1f1f23; }
+html.dark thead { background-color: #111113; }
+html.dark tbody tr:hover { background-color: #17181c; }
+html.dark th, html.dark td { border-color: #1f1f23; color: #e7e5e0; }
 
 /* ─── Scrollbars (Chromium) ─── */
 html.dark ::-webkit-scrollbar { width: 8px; height: 8px; }
-html.dark ::-webkit-scrollbar-track { background: #0d1117; }
-html.dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+html.dark ::-webkit-scrollbar-track { background: #0a0a0a; }
+html.dark ::-webkit-scrollbar-thumb { background: #1f1f23; border-radius: 4px; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: #444c56; }
 
 /* ─── CodeMirror — theme is toggled via window.QG.cmTheme() in base.html ─── */
@@ -231,8 +231,8 @@ html.dark .theme-toggle {
   color: #8b949e;
 }
 html.dark .theme-toggle:hover {
-  background-color: #21262d;
-  color: #e6edf3;
+  background-color: #17181c;
+  color: #e7e5e0;
 }
 .theme-toggle .icon-moon { display: block; }
 .theme-toggle .icon-sun  { display: none; }
@@ -244,14 +244,14 @@ html.dark .theme-toggle .icon-sun  { display: block; }
 /* the selected DB chip relies on Tailwind dark:bg-white / dark:text-slate-900 */
 /* to invert in dark mode; an override at this level loses to dark: variants */
 /* only by source order, which would silently invert the chip back to dark. */
-html.dark .bg-slate-100        { background-color: #21262d; }
-html.dark .bg-slate-800        { background-color: #21262d; }
+html.dark .bg-slate-100        { background-color: #17181c; }
+html.dark .bg-slate-800        { background-color: #17181c; }
 html.dark .text-slate-200      { color: #adbac7; }
 html.dark .text-slate-300      { color: #adbac7; }
 html.dark .text-slate-600      { color: #8b949e; }
 html.dark .text-slate-700      { color: #cdd9e5; }
-html.dark .hover\:bg-slate-200:hover { background-color: #2d333b; }
-html.dark .hover\:bg-slate-700:hover { background-color: #2d333b; }
+html.dark .hover\:bg-slate-200:hover { background-color: #25272d; }
+html.dark .hover\:bg-slate-700:hover { background-color: #25272d; }
 
 /* ─── Indeterminate loading bar (honest loading copy in anon path) ─── */
 @keyframes qg-indeterminate-slide {
@@ -340,9 +340,9 @@ dialog#qg-shortcuts-dialog::backdrop {
   backdrop-filter: blur(2px);
 }
 html.dark dialog#qg-shortcuts-dialog {
-  background: #161b22;
-  color: #e6edf3;
-  border-color: #30363d;
+  background: #111113;
+  color: #e7e5e0;
+  border-color: #1f1f23;
   box-shadow: 0 20px 40px -5px rgba(0,0,0,0.7);
 }
 html.dark dialog#qg-shortcuts-dialog::backdrop {
