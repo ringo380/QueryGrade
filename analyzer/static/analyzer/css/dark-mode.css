@@ -240,14 +240,16 @@ html.dark .theme-toggle .icon-moon { display: none; }
 html.dark .theme-toggle .icon-sun  { display: block; }
 
 /* ─── Slate scale (Slice A chip row + asymmetric CTA secondary text) ─── */
+/* bg-slate-900 / text-slate-900 intentionally NOT overridden here — */
+/* the selected DB chip relies on Tailwind dark:bg-white / dark:text-slate-900 */
+/* to invert in dark mode; an override at this level loses to dark: variants */
+/* only by source order, which would silently invert the chip back to dark. */
 html.dark .bg-slate-100        { background-color: #21262d; }
 html.dark .bg-slate-800        { background-color: #21262d; }
-html.dark .bg-slate-900        { background-color: #e6edf3; }
 html.dark .text-slate-200      { color: #adbac7; }
 html.dark .text-slate-300      { color: #adbac7; }
 html.dark .text-slate-600      { color: #8b949e; }
 html.dark .text-slate-700      { color: #cdd9e5; }
-html.dark .text-slate-900      { color: #0d1117; }
 html.dark .hover\:bg-slate-200:hover { background-color: #2d333b; }
 html.dark .hover\:bg-slate-700:hover { background-color: #2d333b; }
 

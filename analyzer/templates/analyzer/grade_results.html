@@ -763,6 +763,18 @@
       }
     });
 
+    // Refresh CodeMirror editors when the index-recommendations <details> opens —
+    // editors initialized inside a closed <details> measure zero gutter width
+    // until the browser repaints (CLAUDE.md "CodeMirror in hidden tabs").
+    const idxDetails = document.getElementById('index-recommendations');
+    if (idxDetails) {
+      idxDetails.addEventListener('toggle', () => {
+        if (idxDetails.open) {
+          setTimeout(() => sqlEditors.forEach(ed => ed.refresh()), 0);
+        }
+      });
+    }
+
     // Render "Other issues" feed
     const otherSection = document.getElementById('other-issues-section');
     const otherList = document.getElementById('other-issues-list');
