@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
 <style>
-  .CodeMirror { height: auto; min-height: 280px; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  .CodeMirror { height: auto; min-height: 280px; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; }
   .CodeMirror-fullscreen { z-index: 100; }
 </style>
 {% endblock %}
@@ -17,7 +17,7 @@
 {% block content %}
 <div class="space-y-6">
   <header>
-    <h1 class="text-2xl font-bold text-gray-900">SQL Query Grader</h1>
+    <h1 class="font-mono text-2xl font-bold text-gray-900 dark:text-white">SQL Query Grader</h1>
     <p class="mt-1 text-sm text-gray-500">Get instant feedback with letter grades (A–F) and optimization recommendations</p>
   </header>
 
@@ -35,11 +35,14 @@
   {% if trial_exhausted %}
   <div class="rounded-lg bg-white border border-indigo-200 p-6 text-center space-y-3">
     <div class="text-3xl">🚀</div>
-    <h2 class="text-xl font-semibold text-gray-900">You've used all {{ trial_cap }} free trials</h2>
+    <h2 class="font-mono text-xl font-semibold text-gray-900 dark:text-white">You've used all {{ trial_cap }} free trials</h2>
     <p class="text-sm text-gray-600 max-w-lg mx-auto">Create a free account to keep grading queries — plus unlock AI rewrite suggestions, personalized feedback, query history, and saved reports.</p>
-    <div class="flex gap-3 justify-center pt-2">
-      <a href="{% url 'register' %}" class="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700">Create free account</a>
-      <a href="{% url 'login' %}" class="px-5 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50">Log in</a>
+    <div class="flex flex-col items-center gap-3 pt-2">
+      <a href="{% url 'register' %}"
+         class="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-emerald-500">
+        Create account
+      </a>
+      <a href="{% url 'login' %}" class="text-sm text-slate-600 dark:text-slate-300 hover:underline">Already have an account? Log in</a>
     </div>
   </div>
   {% else %}
@@ -93,7 +96,7 @@
             📂 Load from history
           </button>
           {% endif %}
-          <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="showKeyboardShortcuts()">⌨️ Shortcuts</button>
+          <button type="button" id="qg-shortcuts-trigger" aria-haspopup="dialog" aria-controls="qg-shortcuts-dialog" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="showKeyboardShortcuts()">⌨️ Shortcuts</button>
           <button type="button" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" onclick="toggleFullscreen()">⛶ Fullscreen</button>
         </div>
       </div>
@@ -148,7 +151,7 @@
 
       {{ form.sql_query }}
       {% if form.sql_query.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.sql_query.help_text }}</p>{% endif %}
-      {% if form.sql_query.errors %}{% for error in form.sql_query.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+      <p id="sql_query_error" role="alert" class="mt-1 text-xs text-red-600 {% if not form.sql_query.errors %}hidden{% endif %}">{% for error in form.sql_query.errors %}{{ error }}{% endfor %}</p>
       <div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
         <span>✨ Syntax highlighting</span><span>🔍 Auto-complete</span><span>📁 Code folding</span><span>🎯 Bracket matching</span>
       </div>
@@ -197,7 +200,8 @@
   </form>
   {% endif %}
 
-  <div id="loadingOverlay" class="fixed inset-0 z-40 hidden bg-gray-900/50 items-center justify-center p-4">
+  <div id="loadingOverlay" role="status" aria-live="polite" aria-busy="true"
+       class="fixed inset-0 z-40 hidden bg-gray-900/50 items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
       <h3 class="text-lg font-semibold text-gray-900">Analyzing your query</h3>
       <p id="loadingMessage" class="mt-1 text-sm text-gray-600">Parsing SQL query...</p>
@@ -209,6 +213,35 @@
       </div>
     </div>
   </div>
+
+  <dialog id="qg-shortcuts-dialog" aria-labelledby="qg-shortcuts-title">
+    <div class="p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4">
+        <h2 id="qg-shortcuts-title" class="text-lg font-semibold">Keyboard shortcuts</h2>
+        <button type="button" aria-label="Close shortcuts"
+                onclick="document.getElementById('qg-shortcuts-dialog').close()"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none -mt-1">&times;</button>
+      </div>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Speed up query analysis with these keys.</p>
+      <table class="mt-4 w-full text-sm">
+        <thead class="sr-only"><tr><th>Key</th><th>Action</th></tr></thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-[#30363d]">
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Cmd/Ctrl</kbd> + <kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Enter</kbd></td><td class="py-2">Grade query</td></tr>
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Cmd/Ctrl</kbd> + <kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Space</kbd></td><td class="py-2">Autocomplete</td></tr>
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Cmd/Ctrl</kbd> + <kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">/</kbd></td><td class="py-2">Toggle comment</td></tr>
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">F11</kbd></td><td class="py-2">Toggle fullscreen editor</td></tr>
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Tab</kbd> / <kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Shift</kbd>+<kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Tab</kbd></td><td class="py-2">Indent / unindent</td></tr>
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">Esc</kbd></td><td class="py-2">Exit fullscreen / close this dialog</td></tr>
+          <tr><td class="py-2 pr-4"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-[#30363d] bg-gray-50 dark:bg-[#0d1117] font-mono text-xs">?</kbd></td><td class="py-2">Open this shortcuts dialog</td></tr>
+        </tbody>
+      </table>
+      <div class="mt-5 flex justify-end">
+        <button type="button"
+                onclick="document.getElementById('qg-shortcuts-dialog').close()"
+                class="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500">Got it</button>
+      </div>
+    </div>
+  </dialog>
 
   <section class="bg-white rounded-lg border border-gray-200 p-6">
     <h3 class="text-lg font-semibold text-gray-900">Example queries</h3>
@@ -391,6 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     sqlEditor.on('change', () => sqlEditor.save());
     if (window.QG && window.QG.registerEditor) window.QG.registerEditor(sqlEditor);
+
+    // a11y wiring for SQL field — describe by error region, toggle aria-invalid
+    try {
+      ta.setAttribute('aria-describedby', 'sql_query_error');
+      var hasInitialError = document.getElementById('sql_query_error') && !document.getElementById('sql_query_error').classList.contains('hidden');
+      ta.setAttribute('aria-invalid', hasInitialError ? 'true' : 'false');
+      var wrapper = sqlEditor.getWrapperElement();
+      if (wrapper && hasInitialError) {
+        wrapper.classList.add('border-red-500', 'dark:border-red-400', 'ring-2', 'ring-red-500/30');
+      }
+    } catch (e) {}
   }
 
   if (localStorage.getItem('querygrade_help_dismissed') === 'true') {
@@ -434,13 +478,30 @@ function loadExample(key) {
 }
 
 function showKeyboardShortcuts() {
-  alert('Keyboard Shortcuts:\n\n' +
-    '• Ctrl/Cmd + Space  Auto-complete\n' +
-    '• Ctrl/Cmd + /      Toggle comments\n' +
-    '• F11               Fullscreen\n' +
-    '• Esc               Exit fullscreen\n' +
-    '• Tab / Shift+Tab   (Un)indent\n');
+  var dlg = document.getElementById('qg-shortcuts-dialog');
+  if (!dlg) return;
+  if (typeof dlg.showModal === 'function') {
+    if (!dlg.open) dlg.showModal();
+  } else {
+    // Fallback for browsers without <dialog> support
+    dlg.setAttribute('open', '');
+    dlg.style.display = 'block';
+  }
 }
+
+// Open shortcuts dialog with `?` key, but only when focus is outside any editor/input.
+document.addEventListener('keydown', function(e) {
+  if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey) return;
+  var ae = document.activeElement;
+  if (ae) {
+    var tag = (ae.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (ae.isContentEditable) return;
+    if (ae.closest && ae.closest('.CodeMirror')) return;
+  }
+  e.preventDefault();
+  showKeyboardShortcuts();
+});
 
 function toggleFullscreen() {
   if (sqlEditor) sqlEditor.setOption("fullScreen", !sqlEditor.getOption("fullScreen"));
@@ -450,11 +511,23 @@ const gradeForm = document.getElementById('gradeForm');
 let _formSubmitted = false;
 if (gradeForm) {
   gradeForm.addEventListener('submit', e => {
+    var errEl = document.getElementById('sql_query_error');
+    var ta = document.getElementById('{{ form.sql_query.id_for_label }}');
+    var wrapper = sqlEditor ? sqlEditor.getWrapperElement() : null;
     if (sqlEditor && sqlEditor.getValue().trim() === '') {
       e.preventDefault();
       showToast('Please enter a SQL query.', 'error');
+      if (errEl) {
+        errEl.textContent = 'Please enter a SQL query.';
+        errEl.classList.remove('hidden');
+      }
+      if (ta) ta.setAttribute('aria-invalid', 'true');
+      if (wrapper) wrapper.classList.add('border-red-500', 'dark:border-red-400', 'ring-2', 'ring-red-500/30');
       return;
     }
+    if (errEl) errEl.classList.add('hidden');
+    if (ta) ta.setAttribute('aria-invalid', 'false');
+    if (wrapper) wrapper.classList.remove('border-red-500', 'dark:border-red-400', 'ring-2', 'ring-red-500/30');
     _formSubmitted = true;
     showLoadingOverlay();
   });
@@ -486,7 +559,7 @@ function showLoadingOverlay() {
   overlay.classList.add('flex');
   const steps = [
     {p: 33, t: 'Step 1 of 3', m: 'Parsing SQL query...'},
-    {p: 66, t: 'Step 2 of 3', m: 'Running ML analysis...'},
+    {p: 66, t: 'Step 2 of 3', m: 'Running deep analysis...'},
     {p: 100, t: 'Step 3 of 3', m: 'Generating recommendations...'},
   ];
   let i = 0;

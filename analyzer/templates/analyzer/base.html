@@ -7,13 +7,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}QueryGrade{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'analyzer/img/favicon.svg' %}">
+  <style>
+    @font-face {
+      font-family: 'JetBrains Mono';
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url("{% static 'analyzer/fonts/jetbrains-mono-500.woff2' %}") format('woff2');
+    }
+    @font-face {
+      font-family: 'JetBrains Mono';
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+      src: url("{% static 'analyzer/fonts/jetbrains-mono-600.woff2' %}") format('woff2');
+    }
+  </style>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: { mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'] }
+          fontFamily: {
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
         }
       }
     }
@@ -62,12 +80,12 @@
 </head>
 <body class="bg-gray-50 dark:bg-[#0d1117] dark:text-[#e6edf3] min-h-screen flex flex-col">
 
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-3 py-2 rounded z-50">Skip to main content</a>
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-3 py-2 rounded z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">Skip to main content</a>
 
   <nav class="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-[#30363d] shadow-sm dark:shadow-none" id="navigation">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-14">
-        <a href="{% url 'index' %}" class="flex items-center gap-2 font-bold text-indigo-600 dark:text-[#a5b4fc] text-lg tracking-tight" aria-label="QueryGrade home">
+        <a href="{% url 'index' %}" class="flex items-center gap-2 font-mono font-semibold text-indigo-600 dark:text-[#a5b4fc] text-lg tracking-tight" aria-label="QueryGrade home">
           <svg class="w-7 h-7" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="13" cy="14" r="8.5" fill="none" stroke="currentColor" stroke-width="3"/>
             <path d="M18 19 L22 23 L29 14" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -77,6 +95,12 @@
 
         <div class="flex gap-1 items-center">
           {% if user.is_authenticated %}
+            <button type="button" id="qg-mobile-nav-toggle"
+                    aria-expanded="false" aria-controls="qg-mobile-nav" aria-label="Open navigation"
+                    class="md:hidden inline-flex items-center justify-center w-9 h-9 rounded text-gray-600 dark:text-[#adbac7] hover:bg-gray-100 dark:hover:bg-[#21262d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div class="hidden md:flex gap-1 items-center">
             {% with url_name=request.resolver_match.url_name %}
               <a href="{% url 'index' %}" data-nav="dashboard"
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'index' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">Dashboard</a>
@@ -93,40 +117,56 @@
                  class="px-3 py-1.5 rounded text-sm font-medium {% if url_name == 'ml_dashboard' %}bg-indigo-50 text-indigo-700{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-100{% endif %}">ML</a>
               {% endif %}
             {% endwith %}
+            </div>
 
-            <button class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+            <button class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme" aria-pressed="false">
               <svg class="icon-moon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
               <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
             </button>
 
-            <div class="relative ml-2 group">
-              <button class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 dark:text-[#adbac7] hover:bg-gray-100 flex items-center gap-1" type="button">
+            <div class="relative ml-2" id="user-menu-wrap">
+              <button id="user-menu-button"
+                      type="button"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                      aria-controls="user-menu"
+                      class="px-3 py-1.5 rounded text-sm font-medium text-gray-700 dark:text-[#adbac7] hover:bg-gray-100 dark:hover:bg-[#21262d] flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0d1117] focus-visible:ring-indigo-500">
                 {{ user.username }}
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
               </button>
-              <div class="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white dark:bg-[#161b22] rounded-md shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-black ring-opacity-5 dark:ring-[#30363d] dark:ring-opacity-100 z-50">
-                <a href="{% url 'account' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">My Account</a>
-                <a href="{% url 'connections_list' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Database Connections</a>
-                <a href="{% url 'password_change' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Change Password</a>
+              <div id="user-menu" role="menu" aria-labelledby="user-menu-button"
+                   class="hidden absolute right-0 mt-1 w-48 bg-white dark:bg-[#161b22] rounded-md shadow-lg dark:shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-black ring-opacity-5 dark:ring-[#30363d] dark:ring-opacity-100 z-50">
+                <a href="{% url 'account' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">My Account</a>
+                <a href="{% url 'connections_list' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Database Connections</a>
+                <a href="{% url 'password_change' %}" role="menuitem" class="block px-4 py-2 text-sm text-gray-700 dark:text-[#adbac7] hover:bg-gray-50 dark:hover:bg-[#21262d]">Change Password</a>
                 <div class="border-t border-gray-100 dark:border-[#30363d]"></div>
-                <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-red-600 dark:text-[#f87171] hover:bg-red-50 dark:hover:bg-[rgba(220,38,38,0.1)]">Logout</a>
+                <a href="{% url 'logout' %}" role="menuitem" class="block px-4 py-2 text-sm text-red-600 dark:text-[#f87171] hover:bg-red-50 dark:hover:bg-[rgba(220,38,38,0.1)]">Logout</a>
               </div>
             </div>
           {% else %}
-            <button class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+            <button class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme" aria-pressed="false">
               <svg class="icon-moon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
               <svg class="icon-sun w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
             </button>
             {% if anon_trial_cap %}
             <span id="anon-credits-pill"
                   data-anon-cap="{{ anon_trial_cap }}"
-                  class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mr-1
+                  aria-label="Free queries remaining: {{ anon_trial_remaining }} of {{ anon_trial_cap }}"
+                  class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold mr-1
                          {% if anon_trial_remaining == 0 %}bg-red-100 text-red-700
-                         {% elif anon_trial_remaining <= 5 %}bg-amber-100 text-amber-700
-                         {% else %}bg-emerald-100 text-emerald-700{% endif %}"
-                  title="Free queries remaining this session. Sign up for unlimited.">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span data-anon-credits>{{ anon_trial_remaining }}</span>/{{ anon_trial_cap }} credits
+                         {% elif anon_trial_remaining <= 10 %}bg-amber-100 text-amber-700
+                         {% else %}bg-emerald-100 text-emerald-700{% endif %}">
+              {# Compact form (mobile): colored dot + number #}
+              <span class="sm:hidden inline-flex items-center gap-1">
+                <span aria-hidden="true" class="inline-block w-2 h-2 rounded-full
+                  {% if anon_trial_remaining == 0 %}bg-red-500
+                  {% elif anon_trial_remaining <= 10 %}bg-amber-500
+                  {% else %}bg-emerald-500{% endif %}"></span>
+                <span data-anon-credits>{{ anon_trial_remaining }}</span>
+              </span>
+              {# Full form (sm+): bolt icon + count/cap credits #}
+              <svg class="hidden sm:inline-block w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span class="hidden sm:inline"><span data-anon-credits-full>{{ anon_trial_remaining }}</span>/{{ anon_trial_cap }} credits</span>
             </span>
             {% endif %}
             <a href="{% url 'login' %}" data-nav="login" class="px-3 py-1.5 rounded text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">Login</a>
@@ -135,32 +175,66 @@
         </div>
       </div>
     </div>
+    {% if user.is_authenticated %}
+    {% with url_name=request.resolver_match.url_name %}
+    <div id="qg-mobile-nav" class="hidden md:hidden border-t border-gray-200 dark:border-[#30363d] bg-white dark:bg-[#161b22]">
+      <a href="{% url 'index' %}" data-nav="dashboard"
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'index' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Dashboard</a>
+      <a href="{% url 'grade_query' %}" data-nav="grade"
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'grade_query' or url_name == 'grade_results' or url_name == 'enhanced_grade_results' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Grade</a>
+      <a href="{% url 'batch_analysis' %}" data-nav="batch"
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'batch_analysis' or url_name == 'batch_results' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Batch</a>
+      <a href="{% url 'database_analyze' %}" data-nav="database"
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'database_analyze' or url_name == 'database_schema' or url_name == 'query_with_context' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">Database</a>
+      <a href="{% url 'query_history' %}" data-nav="history"
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'query_history' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">History</a>
+      {% if user.is_staff %}
+      <a href="{% url 'ml_dashboard' %}" data-nav="ml"
+         class="block px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 {% if url_name == 'ml_dashboard' %}text-indigo-700 dark:text-[#a5b4fc] bg-indigo-50 dark:bg-[#21262d]{% else %}text-gray-700 dark:text-[#adbac7]{% endif %}">ML</a>
+      {% endif %}
+    </div>
+    {% endwith %}
+    {% endif %}
   </nav>
 
   <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-    <div id="toast-inner" class="px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center gap-2 min-w-48"></div>
+    <div id="toast-inner" role="status" aria-live="polite" class="px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center gap-2 min-w-48"></div>
   </div>
 
   {% if messages %}
   <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4 space-y-2">
     {% for message in messages %}
-    <div class="rounded-md p-3 text-sm border {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200{% elif message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% else %}bg-indigo-50 text-indigo-800 border-indigo-200{% endif %}">
+    <div class="rounded-md p-3 text-sm border {% if message.tags == 'error' %}bg-red-50 text-red-800 border-red-200{% elif message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% else %}bg-indigo-50 text-indigo-800 border-indigo-200{% endif %}"
+         {% if message.tags == 'error' %}role="alert"{% endif %}>
       {{ message }}
     </div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <main id="main-content" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
+  <main id="main-content" tabindex="-1" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 focus:outline-none">
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="bg-white dark:bg-[#161b22] border-t border-gray-200 dark:border-[#30363d] mt-auto">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-500">
-      <p>&copy; 2026 QueryGrade. SQL Query Analysis Platform</p>
-      <div class="flex gap-4">
-        <a href="https://github.com/ringo380/QueryGrade" class="hover:text-gray-700" target="_blank" rel="noopener">Documentation</a>
-        <a href="https://github.com/ringo380/QueryGrade/issues" class="hover:text-gray-700" target="_blank" rel="noopener">Support</a>
+  <footer class="bg-white dark:bg-[#161b22] border-t border-slate-200 dark:border-slate-700 mt-auto">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-6 text-sm text-slate-600 dark:text-slate-400">
+      <div class="flex items-center gap-2">
+        <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">QueryGrade</span>
+        <span aria-hidden="true">·</span>
+        <span>&copy; {% now "Y" %}</span>
+      </div>
+      <div class="flex items-center gap-2" role="status" aria-label="Service status">
+        <span class="inline-flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
+          <span>All systems operational</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://github.com/ringo380/QueryGrade/releases" class="hover:text-slate-900 dark:hover:text-slate-200" target="_blank" rel="noopener">What&rsquo;s new</a>
+        <a href="https://github.com/ringo380/QueryGrade" class="hover:text-slate-900 dark:hover:text-slate-200 inline-flex items-center gap-1" target="_blank" rel="noopener" aria-label="QueryGrade on GitHub">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.111.82-.26.82-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.93 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.553 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.218.694.825.576C20.565 21.796 24 17.299 24 12c0-6.63-5.373-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
       </div>
     </div>
   </footer>
@@ -171,6 +245,14 @@
       const inner = document.getElementById('toast-inner');
       inner.className = 'px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center gap-2 min-w-48 ' +
         (type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-indigo-600');
+      // Error toasts use role=alert for assertive announcement; others use polite status.
+      if (type === 'error') {
+        inner.setAttribute('role', 'alert');
+        inner.setAttribute('aria-live', 'assertive');
+      } else {
+        inner.setAttribute('role', 'status');
+        inner.setAttribute('aria-live', 'polite');
+      }
       inner.textContent = message;
       toast.classList.remove('hidden');
       setTimeout(() => toast.classList.add('hidden'), 3500);
@@ -213,12 +295,79 @@
     };
 
     // Theme toggle
-    document.querySelector('.theme-toggle').addEventListener('click', function() {
-      const html = document.documentElement;
-      const isDark = html.classList.toggle('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      window.QG.refreshEditorThemes();
-    });
+    (function() {
+      const btn = document.querySelector('.theme-toggle');
+      if (!btn) return;
+      // Initial aria-pressed reflects current dark mode (mirrors the flash-prevention script).
+      btn.setAttribute('aria-pressed', document.documentElement.classList.contains('dark') ? 'true' : 'false');
+      btn.addEventListener('click', function() {
+        const html = document.documentElement;
+        const isDark = html.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        window.QG.refreshEditorThemes();
+      });
+    })();
+
+    // ─── User menu (click-toggled, ESC closes, click-outside closes) ───
+    (function() {
+      const btn = document.getElementById('user-menu-button');
+      const menu = document.getElementById('user-menu');
+      if (!btn || !menu) return;
+      function open() {
+        menu.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        const first = menu.querySelector('[role="menuitem"]');
+        if (first) first.focus();
+      }
+      function close(focusBtn) {
+        menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        if (focusBtn) btn.focus();
+      }
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (menu.classList.contains('hidden')) open(); else close(false);
+      });
+      document.addEventListener('click', function(e) {
+        if (menu.classList.contains('hidden')) return;
+        if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(false);
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !menu.classList.contains('hidden')) close(true);
+      });
+    })();
+
+    // ─── Mobile nav drawer (hamburger; <md only) ───
+    (function() {
+      const btn = document.getElementById('qg-mobile-nav-toggle');
+      const menu = document.getElementById('qg-mobile-nav');
+      if (!btn || !menu) return;
+      function open() {
+        menu.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.setAttribute('aria-label', 'Close navigation');
+      }
+      function close() {
+        menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.setAttribute('aria-label', 'Open navigation');
+      }
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (menu.classList.contains('hidden')) open(); else close();
+      });
+      document.addEventListener('click', function(e) {
+        if (menu.classList.contains('hidden')) return;
+        if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close();
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !menu.classList.contains('hidden')) { close(); btn.focus(); }
+      });
+      menu.addEventListener('click', function(e) {
+        if (e.target.closest('a')) close();
+      });
+    })();
 
     // Delegated nav click tracking. Reads `data-nav` from anchors inside the primary <nav>.
     document.addEventListener('click', function(e) {
