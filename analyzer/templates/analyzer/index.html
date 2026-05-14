@@ -3,6 +3,21 @@
 
 {% block title %}{% if user.is_authenticated %}Dashboard · QueryGrade{% else %}QueryGrade · Grade any SQL query{% endif %}{% endblock %}
 
+{% block extra_head %}
+{% if not user.is_authenticated %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<style>
+  #sqlEditorWrap .CodeMirror {
+    height: auto; min-height: 200px; border-radius: 0.5rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 16px; padding: 4px 0;
+  }
+</style>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 {% if user.is_authenticated %}
 <div class="space-y-8">
@@ -236,6 +251,14 @@ if (document.getElementById('uploadForm')) {
   {% endif %}
 </div>
 
+{# CodeMirror — match the /grade/ editor experience #}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+
 {# Inline JS — keeps things self-contained; no new static file. #}
 <script>
 (function() {
@@ -251,6 +274,46 @@ if (document.getElementById('uploadForm')) {
   const resultPanel = document.getElementById('resultPanel');
   const hiddenDbType = document.getElementById('id_database_type');
   const dbVersionWrap = document.getElementById('dbVersionWrap');
+
+  // Upgrade the raw textarea into a CodeMirror editor (syntax highlighting,
+  // bracket matching, auto-close, hinting). Mirrors the /grade/ setup but
+  // keeps the anon-light footprint by omitting code folding + fullscreen.
+  let sqlEditor = null;
+  if (typeof CodeMirror !== 'undefined' && sqlInput) {
+    sqlEditor = CodeMirror.fromTextArea(sqlInput, {
+      mode: 'text/x-sql',
+      theme: (window.QG && window.QG.cmTheme ? window.QG.cmTheme() : 'material-darker'),
+      lineNumbers: true,
+      indentUnit: 2,
+      smartIndent: true,
+      lineWrapping: true,
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      placeholder: sqlInput.placeholder || '',
+      extraKeys: {
+        'Ctrl-Space': 'autocomplete', 'Cmd-Space': 'autocomplete',
+        'Ctrl-Enter': () => submitQuery(new Event('submit')),
+        'Cmd-Enter':  () => submitQuery(new Event('submit')),
+      },
+      hintOptions: {
+        tables: {
+          users:    ['id','name','email','created_at','status','last_login'],
+          orders:   ['id','user_id','total','status','created_at','shipped_at'],
+          products: ['id','name','price','category','in_stock','description'],
+        }
+      }
+    });
+    // Keep the underlying textarea in sync — `new FormData(form)` reads from it.
+    sqlEditor.on('change', () => sqlEditor.save());
+    sqlEditor.on('inputRead', (cm, e) => {
+      if (e.text[0].match(/\w/) || e.text[0] === '.') cm.showHint();
+    });
+    if (window.QG && window.QG.registerEditor) window.QG.registerEditor(sqlEditor);
+  }
+  // Single accessor that works whether or not CodeMirror booted.
+  function sqlValue()      { return sqlEditor ? sqlEditor.getValue() : (sqlInput.value || ''); }
+  function setSqlValue(v)  { if (sqlEditor) sqlEditor.setValue(v); else sqlInput.value = v; }
+  function focusSql()      { (sqlEditor || sqlInput).focus(); }
 
   const ERR_CLASSES = ['border-red-500', 'dark:border-red-400', 'ring-2', 'ring-red-500/30'];
   function showSqlError(msg) {
@@ -443,8 +506,8 @@ if (document.getElementById('uploadForm')) {
     if (again) {
       again.addEventListener('click', () => {
         resultPanel.classList.add('hidden');
-        sqlInput.value = '';
-        sqlInput.focus();
+        setSqlValue('');
+        focusSql();
         window.scrollTo({ top: form.offsetTop - 24, behavior: 'smooth' });
       });
     }
@@ -517,10 +580,11 @@ if (document.getElementById('uploadForm')) {
     clearSqlError();
     resultPanel.classList.add('hidden');
 
-    const sql = (sqlInput.value || '').trim();
+    if (sqlEditor) sqlEditor.save();
+    const sql = sqlValue().trim();
     if (!sql) {
       showSqlError('Please paste a SQL query first.');
-      sqlInput.focus();
+      focusSql();
       return;
     }
 
@@ -571,11 +635,13 @@ if (document.getElementById('uploadForm')) {
   }
 
   form.addEventListener('submit', submitQuery);
-  sqlInput.addEventListener('keydown', function(e) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      submitQuery(e);
-    }
-  });
+  // Cmd/Ctrl+Enter is wired via CodeMirror's extraKeys above. Keep a fallback
+  // for the unenhanced textarea path (CodeMirror script blocked, etc).
+  if (!sqlEditor) {
+    sqlInput.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitQuery(e);
+    });
+  }
 })();
 </script>
 {% endif %}
