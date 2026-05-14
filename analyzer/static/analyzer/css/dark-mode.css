@@ -73,13 +73,15 @@ html.dark .bg-gray-200      { background-color: #25272d; }
 html.dark .bg-indigo-600           { background-color: #4338ca; }
 html.dark .hover\:bg-indigo-700:hover { background-color: #6366f1; }
 
-/* ─── Selected DB chip (and anywhere else inverting to white) ───
-   Pure white pills on near-OLED black are the harshest contrast on the
-   page — they read like a UI block, not a "this is selected" affordance.
-   Pull the dark:bg-white inversion to the warm-cream ink token instead. */
+/* ─── Selected DB chip ───
+   Even warm-cream (#e7e5e0) is essentially a near-white pill on near-black —
+   95% luminance against ~4%. Wrong for dark mode regardless of the tint.
+   Switch to a subtle indigo wash + soft indigo text + inset indigo border:
+   uses brand color to signal "selected" instead of brute-force luminance. */
 html.dark [role="radio"][aria-checked="true"] {
-  background-color: #e7e5e0;
-  color: #0a0a0a;
+  background-color: rgba(99, 102, 241, 0.18);
+  color: #c7d2fe;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4);
 }
 
 /* ─── Text scale ─── */
@@ -153,11 +155,15 @@ html.dark .border-amber-200 { border-color: rgba(217, 119, 6, 0.3); }
    Per-color bg opacity bumps + brighter -300 text gives each grade a distinct read
    in dark mode while preserving WCAG AA contrast. Compound selectors (.bg-X.text-Y)
    beat the generic single-class fallbacks below.                                  */
-html.dark .bg-emerald-100.text-emerald-700 { background-color: rgba(16, 185, 129, 0.22); color: #34d399; }
-html.dark .bg-lime-100.text-lime-700       { background-color: rgba(132, 204, 22, 0.22); color: #bef264; }
-html.dark .bg-amber-100.text-amber-700     { background-color: rgba(217, 119, 6, 0.25); color: #fcd34d; }
-html.dark .bg-orange-100.text-orange-700   { background-color: rgba(234, 88, 12, 0.28); color: #fdba74; }
-html.dark .bg-red-100.text-red-700         { background-color: rgba(239, 68, 68, 0.28); color: #fca5a5; }
+/* PR #61: bg opacity ~halved (22-28% → 10-16%) so pills read as ambient
+   indicators rather than saturated notification chips. Text colors preserved
+   for legibility — the chip becomes a quiet wash with colored text floating
+   on near-OLED, not a glowing brand block. */
+html.dark .bg-emerald-100.text-emerald-700 { background-color: rgba(16, 185, 129, 0.10); color: #34d399; }
+html.dark .bg-lime-100.text-lime-700       { background-color: rgba(132, 204, 22, 0.10); color: #a3e635; }
+html.dark .bg-amber-100.text-amber-700     { background-color: rgba(217, 119, 6, 0.12); color: #fcd34d; }
+html.dark .bg-orange-100.text-orange-700   { background-color: rgba(234, 88, 12, 0.14); color: #fdba74; }
+html.dark .bg-red-100.text-red-700         { background-color: rgba(239, 68, 68, 0.14); color: #fca5a5; }
 
 /* Single-class fallbacks (used outside the pill compound — e.g. icon backgrounds) */
 html.dark .bg-emerald-100   { background-color: rgba(16, 185, 129, 0.18); }
