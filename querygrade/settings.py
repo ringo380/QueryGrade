@@ -452,8 +452,19 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 USE_ETAGS = True
 USE_TZ = True
 
-# Static files optimization
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+# Static files optimization. ManifestStaticFilesStorage hashes filenames
+# (e.g. dark-mode.abc123.css) so deploys invalidate browser caches without
+# every user needing a hard-refresh — previous CompressedStaticFilesStorage
+# kept stable URLs and left clients on stale CSS for hours after a deploy.
+# Django 4.2+ uses STORAGES dict; STATICFILES_STORAGE is deprecated.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Template performance
 TEMPLATES[0]["OPTIONS"]["context_processors"].extend(

@@ -253,6 +253,13 @@ html.dark .text-slate-700      { color: #cdd9e5; }
 html.dark .hover\:bg-slate-200:hover { background-color: #25272d; }
 html.dark .hover\:bg-slate-700:hover { background-color: #25272d; }
 
+/* ─── Warm-cream ink override for headings using dark:text-white ─── */
+/* Pure white headings on a near-OLED background read clinical and cool. */
+/* Soften every dark:text-white usage to the warm-cream ink without */
+/* per-template churn. Same specificity as Tailwind's .dark .dark\:text-white; */
+/* dark-mode.css loads after the Tailwind CDN, so source order wins here. */
+html.dark .dark\:text-white { color: #e7e5e0; }
+
 /* ─── Indeterminate loading bar (honest loading copy in anon path) ─── */
 @keyframes qg-indeterminate-slide {
   0%   { transform: translateX(-100%); }
