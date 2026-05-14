@@ -159,11 +159,17 @@ html.dark .border-amber-200 { border-color: rgba(217, 119, 6, 0.3); }
    indicators rather than saturated notification chips. Text colors preserved
    for legibility — the chip becomes a quiet wash with colored text floating
    on near-OLED, not a glowing brand block. */
-html.dark .bg-emerald-100.text-emerald-700 { background-color: rgba(16, 185, 129, 0.10); color: #34d399; }
-html.dark .bg-lime-100.text-lime-700       { background-color: rgba(132, 204, 22, 0.10); color: #a3e635; }
-html.dark .bg-amber-100.text-amber-700     { background-color: rgba(217, 119, 6, 0.12); color: #fcd34d; }
-html.dark .bg-orange-100.text-orange-700   { background-color: rgba(234, 88, 12, 0.14); color: #fdba74; }
-html.dark .bg-red-100.text-red-700         { background-color: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+html.dark .bg-emerald-100.text-emerald-700,
+html.dark .bg-emerald-50.text-emerald-700,
+html.dark .bg-emerald-50.text-emerald-900 { background-color: rgba(16, 185, 129, 0.10); color: #34d399; }
+html.dark .bg-lime-100.text-lime-700,
+html.dark .bg-lime-50.text-lime-700        { background-color: rgba(132, 204, 22, 0.10); color: #a3e635; }
+html.dark .bg-amber-100.text-amber-700,
+html.dark .bg-amber-50.text-amber-700      { background-color: rgba(217, 119, 6, 0.12); color: #fcd34d; }
+html.dark .bg-orange-100.text-orange-700,
+html.dark .bg-orange-50.text-orange-700    { background-color: rgba(234, 88, 12, 0.14); color: #fdba74; }
+html.dark .bg-red-100.text-red-700,
+html.dark .bg-red-50.text-red-700          { background-color: rgba(239, 68, 68, 0.14); color: #fca5a5; }
 
 /* Single-class fallbacks (used outside the pill compound — e.g. icon backgrounds) */
 html.dark .bg-emerald-100   { background-color: rgba(16, 185, 129, 0.18); }
