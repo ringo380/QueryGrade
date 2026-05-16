@@ -287,8 +287,13 @@ class QueryGrader:
         self, original_sql: str, normalized_sql: str, query_hash: str, parsed: Statement
     ) -> Query:
         """Create and save Query object with basic metrics."""
-        from .utils import (count_joins, count_subqueries, count_tables,
-                            count_where_conditions, get_query_type)
+        from .utils import (
+            count_joins,
+            count_subqueries,
+            count_tables,
+            count_where_conditions,
+            get_query_type,
+        )
 
         # Determine query type and calculate metrics
         query_type = get_query_type(parsed)

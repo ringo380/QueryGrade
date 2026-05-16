@@ -9,8 +9,15 @@ import numpy as np
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
-                             QueryFeedback, TrainingData, UserQueryHistory)
+from analyzer.models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 
 class MLTestDataFactory:

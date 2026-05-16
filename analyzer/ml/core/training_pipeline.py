@@ -24,8 +24,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from ...models import (LearningMetrics, MLModel, Query, QueryFeedback,
-                       TrainingData)
+from ...models import LearningMetrics, MLModel, Query, QueryFeedback, TrainingData
 from .feature_extractor import FeatureExtractor
 from .feedback_collector import FeedbackCollector
 

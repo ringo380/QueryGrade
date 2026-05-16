@@ -238,8 +238,10 @@ class DatabaseStatisticsManager:
         The historical signature was a connection_string placeholder. The
         method is kept duck-typed so callers can pass whichever they have.
         """
-        from analyzer.services.live_schema_context import (LiveSchemaContext,
-                                                           build_live_context)
+        from analyzer.services.live_schema_context import (
+            LiveSchemaContext,
+            build_live_context,
+        )
 
         ctx = None
         if isinstance(connection_string, LiveSchemaContext):

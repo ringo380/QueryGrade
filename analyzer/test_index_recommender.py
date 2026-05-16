@@ -4,17 +4,24 @@ from __future__ import annotations
 
 from django.test import TestCase
 
-from analyzer.services.index_recommender import (Confidence, IndexRecommender,
-                                                 Redundancy,
-                                                 classify_redundancy,
-                                                 extract_candidates)
-from analyzer.services.index_script_generator import (create_index_sql,
-                                                      drop_index_sql,
-                                                      quote_ident,
-                                                      suggest_index_name)
-from analyzer.services.live_schema_context import (IndexSnapshot,
-                                                   LiveSchemaContext,
-                                                   TableSnapshot)
+from analyzer.services.index_recommender import (
+    Confidence,
+    IndexRecommender,
+    Redundancy,
+    classify_redundancy,
+    extract_candidates,
+)
+from analyzer.services.index_script_generator import (
+    create_index_sql,
+    drop_index_sql,
+    quote_ident,
+    suggest_index_name,
+)
+from analyzer.services.live_schema_context import (
+    IndexSnapshot,
+    LiveSchemaContext,
+    TableSnapshot,
+)
 
 
 def _schema(*, engine="postgresql", existing_indexes=None, row_count=1_000_000):

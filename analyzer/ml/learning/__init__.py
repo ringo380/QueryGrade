@@ -8,11 +8,15 @@ This package contains incremental and continuous learning components:
 All learning modules are production-ready.
 """
 
-from .incremental_engine import (AdaptiveLearningRateScheduler,
-                                 ConceptDriftAlert, ConceptDriftDetector,
-                                 IncrementalLearningEngine,
-                                 IncrementalRandomForest, LearningInstance,
-                                 LearningMetrics)
+from .incremental_engine import (
+    AdaptiveLearningRateScheduler,
+    ConceptDriftAlert,
+    ConceptDriftDetector,
+    IncrementalLearningEngine,
+    IncrementalRandomForest,
+    LearningInstance,
+    LearningMetrics,
+)
 
 __all__ = [
     "IncrementalLearningEngine",

@@ -18,8 +18,7 @@ from django.utils import timezone
 
 try:
     import joblib
-    from sklearn.ensemble import (GradientBoostingRegressor,
-                                  RandomForestRegressor)
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.metrics import mean_squared_error, r2_score
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import StandardScaler
@@ -29,8 +28,7 @@ except ImportError:
     SKLEARN_AVAILABLE = False
     logging.warning("scikit-learn not available. ML functionality will be limited.")
 
-from ...models import (LearningMetrics, MLModel, Query, QueryAnalysis,
-                       TrainingData)
+from ...models import LearningMetrics, MLModel, Query, QueryAnalysis, TrainingData
 from ...query_analyzer import QueryGrader as RuleBasedGrader
 from .feature_extractor import FeatureExtractor
 from .feedback_collector import FeedbackCollector

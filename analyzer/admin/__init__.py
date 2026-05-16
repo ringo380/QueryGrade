@@ -20,8 +20,13 @@ admin.site.site_header = "QueryGrade ML Administration"
 admin.site.site_title = "QueryGrade ML Admin"
 admin.site.index_title = "Machine Learning Dashboard"
 
-from .ml_admin import (FeedbackLearningAdmin, LearningMetricsAdmin,
-                       MLModelAdmin, TrainingDataAdmin)
+from .ml_admin import (
+    FeedbackLearningAdmin,
+    LearningMetricsAdmin,
+    MLModelAdmin,
+    TrainingDataAdmin,
+)
+
 # Export admin classes for explicit imports if needed
 from .query_admin import QueryAdmin
 from .user_admin import QueryFeedbackAdmin, UserQueryHistoryAdmin

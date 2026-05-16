@@ -12,8 +12,12 @@ from django.test import Client, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from analyzer.database_introspector import TableInfo
-from analyzer.models import (Query, QueryAnalysis, UserDatabaseConnection,
-                             UserQueryHistory)
+from analyzer.models import (
+    Query,
+    QueryAnalysis,
+    UserDatabaseConnection,
+    UserQueryHistory,
+)
 from analyzer.services import connection_crypto, live_schema_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode()

@@ -46,11 +46,12 @@ import sqlparse
 from sqlparse.sql import Identifier, IdentifierList, Where
 from sqlparse.tokens import Keyword
 
-from analyzer.services.index_script_generator import (create_index_sql,
-                                                      drop_index_sql,
-                                                      suggest_index_name)
-from analyzer.services.live_schema_context import (LiveSchemaContext,
-                                                   TableSnapshot)
+from analyzer.services.index_script_generator import (
+    create_index_sql,
+    drop_index_sql,
+    suggest_index_name,
+)
+from analyzer.services.live_schema_context import LiveSchemaContext, TableSnapshot
 
 logger = logging.getLogger(__name__)
 

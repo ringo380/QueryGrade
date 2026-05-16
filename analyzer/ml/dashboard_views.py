@@ -17,8 +17,15 @@ from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_http_methods
 
-from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
-                             QueryFeedback, TrainingData, UserQueryHistory)
+from analyzer.models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 from .core.hybrid_grader import HybridQueryGrader
 from .core.training_pipeline import TrainingPipelineManager

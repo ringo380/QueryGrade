@@ -26,8 +26,7 @@ class IncrementalLearningEngineInitializationTestCase(TestCase):
 
     def test_engine_initialization(self):
         """Test basic engine initialization"""
-        from analyzer.ml.learning.incremental_engine import \
-            IncrementalLearningEngine
+        from analyzer.ml.learning.incremental_engine import IncrementalLearningEngine
 
         engine = IncrementalLearningEngine()
 
@@ -38,8 +37,7 @@ class IncrementalLearningEngineInitializationTestCase(TestCase):
 
     def test_models_initialization(self):
         """Test model initialization"""
-        from analyzer.ml.learning.incremental_engine import \
-            IncrementalLearningEngine
+        from analyzer.ml.learning.incremental_engine import IncrementalLearningEngine
 
         engine = IncrementalLearningEngine()
         success = engine.initialize_models()
@@ -50,8 +48,9 @@ class IncrementalLearningEngineInitializationTestCase(TestCase):
 
     def test_learning_rate_scheduler_init(self):
         """Test learning rate scheduler initialization"""
-        from analyzer.ml.learning.incremental_engine import \
-            AdaptiveLearningRateScheduler
+        from analyzer.ml.learning.incremental_engine import (
+            AdaptiveLearningRateScheduler,
+        )
 
         scheduler = AdaptiveLearningRateScheduler(
             initial_lr=0.01, min_lr=1e-6, max_lr=0.1
@@ -64,8 +63,7 @@ class IncrementalLearningEngineInitializationTestCase(TestCase):
 
     def test_drift_detector_initialization(self):
         """Test concept drift detector initialization"""
-        from analyzer.ml.learning.incremental_engine import \
-            ConceptDriftDetector
+        from analyzer.ml.learning.incremental_engine import ConceptDriftDetector
 
         detector = ConceptDriftDetector(window_size=100, sensitivity=0.05)
 
@@ -80,8 +78,7 @@ class IncrementalLearningProcessingTestCase(TestCase):
 
     def setUp(self):
         """Set up test engine"""
-        from analyzer.ml.learning.incremental_engine import \
-            IncrementalLearningEngine
+        from analyzer.ml.learning.incremental_engine import IncrementalLearningEngine
 
         self.engine = IncrementalLearningEngine()
         self.engine.initialize_models()
@@ -157,8 +154,9 @@ class IncrementalLearningProcessingTestCase(TestCase):
 
     def test_learning_rate_adaptation(self):
         """Test adaptive learning rate updates"""
-        from analyzer.ml.learning.incremental_engine import \
-            AdaptiveLearningRateScheduler
+        from analyzer.ml.learning.incremental_engine import (
+            AdaptiveLearningRateScheduler,
+        )
 
         scheduler = AdaptiveLearningRateScheduler()
 
@@ -174,8 +172,7 @@ class IncrementalLearningProcessingTestCase(TestCase):
 
     def test_concept_drift_detection(self):
         """Test concept drift detection"""
-        from analyzer.ml.learning.incremental_engine import \
-            ConceptDriftDetector
+        from analyzer.ml.learning.incremental_engine import ConceptDriftDetector
 
         detector = ConceptDriftDetector(window_size=50, sensitivity=0.05)
 
@@ -196,8 +193,7 @@ class PerformanceTrackerInitializationTestCase(TestCase):
 
     def test_tracker_initialization(self):
         """Test performance tracker initialization"""
-        from analyzer.ml.monitoring.performance_tracker import \
-            PerformanceTracker
+        from analyzer.ml.monitoring.performance_tracker import PerformanceTracker
 
         tracker = PerformanceTracker()
 
@@ -210,8 +206,7 @@ class PerformanceTrackerInitializationTestCase(TestCase):
         """Test PerformanceMetrics dataclass structure"""
         from datetime import datetime
 
-        from analyzer.ml.monitoring.performance_tracker import \
-            PerformanceMetrics
+        from analyzer.ml.monitoring.performance_tracker import PerformanceMetrics
 
         metrics = PerformanceMetrics(
             model_id="test_model",
@@ -241,8 +236,7 @@ class PerformanceTrackingTestCase(TestCase):
 
     def setUp(self):
         """Set up test tracker"""
-        from analyzer.ml.monitoring.performance_tracker import \
-            PerformanceTracker
+        from analyzer.ml.monitoring.performance_tracker import PerformanceTracker
 
         self.tracker = PerformanceTracker()
 
@@ -308,8 +302,7 @@ class ConfidenceAnalyzerTestCase(TestCase):
 
     def setUp(self):
         """Set up test analyzer"""
-        from analyzer.ml.monitoring.confidence_analyzer import \
-            ConfidenceAnalyzer
+        from analyzer.ml.monitoring.confidence_analyzer import ConfidenceAnalyzer
 
         self.analyzer = ConfidenceAnalyzer()
 
@@ -432,8 +425,9 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_system_initialization(self):
         """Test retraining system initialization"""
-        from analyzer.ml.monitoring.retraining_system import \
-            ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -444,8 +438,9 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_confidence_metrics_gathering(self):
         """Test gathering confidence metrics"""
-        from analyzer.ml.monitoring.retraining_system import \
-            ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -467,8 +462,9 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_model_health_evaluation(self):
         """Test model health status evaluation"""
-        from analyzer.ml.monitoring.retraining_system import \
-            ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -492,8 +488,9 @@ class RetrainingSystemTestCase(TestCase):
 
     def test_retraining_trigger_evaluation(self):
         """Test retraining trigger evaluation"""
-        from analyzer.ml.monitoring.retraining_system import \
-            ConfidenceBasedRetrainingSystem
+        from analyzer.ml.monitoring.retraining_system import (
+            ConfidenceBasedRetrainingSystem,
+        )
 
         system = ConfidenceBasedRetrainingSystem()
 
@@ -557,8 +554,7 @@ class ABTestingTestCase(TestCase):
 
     def test_ab_test_initialization(self):
         """Test A/B test initialization"""
-        from analyzer.ml.monitoring.performance_tracker import \
-            ABTestingFramework
+        from analyzer.ml.monitoring.performance_tracker import ABTestingFramework
 
         framework = ABTestingFramework()
 
@@ -567,8 +563,7 @@ class ABTestingTestCase(TestCase):
 
     def test_ab_test_start(self):
         """Test starting an A/B test"""
-        from analyzer.ml.monitoring.performance_tracker import \
-            ABTestingFramework
+        from analyzer.ml.monitoring.performance_tracker import ABTestingFramework
 
         framework = ABTestingFramework()
 
@@ -579,8 +574,7 @@ class ABTestingTestCase(TestCase):
 
     def test_ab_test_result_recording(self):
         """Test recording A/B test results"""
-        from analyzer.ml.monitoring.performance_tracker import \
-            ABTestingFramework
+        from analyzer.ml.monitoring.performance_tracker import ABTestingFramework
 
         framework = ABTestingFramework()
         test_id = framework.start_ab_test("model_a", "model_b")
@@ -602,8 +596,7 @@ class ABTestingTestCase(TestCase):
 
     def test_ab_test_analysis(self):
         """Test A/B test analysis"""
-        from analyzer.ml.monitoring.performance_tracker import \
-            ABTestingFramework
+        from analyzer.ml.monitoring.performance_tracker import ABTestingFramework
 
         framework = ABTestingFramework()
         test_id = framework.start_ab_test("model_a", "model_b")

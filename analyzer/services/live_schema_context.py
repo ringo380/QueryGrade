@@ -91,10 +91,12 @@ class LiveSchemaContext:
         The manager is consumed by ``analyzer/ml/integration/database_stats.py``
         for selectivity / cardinality estimates already used elsewhere.
         """
-        from analyzer.ml.integration.database_stats import (ColumnStatistics,
-                                                            DataDistribution,
-                                                            IndexStatistics,
-                                                            TableStatistics)
+        from analyzer.ml.integration.database_stats import (
+            ColumnStatistics,
+            DataDistribution,
+            IndexStatistics,
+            TableStatistics,
+        )
 
         for tbl in self.tables.values():
             manager.table_stats[tbl.name] = TableStatistics(

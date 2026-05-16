@@ -6,8 +6,12 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .database_introspector import (ColumnInfo, DatabaseIntrospector,
-                                    IndexInfo, TableInfo)
+from .database_introspector import (
+    ColumnInfo,
+    DatabaseIntrospector,
+    IndexInfo,
+    TableInfo,
+)
 from .forms import DatabaseConnectionForm
 
 

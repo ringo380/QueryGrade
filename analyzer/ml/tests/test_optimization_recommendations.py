@@ -34,7 +34,9 @@ class QueryPlanPredictorInitializationTestCase(TestCase):
     def test_cost_models_initialization(self):
         """Test cost models are initialized correctly"""
         from analyzer.ml.optimization.plan_predictor import (
-            PlanNodeType, QueryPlanPredictor)
+            PlanNodeType,
+            QueryPlanPredictor,
+        )
 
         predictor = QueryPlanPredictor()
 
@@ -221,8 +223,7 @@ class IntelligentQueryRewriterInitializationTestCase(TestCase):
 
     def test_rewriter_initialization(self):
         """Test rewriter initialization"""
-        from analyzer.ml.optimization.query_rewriter import \
-            IntelligentQueryRewriter
+        from analyzer.ml.optimization.query_rewriter import IntelligentQueryRewriter
 
         rewriter = IntelligentQueryRewriter()
 
@@ -233,7 +234,9 @@ class IntelligentQueryRewriterInitializationTestCase(TestCase):
     def test_rewrite_patterns_structure(self):
         """Test rewrite patterns are properly structured"""
         from analyzer.ml.optimization.query_rewriter import (
-            IntelligentQueryRewriter, RewriteRule)
+            IntelligentQueryRewriter,
+            RewriteRule,
+        )
 
         rewriter = IntelligentQueryRewriter()
 
@@ -247,8 +250,7 @@ class QueryRewriteTestCase(TestCase):
 
     def setUp(self):
         """Set up test rewriter"""
-        from analyzer.ml.optimization.query_rewriter import \
-            IntelligentQueryRewriter
+        from analyzer.ml.optimization.query_rewriter import IntelligentQueryRewriter
 
         self.rewriter = IntelligentQueryRewriter()
 
@@ -338,8 +340,7 @@ class RewriteMetricsTestCase(TestCase):
 
     def setUp(self):
         """Set up test rewriter"""
-        from analyzer.ml.optimization.query_rewriter import \
-            IntelligentQueryRewriter
+        from analyzer.ml.optimization.query_rewriter import IntelligentQueryRewriter
 
         self.rewriter = IntelligentQueryRewriter()
 
@@ -397,8 +398,7 @@ class AlternativeApproachesTestCase(TestCase):
 
     def setUp(self):
         """Set up test rewriter"""
-        from analyzer.ml.optimization.query_rewriter import \
-            IntelligentQueryRewriter
+        from analyzer.ml.optimization.query_rewriter import IntelligentQueryRewriter
 
         self.rewriter = IntelligentQueryRewriter()
 
@@ -458,8 +458,7 @@ class CostModelTestCase(TestCase):
 
     def test_table_scan_cost_calculation(self):
         """Test table scan cost calculation"""
-        from analyzer.ml.optimization.plan_predictor import (PlanNode,
-                                                             PlanNodeType)
+        from analyzer.ml.optimization.plan_predictor import PlanNode, PlanNodeType
 
         node = PlanNode(
             node_type=PlanNodeType.TABLE_SCAN,
@@ -474,8 +473,7 @@ class CostModelTestCase(TestCase):
 
     def test_join_cost_calculation(self):
         """Test join cost calculation"""
-        from analyzer.ml.optimization.plan_predictor import (PlanNode,
-                                                             PlanNodeType)
+        from analyzer.ml.optimization.plan_predictor import PlanNode, PlanNodeType
 
         join_node = PlanNode(
             node_type=PlanNodeType.HASH_JOIN,
@@ -493,8 +491,7 @@ class CostModelTestCase(TestCase):
 
     def test_sort_cost_calculation(self):
         """Test sort cost calculation"""
-        from analyzer.ml.optimization.plan_predictor import (PlanNode,
-                                                             PlanNodeType)
+        from analyzer.ml.optimization.plan_predictor import PlanNode, PlanNodeType
 
         sort_node = PlanNode(
             node_type=PlanNodeType.SORT, estimated_cost=0.0, estimated_rows=10000

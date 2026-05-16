@@ -24,15 +24,19 @@ from django_ratelimit.decorators import ratelimit
 
 from ..db_versions import DATABASE_VERSIONS
 from ..forms import BatchQueryForm, QueryCompareForm, QueryGradeForm
-from ..ml.analysis.unified_analyzer import (AnalysisRequest,
-                                            UnifiedQueryAnalyzer)
+from ..ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..performance import PerformanceMonitor
 from ..query_analyzer import analyze_query
 from ..query_optimizer import optimize_query_from_analysis
-from .constants import (ANON_ANALYSIS_HISTORY_LIMIT, ANON_ANALYSIS_SESSION_KEY,
-                        ANON_QUERY_RATE_LIMIT, ANON_TRIAL_COUNT_KEY,
-                        GRADE_COLORS, QUERY_RATE_LIMIT)
+from .constants import (
+    ANON_ANALYSIS_HISTORY_LIMIT,
+    ANON_ANALYSIS_SESSION_KEY,
+    ANON_QUERY_RATE_LIMIT,
+    ANON_TRIAL_COUNT_KEY,
+    GRADE_COLORS,
+    QUERY_RATE_LIMIT,
+)
 from .utils import anon_trial_state, get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -98,10 +102,10 @@ def grade_query(request):
                 )
                 if db_connection is not None:
                     try:
-                        from analyzer.services.index_recommender import \
-                            IndexRecommender
-                        from analyzer.services.live_schema_context import \
-                            build_live_context
+                        from analyzer.services.index_recommender import IndexRecommender
+                        from analyzer.services.live_schema_context import (
+                            build_live_context,
+                        )
 
                         live_schema = build_live_context(db_connection)
                         rec_result = IndexRecommender(
@@ -110,8 +114,9 @@ def grade_query(request):
                         payload = rec_result.to_dict()
                         # Capture index-aware ML features for future training
                         try:
-                            from analyzer.ml.core.feature_extractor import \
-                                FeatureExtractor
+                            from analyzer.ml.core.feature_extractor import (
+                                FeatureExtractor,
+                            )
 
                             payload[
                                 "index_features"

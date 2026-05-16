@@ -10,9 +10,11 @@ from ..analytics import send_ga4_event, synthetic_client_id
 from ..exceptions import QueryAnalysisError
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..query_analyzer import analyze_query
-from ..serializers import (BatchQueryRequestSerializer,
-                           QueryGradeRequestSerializer,
-                           QueryGradeResponseSerializer)
+from ..serializers import (
+    BatchQueryRequestSerializer,
+    QueryGradeRequestSerializer,
+    QueryGradeResponseSerializer,
+)
 
 logger = logging.getLogger(__name__)
 

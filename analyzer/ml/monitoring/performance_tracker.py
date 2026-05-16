@@ -26,8 +26,7 @@ from django.utils import timezone
 
 try:
     from scipy import stats
-    from sklearn.metrics import (mean_absolute_error, mean_squared_error,
-                                 r2_score)
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
     SKLEARN_AVAILABLE = True
 except ImportError:

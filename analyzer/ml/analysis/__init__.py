@@ -14,14 +14,11 @@ of SQL query analysis:
 All analyzers in this package are production-ready.
 """
 
-from .anti_pattern_detector import (AntiPatternDetector,
-                                    analyze_query_antipatterns)
+from .anti_pattern_detector import AntiPatternDetector, analyze_query_antipatterns
 from .complexity_analyzer import QueryComplexityAnalyzer
 from .pattern_library import QueryPatternLibrary, analyze_query_patterns
-from .semantic_analyzer import (SemanticFeatureExtractor,
-                                analyze_query_semantics)
-from .unified_analyzer import (AnalysisRequest, AnalysisResult,
-                               UnifiedQueryAnalyzer)
+from .semantic_analyzer import SemanticFeatureExtractor, analyze_query_semantics
+from .unified_analyzer import AnalysisRequest, AnalysisResult, UnifiedQueryAnalyzer
 from .workload_patterns import WorkloadPatternRecognizer, analyze_workload
 
 __all__ = [

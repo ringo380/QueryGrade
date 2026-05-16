@@ -20,8 +20,15 @@ from django.db import transaction
 from django.db.models import Avg, Count, Max, Min
 from django.utils import timezone
 
-from ...models import (FeedbackLearning, LearningMetrics, MLModel, Query,
-                       QueryAnalysis, TrainingData, UserQueryHistory)
+from ...models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryAnalysis,
+    TrainingData,
+    UserQueryHistory,
+)
 from .confidence_analyzer import ConfidenceAnalyzer
 from .drift_detection import DataDriftDetector, PerformanceMonitor
 

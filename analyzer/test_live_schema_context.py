@@ -12,11 +12,13 @@ from django.test import TestCase, override_settings
 
 from analyzer.models import UserDatabaseConnection
 from analyzer.services import connection_crypto, live_schema_context
-from analyzer.services.live_schema_context import (IndexSnapshot,
-                                                   LiveSchemaContext,
-                                                   TableSnapshot,
-                                                   build_live_context,
-                                                   schema_fingerprint)
+from analyzer.services.live_schema_context import (
+    IndexSnapshot,
+    LiveSchemaContext,
+    TableSnapshot,
+    build_live_context,
+    schema_fingerprint,
+)
 
 TEST_FERNET_KEY = Fernet.generate_key().decode()
 
@@ -119,8 +121,7 @@ class LiveSchemaContextTests(TestCase):
         self.assertNotEqual(schema_fingerprint(ctx_a), schema_fingerprint(ctx_c))
 
     def test_hydrate_statistics_manager(self):
-        from analyzer.ml.integration.database_stats import \
-            DatabaseStatisticsManager
+        from analyzer.ml.integration.database_stats import DatabaseStatisticsManager
 
         ctx = LiveSchemaContext(
             engine="postgresql",
@@ -139,8 +140,7 @@ class LiveSchemaContextTests(TestCase):
         self.assertIn("customer_id", mgr.column_stats["orders"])
 
     def test_fetch_live_statistics_accepts_context(self):
-        from analyzer.ml.integration.database_stats import \
-            DatabaseStatisticsManager
+        from analyzer.ml.integration.database_stats import DatabaseStatisticsManager
 
         ctx = LiveSchemaContext(
             engine="postgresql", database="d", tables={"orders": self._fake_table()}

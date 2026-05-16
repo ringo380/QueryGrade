@@ -15,8 +15,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from django.contrib.auth.models import User
 
-from ..ml.analysis.unified_analyzer import (AnalysisRequest,
-                                            UnifiedQueryAnalyzer)
+from ..ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
 from ..models import Query, QueryAnalysis, UserQueryHistory
 from ..query_analyzer import analyze_query
 

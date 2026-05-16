@@ -16,8 +16,11 @@ with existing imports: `from analyzer.api_views import grade_query_api`
 from .analytics_api import user_stats_api
 from .feedback_api import submit_feedback_api
 from .health_api import api_health
-from .history_api import (QueryAnalysisDetailAPIView, QueryHistoryListAPIView,
-                          delete_query_history)
+from .history_api import (
+    QueryAnalysisDetailAPIView,
+    QueryHistoryListAPIView,
+    delete_query_history,
+)
 from .pagination import QueryGradingPagination
 from .query_grading_api import batch_analysis_api, grade_query_api
 

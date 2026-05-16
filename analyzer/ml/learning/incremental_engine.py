@@ -28,8 +28,7 @@ try:
     from sklearn.base import BaseEstimator, RegressorMixin
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
-    from sklearn.metrics import (mean_absolute_error, mean_squared_error,
-                                 r2_score)
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from sklearn.preprocessing import StandardScaler
 
     SKLEARN_AVAILABLE = True
@@ -40,8 +39,7 @@ except ImportError:
     )
 
 from analyzer.ml.core.feature_extractor import FeatureExtractor
-from analyzer.models import (LearningMetrics, MLModel, Query, QueryAnalysis,
-                             TrainingData)
+from analyzer.models import LearningMetrics, MLModel, Query, QueryAnalysis, TrainingData
 
 logger = logging.getLogger(__name__)
 

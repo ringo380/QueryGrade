@@ -25,8 +25,11 @@ from django.utils import timezone
 from sqlparse import sql, tokens
 
 from ...models import Query, QueryAnalysis, TrainingData
-from .documentation_loader import (BenchmarkResult, DocumentationLoader,
-                                   DocumentationRule)
+from .documentation_loader import (
+    BenchmarkResult,
+    DocumentationLoader,
+    DocumentationRule,
+)
 
 logger = logging.getLogger(__name__)
 

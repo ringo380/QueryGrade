@@ -10,9 +10,13 @@ from django.core.cache import caches
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from ..ensemble.voting_system import (AggregationMethod, EnsembleVotingSystem,
-                                      ModelPrediction, VotingResult,
-                                      VotingStrategy)
+from ..ensemble.voting_system import (
+    AggregationMethod,
+    EnsembleVotingSystem,
+    ModelPrediction,
+    VotingResult,
+    VotingStrategy,
+)
 
 # Use DummyCache for tests to avoid Redis dependencies
 TEST_CACHES = {
