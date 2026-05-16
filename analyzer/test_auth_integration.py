@@ -37,7 +37,7 @@ class AuthenticationWorkflowTestCase(TestCase):
         # Get registration page
         response = self.client.get(reverse("register"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Create Account")
+        self.assertContains(response, "Create account")
 
         # Submit registration
         response = self.client.post(
@@ -72,7 +72,7 @@ class AuthenticationWorkflowTestCase(TestCase):
         # Get login page
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Welcome Back")
+        self.assertContains(response, "Welcome back")
 
         # Login with correct credentials
         response = self.client.post(
@@ -101,7 +101,7 @@ class AuthenticationWorkflowTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Verify user is not authenticated by checking the response content
-        self.assertContains(response, "Welcome Back")
+        self.assertContains(response, "Welcome back")
 
     def test_login_with_invalid_credentials(self):
         """Test login with wrong password."""
@@ -155,7 +155,7 @@ class AuthenticationWorkflowTestCase(TestCase):
         # Get password reset page
         response = self.client.get(reverse("password_reset"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Reset Password")
+        self.assertContains(response, "Reset password")
 
         # Submit password reset request
         response = self.client.post(
@@ -188,7 +188,7 @@ class AuthenticationWorkflowTestCase(TestCase):
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Set New Password")
+        self.assertContains(response, "Set new password")
 
         # Submit new password
         new_password = "NewSecurePass456!"
@@ -246,7 +246,7 @@ class AuthenticationWorkflowTestCase(TestCase):
         # Get password change page
         response = self.client.get(reverse("password_change"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Change Password")
+        self.assertContains(response, "Change password")
 
         # Submit password change
         new_password = "NewPassword789!"
@@ -309,9 +309,9 @@ class AuthenticationWorkflowTestCase(TestCase):
         # Access account page
         response = self.client.get(reverse("account"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "My Account")
+        self.assertContains(response, "My account")
         self.assertContains(response, self.test_username)
-        self.assertContains(response, "Activity Statistics")
+        self.assertContains(response, "Activity")
 
     def test_account_page_requires_login(self):
         """Test account page redirects unauthenticated users."""
@@ -420,7 +420,7 @@ class NavigationTestCase(TestCase):
 
         # Should show authenticated menu items
         content = response.content.decode()
-        self.assertIn("Grade Query", content)
+        self.assertIn('data-nav="grade"', content)
         self.assertIn("History", content)
         self.assertIn("testuser", content)
 
