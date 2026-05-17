@@ -1,0 +1,26 @@
+[{{ severity_display }}] ML alert: {{ alert_type_display }} on {{ model.name }} v{{ model.version }}
+
+{{ alert.message }}
+
+──────────────────────────────────────────────────────────────────────
+Model:       {{ model.name }} v{{ model.version }} ({{ model.get_model_type_display }})
+Status:      {{ model.get_status_display }}
+Alert type:  {{ alert_type_display }}
+Severity:    {{ severity_display }}
+Raised at:   {{ alert.created_at|date:"Y-m-d H:i T" }}
+──────────────────────────────────────────────────────────────────────
+
+{% if alert.payload.evidence %}Evidence:
+{% for key, value in alert.payload.evidence.items %}  · {{ key }}: {{ value }}
+{% endfor %}{% endif %}{% if alert.payload.estimated_improvement %}
+Estimated improvement from retrain: {{ alert.payload.estimated_improvement|floatformat:3 }}
+{% endif %}
+
+Review and triage this alert:
+{{ alert_url }}
+
+──────────────────────────────────────────────────────────────────────
+QueryGrade ML monitoring — issue #5
+
+Further alerts of this same type for this same model will be suppressed
+for 4 hours per recipient to avoid pager-bombing on a flapping detector.

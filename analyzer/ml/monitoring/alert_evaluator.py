@@ -137,12 +137,21 @@ def trigger_to_alert(trigger: RetrainingTrigger, model: MLModel) -> Optional[MLA
 
 
 def run_evaluation() -> Tuple[List[MLAlert], int]:
-    """Run a full monitoring evaluation, persist new alerts, return them.
+    """Run a full monitoring evaluation, persist new alerts, send emails,
+    return the new alerts.
 
     Returns (created_alerts, skipped_count). The skipped count tracks how
     many triggers were deduped against a recent open alert — useful for
     monitoring task logging without leaking warnings on every healthy run.
+
+    Email delivery is best-effort: the MLAlert row is persisted first, then
+    the notifier is called. Mail failures are logged but don't fail the
+    evaluation — the alert is still visible in the dashboard / admin.
     """
+    # Import here so settings/email backend init happens at call time, not
+    # at module import (matters for test isolation + the worker startup path).
+    from analyzer.ml.monitoring.alert_notifier import send_alert_email
+
     target = _active_target_model()
     if target is None:
         logger.info("No ACTIVE MLModel found; skipping evaluation.")
@@ -159,6 +168,12 @@ def run_evaluation() -> Tuple[List[MLAlert], int]:
             skipped += 1
         else:
             created.append(alert)
+            try:
+                send_alert_email(alert)
+            except Exception as exc:
+                logger.exception(
+                    "send_alert_email failed for alert id=%s: %s", alert.pk, exc
+                )
 
     logger.info(
         "Evaluation complete: triggers=%d, created=%d, skipped=%d, target_model=%s",
