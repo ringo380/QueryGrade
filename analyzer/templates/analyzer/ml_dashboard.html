@@ -10,7 +10,13 @@
       <h1 class="text-2xl font-bold text-gray-900">📈 ML performance dashboard</h1>
       <p class="mt-1 text-sm text-gray-500">Real-time monitoring of ML system performance and user satisfaction.</p>
     </div>
-    <div class="text-xs text-gray-500">Last updated: <span id="last-update">—</span></div>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'ml_alerts' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-gray-300 dark:border-[#1f1f23] text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#17181c]">
+        <span>🚨</span>
+        <span>Alerts</span>
+      </a>
+      <div class="text-xs text-gray-500">Last updated: <span id="last-update">—</span></div>
+    </div>
   </header>
 
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

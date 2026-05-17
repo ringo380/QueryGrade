@@ -1,0 +1,181 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block title %}ML alerts · QueryGrade{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🚨 ML alerts</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Drift, performance, and confidence triggers from the periodic monitoring task.
+        <a href="{% url 'ml_dashboard' %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">← Back to dashboard</a>
+      </p>
+    </div>
+    <div class="text-right">
+      <div class="text-3xl font-bold text-red-600 dark:text-red-400">{{ open_count }}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Open</div>
+    </div>
+  </header>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="rounded-md p-3 text-sm
+        {% if message.tags == 'success' %}bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800
+        {% elif message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800
+        {% else %}bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500">False-positive rate (rolling {{ fpr.window_days }}d)</div>
+      <div class="mt-2 text-3xl font-bold
+        {% if fpr.fpr_pct is None %}text-gray-400
+        {% elif fpr.fpr_pct <= 5 %}text-emerald-600 dark:text-emerald-400
+        {% elif fpr.fpr_pct <= 15 %}text-amber-600 dark:text-amber-400
+        {% else %}text-red-600 dark:text-red-400{% endif %}">
+        {% if fpr.fpr_pct is None %}—{% else %}{{ fpr.fpr_pct|floatformat:1 }}%{% endif %}
+      </div>
+      <div class="text-xs text-gray-500 mt-1">
+        {{ fpr.fp_count }} false positive · {{ fpr.resolved_count }} resolved
+        {% if fpr.fpr_pct is not None %}· target &lt;5%{% endif %}
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500">Active models</div>
+      <div class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ active_models|length }}</div>
+      <div class="text-xs text-gray-500 mt-1">
+        {% for m in active_models %}{{ m.name }} v{{ m.version }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] p-5">
+      <div class="text-xs uppercase tracking-wide text-gray-500">Monitoring schedule</div>
+      <div class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">15 min</div>
+      <div class="text-xs text-gray-500 mt-1">Celery Beat → <code>analyzer.tasks.monitor_ml_models</code></div>
+    </div>
+  </section>
+
+  <form method="get" class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] p-4 flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Status</label>
+      <input type="text" name="status" value="{{ current_status }}" placeholder="OPEN,ACKNOWLEDGED" class="mt-1 px-2 py-1 border border-gray-300 dark:border-[#1f1f23] rounded bg-white dark:bg-[#0a0a0a] text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Severity</label>
+      <input type="text" name="severity" value="{{ current_severity }}" placeholder="CRITICAL,HIGH" class="mt-1 px-2 py-1 border border-gray-300 dark:border-[#1f1f23] rounded bg-white dark:bg-[#0a0a0a] text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Model</label>
+      <select name="model" class="mt-1 px-2 py-1 border border-gray-300 dark:border-[#1f1f23] rounded bg-white dark:bg-[#0a0a0a] text-sm">
+        <option value="">All</option>
+        {% for m in active_models %}
+          <option value="{{ m.id }}" {% if current_model == m.id|stringformat:"s" %}selected{% endif %}>{{ m.name }} v{{ m.version }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">Filter</button>
+    <a href="{% url 'ml_alerts' %}" class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:underline">Clear</a>
+  </form>
+
+  <section class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] overflow-hidden">
+    {% if alerts %}
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-[#17181c] text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wide">
+        <tr>
+          <th class="text-left px-4 py-2">When</th>
+          <th class="text-left px-4 py-2">Severity</th>
+          <th class="text-left px-4 py-2">Type</th>
+          <th class="text-left px-4 py-2">Model</th>
+          <th class="text-left px-4 py-2">Status</th>
+          <th class="text-left px-4 py-2">Message</th>
+          <th class="text-right px-4 py-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr class="border-t border-gray-100 dark:border-[#1f1f23]
+          {% if alert.severity == 'CRITICAL' and alert.is_open %}bg-red-50 dark:bg-red-900/10{% endif %}">
+          <td class="px-4 py-2 text-gray-700 dark:text-gray-300 text-xs">{{ alert.created_at|date:"Y-m-d H:i" }}</td>
+          <td class="px-4 py-2">
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+              {% if alert.severity == 'CRITICAL' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200
+              {% elif alert.severity == 'HIGH' %}bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200
+              {% elif alert.severity == 'MEDIUM' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200
+              {% else %}bg-gray-100 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300{% endif %}">
+              {{ alert.get_severity_display }}
+            </span>
+          </td>
+          <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ alert.get_alert_type_display }}</td>
+          <td class="px-4 py-2 text-gray-700 dark:text-gray-300 text-xs">{{ alert.model.name }} v{{ alert.model.version }}</td>
+          <td class="px-4 py-2 text-xs">
+            <span class="px-2 py-0.5 rounded
+              {% if alert.status == 'OPEN' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200
+              {% elif alert.status == 'ACKNOWLEDGED' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200
+              {% elif alert.status == 'RESOLVED' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200
+              {% else %}bg-gray-100 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300{% endif %}">
+              {{ alert.get_status_display }}
+            </span>
+          </td>
+          <td class="px-4 py-2 text-gray-700 dark:text-gray-300 text-xs">{{ alert.message|truncatechars:80 }}</td>
+          <td class="px-4 py-2 text-right whitespace-nowrap">
+            {% if alert.status == 'OPEN' %}
+              <form method="post" action="{% url 'ml_alert_ack' alert.id %}" class="inline">
+                {% csrf_token %}
+                <button class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Ack</button>
+              </form>
+            {% endif %}
+            {% if not alert.is_terminal %}
+              <form method="post" action="{% url 'ml_alert_dismiss' alert.id %}" class="inline">
+                {% csrf_token %}
+                <button class="text-xs px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700">Resolve</button>
+              </form>
+              <form method="post" action="{% url 'ml_alert_false_positive' alert.id %}" class="inline">
+                {% csrf_token %}
+                <button class="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600" title="Mark as false positive — feeds the FPR widget">FP</button>
+              </form>
+            {% endif %}
+            {% if alert.model_can_rollback %}
+              <form method="post" action="{% url 'ml_model_rollback' alert.model.id %}" class="inline" onsubmit="return confirm('Roll back {{ alert.model.name }} v{{ alert.model.version }} to its prior version? This is reversible only via re-deployment.');">
+                {% csrf_token %}
+                <button class="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" title="Roll back to prior DEPRECATED version">Rollback</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if page_obj.has_other_pages %}
+    <div class="px-4 py-3 border-t border-gray-100 dark:border-[#1f1f23] flex items-center justify-between text-sm">
+      <div class="text-gray-500">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} alert{{ page_obj.paginator.count|pluralize }}
+      </div>
+      <div class="flex gap-2">
+        {% if page_obj.has_previous %}
+          <a class="px-2 py-1 border border-gray-300 dark:border-[#1f1f23] rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#17181c]" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_severity %}severity={{ current_severity }}&{% endif %}{% if current_model %}model={{ current_model }}&{% endif %}page={{ page_obj.previous_page_number }}">← Prev</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a class="px-2 py-1 border border-gray-300 dark:border-[#1f1f23] rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#17181c]" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_severity %}severity={{ current_severity }}&{% endif %}{% if current_model %}model={{ current_model }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="p-8 text-center text-gray-500">
+      <p class="text-2xl">✓</p>
+      <p class="mt-2 text-sm">No alerts match these filters.</p>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

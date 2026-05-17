@@ -1,27 +1,61 @@
 """
 Views for ML alert triage and manual rollback (issue #5).
 
-POST-only mutating endpoints, staff-only. The list view (GET /ml/alerts/)
-ships in PR 5 — this PR adds the action endpoints so the dashboard panel
-in PR 5 has working buttons from day one.
+POST-only mutating endpoints, staff-only. GET /ml/alerts/ renders the
+triage list with filters + rolling FPR widget.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from analyzer.ml.monitoring.rollback import can_rollback
 from analyzer.ml.monitoring.rollback import RollbackError, perform_rollback
 from analyzer.models import MLAlert, MLModel
 
 logger = logging.getLogger(__name__)
+
+
+FPR_WINDOW = timedelta(days=7)
+
+
+def _compute_fpr(window: timedelta = FPR_WINDOW) -> dict:
+    """Rolling false-positive rate across the resolved population.
+
+    Returns {fpr_pct, fp_count, resolved_count, total_terminal, window_days}.
+    `fpr_pct` is None when the resolved population is empty (avoid divide by
+    zero and avoid implying a meaningful rate from no data).
+    """
+    cutoff = timezone.now() - window
+    counts = MLAlert.objects.filter(
+        created_at__gte=cutoff,
+        status__in=("RESOLVED", "FALSE_POSITIVE"),
+    ).aggregate(
+        fp=Count("id", filter=Q(status="FALSE_POSITIVE")),
+        resolved=Count("id", filter=Q(status="RESOLVED")),
+    )
+    fp = counts["fp"] or 0
+    resolved = counts["resolved"] or 0
+    total = fp + resolved
+    fpr_pct = (100.0 * fp / total) if total else None
+    return {
+        "fpr_pct": fpr_pct,
+        "fp_count": fp,
+        "resolved_count": resolved,
+        "total_terminal": total,
+        "window_days": window.days,
+    }
 
 
 def _is_staff_or_superuser(user) -> bool:
@@ -126,3 +160,64 @@ def rollback_model(request, model_id: int):
         f"Rolled back {target.name} v{target.version}. Audit alert #{audit.pk} created.",
     )
     return _redirect_back(request)
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+def ml_alerts_list(request):
+    """Paginated triage list with severity/status filters + FPR widget.
+
+    Query params:
+      - status: comma-separated filter (default: OPEN,ACKNOWLEDGED)
+      - severity: comma-separated filter (default: all)
+      - model: model id filter
+      - page: pagination cursor
+    """
+    qs = MLAlert.objects.select_related("model", "acknowledged_by")
+
+    raw_status = request.GET.get("status", "OPEN,ACKNOWLEDGED")
+    status_filter = [s for s in (s.strip() for s in raw_status.split(",")) if s]
+    if status_filter and "all" not in status_filter:
+        qs = qs.filter(status__in=status_filter)
+
+    raw_severity = request.GET.get("severity", "")
+    severity_filter = [s for s in (s.strip() for s in raw_severity.split(",")) if s]
+    if severity_filter:
+        qs = qs.filter(severity__in=severity_filter)
+
+    model_filter = request.GET.get("model")
+    if model_filter:
+        try:
+            qs = qs.filter(model_id=int(model_filter))
+        except (TypeError, ValueError):
+            pass
+
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Decorate each alert with whether the underlying model is rollback-eligible
+    # (the dashboard renders a rollback button per row only when this is True).
+    page_alerts = list(page_obj.object_list)
+    seen_models = {}
+    for alert in page_alerts:
+        model = alert.model
+        if model.pk not in seen_models:
+            seen_models[model.pk] = can_rollback(model)
+        alert.model_can_rollback = seen_models[model.pk]
+
+    open_count = MLAlert.objects.filter(status="OPEN").count()
+    active_models = MLModel.objects.filter(status="ACTIVE")
+
+    context = {
+        "page_obj": page_obj,
+        "alerts": page_alerts,
+        "open_count": open_count,
+        "fpr": _compute_fpr(),
+        "active_models": active_models,
+        "status_choices": MLAlert.STATUS_CHOICES,
+        "severity_choices": MLAlert.SEVERITY_CHOICES,
+        "current_status": raw_status,
+        "current_severity": raw_severity,
+        "current_model": model_filter or "",
+    }
+    return render(request, "analyzer/ml_alerts.html", context)

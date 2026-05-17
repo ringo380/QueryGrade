@@ -141,7 +141,8 @@ urlpatterns = [
         dashboard_views.dashboard_api_trigger_training,
         name="ml_api_trigger_training",
     ),
-    # ML alert triage (issue #5). List view ships in PR 5 of the stack.
+    # ML alert triage (issue #5).
+    path("ml/alerts/", ml_alert_views.ml_alerts_list, name="ml_alerts"),
     path(
         "ml/alerts/<int:alert_id>/ack/",
         ml_alert_views.ack_alert,
