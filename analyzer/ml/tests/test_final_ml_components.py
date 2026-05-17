@@ -36,8 +36,7 @@ class MultiModelEnsembleInitializationTestCase(TestCase):
 
     def test_default_configurations(self):
         """Test default model configurations"""
-        from analyzer.ml.ensemble.multi_model import (ModelType,
-                                                      MultiModelEnsemble)
+        from analyzer.ml.ensemble.multi_model import ModelType, MultiModelEnsemble
 
         ensemble = MultiModelEnsemble()
         configs = ensemble._get_default_configurations()
@@ -92,8 +91,7 @@ class ModelConfigurationTestCase(TestCase):
 
     def test_model_configuration_creation(self):
         """Test model configuration creation"""
-        from analyzer.ml.ensemble.multi_model import (ModelConfiguration,
-                                                      ModelType)
+        from analyzer.ml.ensemble.multi_model import ModelConfiguration, ModelType
 
         config = ModelConfiguration(
             model_type=ModelType.RANDOM_FOREST,
@@ -106,8 +104,7 @@ class ModelConfigurationTestCase(TestCase):
 
     def test_configuration_parameters(self):
         """Test configuration parameters are properly stored"""
-        from analyzer.ml.ensemble.multi_model import (ModelConfiguration,
-                                                      ModelType)
+        from analyzer.ml.ensemble.multi_model import ModelConfiguration, ModelType
 
         config = ModelConfiguration(
             model_type=ModelType.XGBOOST,
@@ -151,8 +148,7 @@ class DatabaseStatsTestCase(TestCase):
 
     def test_database_stats_initialization(self):
         """Test database statistics manager initialization"""
-        from analyzer.ml.integration.database_stats import \
-            DatabaseStatisticsManager
+        from analyzer.ml.integration.database_stats import DatabaseStatisticsManager
 
         stats = DatabaseStatisticsManager()
 
@@ -160,8 +156,7 @@ class DatabaseStatsTestCase(TestCase):
 
     def test_database_stats_methods_exist(self):
         """Test database statistics manager has expected methods"""
-        from analyzer.ml.integration.database_stats import \
-            DatabaseStatisticsManager
+        from analyzer.ml.integration.database_stats import DatabaseStatisticsManager
 
         stats = DatabaseStatisticsManager()
 
@@ -175,8 +170,7 @@ class DocumentationLoaderTestCase(TestCase):
 
     def test_documentation_loader_initialization(self):
         """Test documentation loader initialization"""
-        from analyzer.ml.integration.documentation_loader import \
-            DocumentationLoader
+        from analyzer.ml.integration.documentation_loader import DocumentationLoader
 
         loader = DocumentationLoader()
 
@@ -184,8 +178,7 @@ class DocumentationLoaderTestCase(TestCase):
 
     def test_documentation_loader_methods(self):
         """Test documentation loader has expected methods"""
-        from analyzer.ml.integration.documentation_loader import \
-            DocumentationLoader
+        from analyzer.ml.integration.documentation_loader import DocumentationLoader
 
         loader = DocumentationLoader()
 
@@ -381,12 +374,14 @@ class ComponentInitializationTestCase(TestCase):
 
     def test_all_ensemble_components_initialize(self):
         """Test all ensemble components initialize"""
-        from analyzer.ml.ensemble.multi_model import (ModelConfiguration,
-                                                      ModelType,
-                                                      MultiModelEnsemble,
-                                                      NeuralNetworkModel,
-                                                      RandomForestModel,
-                                                      XGBoostModel)
+        from analyzer.ml.ensemble.multi_model import (
+            ModelConfiguration,
+            ModelType,
+            MultiModelEnsemble,
+            NeuralNetworkModel,
+            RandomForestModel,
+            XGBoostModel,
+        )
 
         ensemble = MultiModelEnsemble()
         config = ModelConfiguration(
@@ -398,10 +393,8 @@ class ComponentInitializationTestCase(TestCase):
 
     def test_all_integration_components_initialize(self):
         """Test all integration components initialize"""
-        from analyzer.ml.integration.database_stats import \
-            DatabaseStatisticsManager
-        from analyzer.ml.integration.documentation_loader import \
-            DocumentationLoader
+        from analyzer.ml.integration.database_stats import DatabaseStatisticsManager
+        from analyzer.ml.integration.documentation_loader import DocumentationLoader
 
         db_stats = DatabaseStatisticsManager()
         doc_loader = DocumentationLoader()

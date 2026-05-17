@@ -4,22 +4,31 @@ from __future__ import annotations
 
 from django.test import TestCase
 
-from analyzer.services.index_recommender import (Confidence, IndexRecommender,
-                                                  Redundancy,
-                                                  classify_redundancy,
-                                                  extract_candidates)
-from analyzer.services.index_script_generator import (create_index_sql,
-                                                       drop_index_sql,
-                                                       quote_ident,
-                                                       suggest_index_name)
-from analyzer.services.live_schema_context import (IndexSnapshot,
-                                                    LiveSchemaContext,
-                                                    TableSnapshot)
+from analyzer.services.index_recommender import (
+    Confidence,
+    IndexRecommender,
+    Redundancy,
+    classify_redundancy,
+    extract_candidates,
+)
+from analyzer.services.index_script_generator import (
+    create_index_sql,
+    drop_index_sql,
+    quote_ident,
+    suggest_index_name,
+)
+from analyzer.services.live_schema_context import (
+    IndexSnapshot,
+    LiveSchemaContext,
+    TableSnapshot,
+)
 
 
 def _schema(*, engine="postgresql", existing_indexes=None, row_count=1_000_000):
     """Build a fixture schema with an `orders(id, customer_id, status, created_at)` table."""
-    indexes = [IndexSnapshot(name="orders_pkey", columns=["id"], unique=True, primary=True)]
+    indexes = [
+        IndexSnapshot(name="orders_pkey", columns=["id"], unique=True, primary=True)
+    ]
     for cols in existing_indexes or []:
         indexes.append(IndexSnapshot(name="idx_" + "_".join(cols), columns=list(cols)))
 
@@ -48,7 +57,9 @@ def _schema(*, engine="postgresql", existing_indexes=None, row_count=1_000_000):
 class CandidateExtractionTests(TestCase):
     def test_where_equality_qualified(self):
         cands = extract_candidates("SELECT * FROM orders WHERE orders.customer_id = 42")
-        self.assertTrue(any(c.table == "orders" and c.columns == ("customer_id",) for c in cands))
+        self.assertTrue(
+            any(c.table == "orders" and c.columns == ("customer_id",) for c in cands)
+        )
 
     def test_where_equality_unqualified_uses_schema(self):
         cands = extract_candidates(
@@ -65,13 +76,13 @@ class CandidateExtractionTests(TestCase):
         self.assertIn(("orders", ("created_at",), True), keys)
 
     def test_join_on_columns(self):
-        sql = (
-            "SELECT * FROM orders o JOIN customers c ON o.customer_id = c.id WHERE c.id = 1"
-        )
+        sql = "SELECT * FROM orders o JOIN customers c ON o.customer_id = c.id WHERE c.id = 1"
         cands = extract_candidates(sql)
         # Join produces both sides as candidates.
         names = {(c.table, c.columns) for c in cands}
-        self.assertTrue(any(t in {"o", "orders"} and cols == ("customer_id",) for t, cols in names))
+        self.assertTrue(
+            any(t in {"o", "orders"} and cols == ("customer_id",) for t, cols in names)
+        )
 
     def test_order_by_composite(self):
         cands = extract_candidates(
@@ -86,14 +97,20 @@ class RedundancyTests(TestCase):
         from analyzer.services.index_recommender import IndexCandidate
 
         snap = _schema(existing_indexes=[("customer_id",)]).get_table("orders")
-        cand = IndexCandidate(table="orders", columns=("customer_id",), clauses=["where_eq"])
+        cand = IndexCandidate(
+            table="orders", columns=("customer_id",), clauses=["where_eq"]
+        )
         self.assertEqual(classify_redundancy(cand, snap), Redundancy.EXACT)
 
     def test_subsumed_by_composite(self):
         from analyzer.services.index_recommender import IndexCandidate
 
-        snap = _schema(existing_indexes=[("customer_id", "created_at")]).get_table("orders")
-        cand = IndexCandidate(table="orders", columns=("customer_id",), clauses=["where_eq"])
+        snap = _schema(existing_indexes=[("customer_id", "created_at")]).get_table(
+            "orders"
+        )
+        cand = IndexCandidate(
+            table="orders", columns=("customer_id",), clauses=["where_eq"]
+        )
         self.assertEqual(classify_redundancy(cand, snap), Redundancy.SUBSUMED)
 
     def test_distinct_columns_not_redundant(self):
@@ -119,17 +136,19 @@ class ScriptGeneratorTests(TestCase):
             columns=["customer_id"],
             include=["status"],
         )
-        self.assertIn("CREATE INDEX idx_orders_customer_id ON orders (customer_id)", sql)
+        self.assertIn(
+            "CREATE INDEX idx_orders_customer_id ON orders (customer_id)", sql
+        )
         self.assertIn("INCLUDE (status)", sql)
 
     def test_mysql_create_index_uses_btree(self):
-        sql = create_index_sql(
-            engine="mysql", table="orders", columns=["customer_id"]
-        )
+        sql = create_index_sql(engine="mysql", table="orders", columns=["customer_id"])
         self.assertIn("USING BTREE", sql)
 
     def test_drop_index_engine_specific(self):
-        self.assertIn("ON", drop_index_sql(engine="mysql", index_name="x", table="orders"))
+        self.assertIn(
+            "ON", drop_index_sql(engine="mysql", index_name="x", table="orders")
+        )
         self.assertIn("IF EXISTS", drop_index_sql(engine="postgresql", index_name="x"))
 
     def test_suggest_index_name_truncates(self):

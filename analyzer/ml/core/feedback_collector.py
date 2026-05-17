@@ -13,8 +13,15 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
 
-from ...models import (FeedbackLearning, MLModel, Query, QueryAnalysis,
-                       QueryFeedback, TrainingData, UserQueryHistory)
+from ...models import (
+    FeedbackLearning,
+    MLModel,
+    Query,
+    QueryAnalysis,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 logger = logging.getLogger(__name__)
 

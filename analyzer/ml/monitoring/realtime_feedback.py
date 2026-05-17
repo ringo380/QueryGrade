@@ -39,9 +39,16 @@ except ImportError:
 from analyzer.ml.core.feature_extractor import FeatureExtractor
 from analyzer.ml.core.feedback_collector import FeedbackCollector
 from analyzer.ml.core.hybrid_grader import HybridQueryGrader
-from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
-                             QueryAnalysis, QueryFeedback, TrainingData,
-                             UserQueryHistory)
+from analyzer.models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryAnalysis,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 logger = logging.getLogger(__name__)
 

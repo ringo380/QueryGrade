@@ -131,8 +131,10 @@ class UnifiedQueryAnalyzerCachingTestCase(TransactionTestCase):
 
     def test_cache_clear(self):
         """Test cache clearing"""
-        from analyzer.ml.analysis.unified_analyzer import (AnalysisRequest,
-                                                           AnalysisResult)
+        from analyzer.ml.analysis.unified_analyzer import (
+            AnalysisRequest,
+            AnalysisResult,
+        )
 
         # Add mock result to cache
         request = AnalysisRequest(query="SELECT * FROM users")
@@ -556,8 +558,7 @@ class AntiPatternDetectorInitializationTestCase(TestCase):
 
     def test_detector_initialization(self):
         """Test basic detector initialization"""
-        from analyzer.ml.analysis.anti_pattern_detector import \
-            AntiPatternDetector
+        from analyzer.ml.analysis.anti_pattern_detector import AntiPatternDetector
 
         detector = AntiPatternDetector()
 
@@ -567,8 +568,7 @@ class AntiPatternDetectorInitializationTestCase(TestCase):
 
     def test_patterns_compiled(self):
         """Test all regex patterns are compiled"""
-        from analyzer.ml.analysis.anti_pattern_detector import \
-            AntiPatternDetector
+        from analyzer.ml.analysis.anti_pattern_detector import AntiPatternDetector
 
         detector = AntiPatternDetector()
 
@@ -604,8 +604,7 @@ class AntiPatternDetectionTestCase(TestCase):
 
     def setUp(self):
         """Set up test detector"""
-        from analyzer.ml.analysis.anti_pattern_detector import \
-            AntiPatternDetector
+        from analyzer.ml.analysis.anti_pattern_detector import AntiPatternDetector
 
         self.detector = AntiPatternDetector()
 
@@ -678,8 +677,7 @@ class ComplexityAnalyzerInitializationTestCase(TestCase):
 
     def test_analyzer_initialization(self):
         """Test basic complexity analyzer initialization"""
-        from analyzer.ml.analysis.complexity_analyzer import \
-            QueryComplexityAnalyzer
+        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer
 
         analyzer = QueryComplexityAnalyzer()
 
@@ -690,7 +688,9 @@ class ComplexityAnalyzerInitializationTestCase(TestCase):
     def test_complexity_weights_initialization(self):
         """Test complexity weights are properly initialized"""
         from analyzer.ml.analysis.complexity_analyzer import (
-            ComplexityDimension, QueryComplexityAnalyzer)
+            ComplexityDimension,
+            QueryComplexityAnalyzer,
+        )
 
         analyzer = QueryComplexityAnalyzer()
 
@@ -701,8 +701,7 @@ class ComplexityAnalyzerInitializationTestCase(TestCase):
 
     def test_complexity_categories_initialized(self):
         """Test complexity categories are initialized"""
-        from analyzer.ml.analysis.complexity_analyzer import \
-            QueryComplexityAnalyzer
+        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer
 
         analyzer = QueryComplexityAnalyzer()
 
@@ -720,8 +719,7 @@ class ComplexityAnalysisTestCase(TestCase):
 
     def setUp(self):
         """Set up test analyzer"""
-        from analyzer.ml.analysis.complexity_analyzer import \
-            QueryComplexityAnalyzer
+        from analyzer.ml.analysis.complexity_analyzer import QueryComplexityAnalyzer
 
         self.analyzer = QueryComplexityAnalyzer()
 
@@ -812,8 +810,10 @@ class PatternLibraryInitializationTestCase(TestCase):
 
     def test_default_patterns_loaded(self):
         """Test default patterns are loaded"""
-        from analyzer.ml.analysis.pattern_library import (PatternCategory,
-                                                          QueryPatternLibrary)
+        from analyzer.ml.analysis.pattern_library import (
+            PatternCategory,
+            QueryPatternLibrary,
+        )
 
         library = QueryPatternLibrary()
 
@@ -876,8 +876,7 @@ class SemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_analyzer_initialization(self):
         """Test semantic analyzer initialization"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -886,8 +885,7 @@ class SemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_patterns_compiled(self):
         """Test semantic patterns are compiled"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -912,8 +910,7 @@ class SemanticExtractionTestCase(TestCase):
 
     def setUp(self):
         """Set up test extractor"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         self.extractor = SemanticFeatureExtractor()
 
@@ -974,8 +971,7 @@ class WorkloadPatternRecognizerInitializationTestCase(TestCase):
 
     def test_recognizer_initialization(self):
         """Test basic recognizer initialization"""
-        from analyzer.ml.analysis.workload_patterns import \
-            WorkloadPatternRecognizer
+        from analyzer.ml.analysis.workload_patterns import WorkloadPatternRecognizer
 
         recognizer = WorkloadPatternRecognizer()
 
@@ -986,8 +982,7 @@ class WorkloadPatternRecognizerInitializationTestCase(TestCase):
 
     def test_buffers_initialized(self):
         """Test query buffers are initialized"""
-        from analyzer.ml.analysis.workload_patterns import \
-            WorkloadPatternRecognizer
+        from analyzer.ml.analysis.workload_patterns import WorkloadPatternRecognizer
 
         recognizer = WorkloadPatternRecognizer()
 
@@ -1002,8 +997,7 @@ class WorkloadAnalysisTestCase(TestCase):
         """Set up test recognizer"""
         from datetime import datetime, timedelta
 
-        from analyzer.ml.analysis.workload_patterns import \
-            WorkloadPatternRecognizer
+        from analyzer.ml.analysis.workload_patterns import WorkloadPatternRecognizer
 
         self.recognizer = WorkloadPatternRecognizer()
         self.base_time = datetime.now() - timedelta(hours=24)

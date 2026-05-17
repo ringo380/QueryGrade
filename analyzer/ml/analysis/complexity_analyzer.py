@@ -14,8 +14,15 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import sqlparse
 from sqlparse import keywords, sql, tokens
-from sqlparse.sql import (Function, Identifier, IdentifierList, Statement,
-                          Token, TokenList, Where)
+from sqlparse.sql import (
+    Function,
+    Identifier,
+    IdentifierList,
+    Statement,
+    Token,
+    TokenList,
+    Where,
+)
 
 logger = logging.getLogger(__name__)
 

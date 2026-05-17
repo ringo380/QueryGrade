@@ -26,11 +26,9 @@ from django.utils import timezone
 try:
     # Core ML libraries
     import joblib
-    from sklearn.ensemble import (GradientBoostingRegressor,
-                                  RandomForestRegressor)
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.linear_model import ElasticNet, Ridge
-    from sklearn.metrics import (mean_absolute_error, mean_squared_error,
-                                 r2_score)
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from sklearn.model_selection import GridSearchCV, cross_val_score
     from sklearn.preprocessing import RobustScaler, StandardScaler
 

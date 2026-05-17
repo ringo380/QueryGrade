@@ -9,18 +9,46 @@ from django.urls import path
 
 # ML Dashboard views (separate module)
 from .ml import dashboard_views
+
 # Import from modular views package
 from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views; Saved connection views
-    account_view, analyze, api_unified_query_analysis, async_processing_status,
-    async_results, batch_analysis, batch_analysis_view, batch_results,
-    check_task_status, compare_results, connection_create, connection_delete,
-    connection_edit, connection_test, connections_list, contextualized_results,
-    database_analyze, database_schema, enhanced_grade_results,
-    feedback_analytics, grade_query, grade_query_ajax, grade_results, index, login_view,
-    logout_view, password_change, password_reset_confirm,
-    password_reset_request, performance_report_view, query_compare,
-    query_history, query_with_context, quick_feedback, register_view,
-    submit_feedback)
+    account_view,
+    analyze,
+    api_unified_query_analysis,
+    async_processing_status,
+    async_results,
+    batch_analysis,
+    batch_analysis_view,
+    batch_results,
+    check_task_status,
+    compare_results,
+    connection_create,
+    connection_delete,
+    connection_edit,
+    connection_test,
+    connections_list,
+    contextualized_results,
+    database_analyze,
+    database_schema,
+    enhanced_grade_results,
+    feedback_analytics,
+    grade_query,
+    grade_query_ajax,
+    grade_results,
+    index,
+    login_view,
+    logout_view,
+    password_change,
+    password_reset_confirm,
+    password_reset_request,
+    performance_report_view,
+    query_compare,
+    query_history,
+    query_with_context,
+    quick_feedback,
+    register_view,
+    submit_feedback,
+)
 
 urlpatterns = [
     # Home and file upload

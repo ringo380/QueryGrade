@@ -19,8 +19,7 @@ from django.test import Client, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from analyzer.models import Query, QueryAnalysis, UserQueryHistory
-from analyzer.query_optimizer import (QueryOptimizer,
-                                      optimize_query_from_analysis)
+from analyzer.query_optimizer import QueryOptimizer, optimize_query_from_analysis
 
 
 @override_settings(

@@ -1,6 +1,6 @@
 """Unit tests for analyzer.analytics (server-side GA4 Measurement Protocol)."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, override_settings
 
@@ -31,7 +31,9 @@ class NoopWhenUnconfiguredTests(SimpleTestCase):
 class HappyPathTests(SimpleTestCase):
     def test_sends_expected_shape(self):
         mock_resp = MagicMock(status_code=204, text="")
-        with patch("analyzer.analytics.requests.post", return_value=mock_resp) as mock_post:
+        with patch(
+            "analyzer.analytics.requests.post", return_value=mock_resp
+        ) as mock_post:
             ok = send_ga4_event(
                 client_id="cid-1",
                 event_name="log_analysis_completed",
@@ -53,7 +55,9 @@ class HappyPathTests(SimpleTestCase):
 
     def test_omits_user_id_when_not_provided(self):
         mock_resp = MagicMock(status_code=200, text="")
-        with patch("analyzer.analytics.requests.post", return_value=mock_resp) as mock_post:
+        with patch(
+            "analyzer.analytics.requests.post", return_value=mock_resp
+        ) as mock_post:
             send_ga4_event("cid", "anon_event", {})
         body = mock_post.call_args.kwargs["json"]
         self.assertNotIn("user_id", body)

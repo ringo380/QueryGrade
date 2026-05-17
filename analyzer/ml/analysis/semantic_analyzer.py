@@ -22,6 +22,7 @@ from .context_window_analyzer import ContextWindowAnalyzer
 from .cte_semantic_analyzer import CTESemanticAnalyzer
 from .goal_classifier import QueryGoalClassifier
 from .join_semantic_analyzer import JoinSemanticAnalyzer
+
 # Import semantic analyzers
 from .nested_subquery_analyzer import NestedSubqueryAnalyzer
 

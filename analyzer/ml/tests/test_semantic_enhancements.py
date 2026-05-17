@@ -21,8 +21,7 @@ class NestedSubqueryAnalyzerInitializationTestCase(TestCase):
 
     def test_analyzer_initialization(self):
         """Test nested subquery analyzer initializes"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
 
@@ -31,8 +30,7 @@ class NestedSubqueryAnalyzerInitializationTestCase(TestCase):
 
     def test_pattern_compilation(self):
         """Test regex patterns are compiled"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
 
@@ -47,8 +45,7 @@ class SimpleSubqueryDetectionTestCase(TestCase):
 
     def test_no_subqueries(self):
         """Test query with no subqueries"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = "SELECT id, name FROM users WHERE age > 18"
@@ -59,8 +56,7 @@ class SimpleSubqueryDetectionTestCase(TestCase):
 
     def test_single_subquery_detection(self):
         """Test single-level subquery detection"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -73,8 +69,7 @@ class SimpleSubqueryDetectionTestCase(TestCase):
 
     def test_subquery_in_from_clause(self):
         """Test subquery detection in FROM clause"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -96,8 +91,7 @@ class NestedSubqueryDepthTestCase(TestCase):
 
     def test_two_level_nesting(self):
         """Test detection of 2-level nesting"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -113,8 +107,7 @@ class NestedSubqueryDepthTestCase(TestCase):
 
     def test_three_level_nesting(self):
         """Test detection of 3-level nesting (Phase 1 requirement)"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -135,8 +128,7 @@ class NestedSubqueryDepthTestCase(TestCase):
 
     def test_nesting_level_distribution(self):
         """Test nesting level distribution tracking"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -159,8 +151,7 @@ class CorrelatedSubqueryDetectionTestCase(TestCase):
 
     def test_correlated_subquery_detection(self):
         """Test detection of correlated subqueries"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -179,8 +170,7 @@ class CorrelatedSubqueryDetectionTestCase(TestCase):
 
     def test_correlated_in_subquery(self):
         """Test correlated reference in scalar subquery"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -206,7 +196,9 @@ class SubqueryTypeClassificationTestCase(TestCase):
     def test_scalar_subquery_classification(self):
         """Test scalar subquery type detection"""
         from analyzer.ml.analysis.nested_subquery_analyzer import (
-            NestedSubqueryAnalyzer, SubqueryType)
+            NestedSubqueryAnalyzer,
+            SubqueryType,
+        )
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -221,8 +213,7 @@ class SubqueryTypeClassificationTestCase(TestCase):
 
     def test_derived_table_classification(self):
         """Test derived table type detection"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -236,7 +227,9 @@ class SubqueryTypeClassificationTestCase(TestCase):
     def test_in_list_subquery_classification(self):
         """Test IN subquery type detection"""
         from analyzer.ml.analysis.nested_subquery_analyzer import (
-            NestedSubqueryAnalyzer, SubqueryType)
+            NestedSubqueryAnalyzer,
+            SubqueryType,
+        )
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -252,7 +245,9 @@ class SubqueryTypeClassificationTestCase(TestCase):
     def test_exists_subquery_classification(self):
         """Test EXISTS subquery type detection"""
         from analyzer.ml.analysis.nested_subquery_analyzer import (
-            NestedSubqueryAnalyzer, SubqueryType)
+            NestedSubqueryAnalyzer,
+            SubqueryType,
+        )
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -271,8 +266,7 @@ class ComplexityScoreTestCase(TestCase):
 
     def test_complexity_score_range(self):
         """Test complexity score is in valid range"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -291,8 +285,7 @@ class ComplexityScoreTestCase(TestCase):
 
     def test_higher_nesting_higher_complexity(self):
         """Test that deeper nesting increases complexity"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
 
@@ -325,8 +318,7 @@ class PerformanceRiskAssessmentTestCase(TestCase):
 
     def test_low_risk_simple_query(self):
         """Test simple query has low risk"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = "SELECT * FROM users"
@@ -336,8 +328,7 @@ class PerformanceRiskAssessmentTestCase(TestCase):
 
     def test_medium_risk_moderate_nesting(self):
         """Test moderate nesting increases risk"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -351,8 +342,7 @@ class PerformanceRiskAssessmentTestCase(TestCase):
 
     def test_high_risk_deep_nesting(self):
         """Test deep nesting increases risk to high/critical"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -377,8 +367,7 @@ class PerformanceRiskAssessmentTestCase(TestCase):
 
     def test_correlated_increases_risk(self):
         """Test correlated subqueries increase risk"""
-        from analyzer.ml.analysis.nested_subquery_analyzer import \
-            NestedSubqueryAnalyzer
+        from analyzer.ml.analysis.nested_subquery_analyzer import NestedSubqueryAnalyzer
 
         analyzer = NestedSubqueryAnalyzer()
         query = """
@@ -399,8 +388,7 @@ class SemanticMetricsIntegrationTestCase(TestCase):
 
     def test_metrics_updated_with_nesting_data(self):
         """Test SemanticMetrics are updated with nesting analysis"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -417,8 +405,7 @@ class SemanticMetricsIntegrationTestCase(TestCase):
 
     def test_conceptual_complexity_increased_by_nesting(self):
         """Test conceptual complexity increases with nesting"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -448,8 +435,7 @@ class SemanticMetricsIntegrationTestCase(TestCase):
 
     def test_maintenance_difficulty_increased_by_correlated(self):
         """Test maintenance difficulty increases with correlated subqueries"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -483,8 +469,7 @@ class JoinSemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_analyzer_initialization(self):
         """Test JOIN semantic analyzer initializes"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
 
@@ -493,8 +478,7 @@ class JoinSemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_pattern_compilation(self):
         """Test regex patterns are compiled"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
 
@@ -509,8 +493,7 @@ class SimpleJoinDetectionTestCase(TestCase):
 
     def test_no_joins(self):
         """Test query with no JOINs"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM users WHERE age > 18"
@@ -520,8 +503,7 @@ class SimpleJoinDetectionTestCase(TestCase):
 
     def test_single_inner_join(self):
         """Test single INNER JOIN detection"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = """
@@ -535,8 +517,7 @@ class SimpleJoinDetectionTestCase(TestCase):
 
     def test_left_join_detection(self):
         """Test LEFT JOIN detection"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = """
@@ -556,7 +537,9 @@ class JoinTypeClassificationTestCase(TestCase):
     def test_inner_join_classification(self):
         """Test INNER JOIN classification"""
         from analyzer.ml.analysis.join_semantic_analyzer import (
-            JoinSemanticAnalyzer, JoinType)
+            JoinSemanticAnalyzer,
+            JoinType,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a INNER JOIN b ON a.id = b.id"
@@ -568,7 +551,9 @@ class JoinTypeClassificationTestCase(TestCase):
     def test_left_join_classification(self):
         """Test LEFT JOIN classification"""
         from analyzer.ml.analysis.join_semantic_analyzer import (
-            JoinSemanticAnalyzer, JoinType)
+            JoinSemanticAnalyzer,
+            JoinType,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a LEFT JOIN b ON a.id = b.id"
@@ -580,7 +565,9 @@ class JoinTypeClassificationTestCase(TestCase):
     def test_cross_join_classification(self):
         """Test CROSS JOIN classification"""
         from analyzer.ml.analysis.join_semantic_analyzer import (
-            JoinSemanticAnalyzer, JoinType)
+            JoinSemanticAnalyzer,
+            JoinType,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a CROSS JOIN b"
@@ -595,8 +582,7 @@ class MultipleJoinDetectionTestCase(TestCase):
 
     def test_two_joins(self):
         """Test detection of 2 JOINs"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = """
@@ -610,8 +596,7 @@ class MultipleJoinDetectionTestCase(TestCase):
 
     def test_multiple_join_types(self):
         """Test mix of different JOIN types"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = """
@@ -633,7 +618,9 @@ class JoinCardinalityImpactTestCase(TestCase):
     def test_inner_join_result_reducing(self):
         """Test INNER JOIN has result reducing impact"""
         from analyzer.ml.analysis.join_semantic_analyzer import (
-            JoinImpact, JoinSemanticAnalyzer)
+            JoinImpact,
+            JoinSemanticAnalyzer,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a INNER JOIN b ON a.id = b.id"
@@ -645,7 +632,9 @@ class JoinCardinalityImpactTestCase(TestCase):
     def test_left_join_result_preserving(self):
         """Test LEFT JOIN has result preserving impact"""
         from analyzer.ml.analysis.join_semantic_analyzer import (
-            JoinImpact, JoinSemanticAnalyzer)
+            JoinImpact,
+            JoinSemanticAnalyzer,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a LEFT JOIN b ON a.id = b.id"
@@ -657,7 +646,9 @@ class JoinCardinalityImpactTestCase(TestCase):
     def test_cross_join_result_expanding(self):
         """Test CROSS JOIN has result expanding impact"""
         from analyzer.ml.analysis.join_semantic_analyzer import (
-            JoinImpact, JoinSemanticAnalyzer)
+            JoinImpact,
+            JoinSemanticAnalyzer,
+        )
 
         analyzer = JoinSemanticAnalyzer()
         query = "SELECT * FROM a CROSS JOIN b"
@@ -672,8 +663,7 @@ class JoinComplexityScoreTestCase(TestCase):
 
     def test_complexity_score_range(self):
         """Test complexity score is in valid range"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = """
@@ -689,8 +679,7 @@ class JoinComplexityScoreTestCase(TestCase):
 
     def test_more_joins_higher_complexity(self):
         """Test that more JOINs increase complexity"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
 
@@ -718,8 +707,7 @@ class ImplicitJoinDetectionTestCase(TestCase):
 
     def test_implicit_join_in_where(self):
         """Test detection of implicit JOINs in WHERE clause"""
-        from analyzer.ml.analysis.join_semantic_analyzer import \
-            JoinSemanticAnalyzer
+        from analyzer.ml.analysis.join_semantic_analyzer import JoinSemanticAnalyzer
 
         analyzer = JoinSemanticAnalyzer()
         query = """
@@ -737,8 +725,7 @@ class JoinSemanticMetricsIntegrationTestCase(TestCase):
 
     def test_metrics_updated_with_join_data(self):
         """Test SemanticMetrics are updated with JOIN analysis"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -755,8 +742,7 @@ class JoinSemanticMetricsIntegrationTestCase(TestCase):
 
     def test_complexity_increased_by_joins(self):
         """Test conceptual complexity increases with JOINs"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -781,8 +767,7 @@ class JoinSemanticMetricsIntegrationTestCase(TestCase):
 
     def test_cross_join_high_complexity(self):
         """Test CROSS JOIN significantly increases complexity"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -807,8 +792,7 @@ class RealWorldJoinQueryTestCase(TestCase):
 
     def test_real_world_ecommerce_joins(self):
         """Test real-world e-commerce query with multiple joins"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -831,8 +815,7 @@ class RealWorldJoinQueryTestCase(TestCase):
 
     def test_real_world_analytical_query(self):
         """Test real-world analytical query"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -863,8 +846,7 @@ class CTESemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_analyzer_initialization(self):
         """Test CTE semantic analyzer initializes"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
 
@@ -873,8 +855,7 @@ class CTESemanticAnalyzerInitializationTestCase(TestCase):
 
     def test_pattern_compilation(self):
         """Test regex patterns are compiled"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
 
@@ -889,8 +870,7 @@ class SimpleCTEDetectionTestCase(TestCase):
 
     def test_no_cte(self):
         """Test query with no CTEs"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = "SELECT * FROM users WHERE age > 18"
@@ -900,8 +880,7 @@ class SimpleCTEDetectionTestCase(TestCase):
 
     def test_single_cte_detection(self):
         """Test single CTE detection"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -918,8 +897,7 @@ class SimpleCTEDetectionTestCase(TestCase):
 
     def test_multiple_cte_detection(self):
         """Test multiple CTE detection"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -943,7 +921,9 @@ class CTEPurposeClassificationTestCase(TestCase):
     def test_aggregation_cte(self):
         """Test aggregation CTE classification"""
         from analyzer.ml.analysis.cte_semantic_analyzer import (
-            CTEPurpose, CTESemanticAnalyzer)
+            CTEPurpose,
+            CTESemanticAnalyzer,
+        )
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -959,8 +939,7 @@ class CTEPurposeClassificationTestCase(TestCase):
 
     def test_data_preparation_cte(self):
         """Test data preparation CTE"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -980,8 +959,7 @@ class RecursiveCTEDetectionTestCase(TestCase):
 
     def test_recursive_cte_detection(self):
         """Test recursive CTE detection"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -1007,8 +985,7 @@ class CTEComplexityTestCase(TestCase):
 
     def test_complexity_score_range(self):
         """Test complexity score is in valid range"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -1028,8 +1005,7 @@ class CTEComplexityTestCase(TestCase):
 
     def test_unused_cte_detection(self):
         """Test detection of unused CTEs"""
-        from analyzer.ml.analysis.cte_semantic_analyzer import \
-            CTESemanticAnalyzer
+        from analyzer.ml.analysis.cte_semantic_analyzer import CTESemanticAnalyzer
 
         analyzer = CTESemanticAnalyzer()
         query = """
@@ -1052,8 +1028,7 @@ class CTESemanticMetricsIntegrationTestCase(TestCase):
 
     def test_metrics_updated_with_cte_data(self):
         """Test SemanticMetrics are updated with CTE analysis"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1072,8 +1047,7 @@ class CTESemanticMetricsIntegrationTestCase(TestCase):
 
     def test_complexity_increased_by_cte(self):
         """Test conceptual complexity increases with CTEs"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -1102,8 +1076,7 @@ class CTESemanticMetricsIntegrationTestCase(TestCase):
 
     def test_recursive_cte_complexity(self):
         """Test recursive CTE increases complexity"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -1139,8 +1112,7 @@ class RealWorldCTEQueryTestCase(TestCase):
 
     def test_real_world_hierarchical_query(self):
         """Test real-world hierarchical CTE query"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1166,8 +1138,7 @@ class RealWorldCTEQueryTestCase(TestCase):
 
     def test_real_world_multi_cte_aggregation(self):
         """Test real-world multi-CTE aggregation query"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1203,8 +1174,7 @@ class ContextWindowAnalyzerInitializationTestCase(TestCase):
 
     def test_analyzer_initialization(self):
         """Test context window analyzer initializes"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
 
@@ -1213,8 +1183,7 @@ class ContextWindowAnalyzerInitializationTestCase(TestCase):
 
     def test_pattern_compilation(self):
         """Test regex patterns are compiled"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
 
@@ -1229,8 +1198,7 @@ class SimpleMultiStatementTestCase(TestCase):
 
     def test_single_statement(self):
         """Test single statement detection"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = "SELECT * FROM users"
@@ -1241,8 +1209,7 @@ class SimpleMultiStatementTestCase(TestCase):
 
     def test_two_statements(self):
         """Test two statement detection"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = "SELECT * FROM users; UPDATE users SET active = 1"
@@ -1252,8 +1219,7 @@ class SimpleMultiStatementTestCase(TestCase):
 
     def test_three_statements(self):
         """Test three statement detection"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1272,7 +1238,9 @@ class StatementTypeClassificationTestCase(TestCase):
     def test_select_statement_classification(self):
         """Test SELECT statement classification"""
         from analyzer.ml.analysis.context_window_analyzer import (
-            ContextWindowAnalyzer, StatementType)
+            ContextWindowAnalyzer,
+            StatementType,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "SELECT * FROM users; INSERT INTO audit VALUES (1)"
@@ -1284,7 +1252,9 @@ class StatementTypeClassificationTestCase(TestCase):
     def test_insert_statement_classification(self):
         """Test INSERT statement classification"""
         from analyzer.ml.analysis.context_window_analyzer import (
-            ContextWindowAnalyzer, StatementType)
+            ContextWindowAnalyzer,
+            StatementType,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "INSERT INTO users VALUES (1, 'John')"
@@ -1296,7 +1266,9 @@ class StatementTypeClassificationTestCase(TestCase):
     def test_update_delete_statements(self):
         """Test UPDATE and DELETE statements"""
         from analyzer.ml.analysis.context_window_analyzer import (
-            ContextWindowAnalyzer, StatementType)
+            ContextWindowAnalyzer,
+            StatementType,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "UPDATE users SET active = 1; DELETE FROM logs"
@@ -1317,7 +1289,9 @@ class TransactionDetectionTestCase(TestCase):
     def test_explicit_transaction_detection(self):
         """Test explicit transaction detection"""
         from analyzer.ml.analysis.context_window_analyzer import (
-            ContextWindowAnalyzer, TransactionScope)
+            ContextWindowAnalyzer,
+            TransactionScope,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1334,7 +1308,9 @@ class TransactionDetectionTestCase(TestCase):
     def test_auto_commit_detection(self):
         """Test auto-commit transaction detection"""
         from analyzer.ml.analysis.context_window_analyzer import (
-            ContextWindowAnalyzer, TransactionScope)
+            ContextWindowAnalyzer,
+            TransactionScope,
+        )
 
         analyzer = ContextWindowAnalyzer()
         query = "SELECT * FROM users"
@@ -1349,8 +1325,7 @@ class DataDependencyDetectionTestCase(TestCase):
 
     def test_data_flow_detection(self):
         """Test data flow detection between statements"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1364,8 +1339,7 @@ class DataDependencyDetectionTestCase(TestCase):
 
     def test_independent_statements(self):
         """Test detection of independent statements"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1385,8 +1359,7 @@ class ComplexityScoreTestCase(TestCase):
 
     def test_complexity_score_range(self):
         """Test complexity score is in valid range"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1402,8 +1375,7 @@ class ComplexityScoreTestCase(TestCase):
 
     def test_more_statements_higher_complexity(self):
         """Test that more statements increase complexity"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
 
@@ -1431,8 +1403,7 @@ class ContextWindowMetricsIntegrationTestCase(TestCase):
 
     def test_metrics_updated_with_context(self):
         """Test SemanticMetrics are updated with context analysis"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = "SELECT * FROM users; INSERT INTO audit VALUES (1)"
@@ -1446,8 +1417,7 @@ class ContextWindowMetricsIntegrationTestCase(TestCase):
 
     def test_multi_statement_increases_complexity(self):
         """Test multi-statement complexity increases overall"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -1467,8 +1437,7 @@ class ContextWindowMetricsIntegrationTestCase(TestCase):
 
     def test_explicit_transaction_complexity(self):
         """Test explicit transactions increase complexity"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -1497,8 +1466,7 @@ class RealWorldMultiStatementTestCase(TestCase):
 
     def test_real_world_batch_insert(self):
         """Test real-world batch insert operation"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1514,8 +1482,7 @@ class RealWorldMultiStatementTestCase(TestCase):
 
     def test_real_world_transaction_workflow(self):
         """Test real-world transaction workflow"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1534,8 +1501,7 @@ class RealWorldMultiStatementTestCase(TestCase):
 
     def test_real_world_etl_pipeline(self):
         """Test real-world ETL pipeline"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1556,8 +1522,7 @@ class ExecutionModeRecommendationTestCase(TestCase):
 
     def test_batch_recommendation_for_independent(self):
         """Test batch mode recommended for independent statements"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1571,8 +1536,7 @@ class ExecutionModeRecommendationTestCase(TestCase):
 
     def test_sequential_recommendation_for_dependent(self):
         """Test sequential mode for dependent statements"""
-        from analyzer.ml.analysis.context_window_analyzer import \
-            ContextWindowAnalyzer
+        from analyzer.ml.analysis.context_window_analyzer import ContextWindowAnalyzer
 
         analyzer = ContextWindowAnalyzer()
         query = """
@@ -1590,8 +1554,7 @@ class AnalysisQueryWithComplexNestingTestCase(TestCase):
 
     def test_real_world_reporting_query(self):
         """Test real-world reporting query with multiple levels"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1622,8 +1585,7 @@ class AnalysisQueryWithComplexNestingTestCase(TestCase):
 
     def test_real_world_ecommerce_query(self):
         """Test real-world e-commerce query"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1965,8 +1927,7 @@ class GoalClassifierMetricsIntegrationTestCase(TestCase):
 
     def test_metrics_updated_with_goal_data(self):
         """Test SemanticMetrics are updated with goal classification"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -1984,8 +1945,7 @@ class GoalClassifierMetricsIntegrationTestCase(TestCase):
 
     def test_goal_classification_accuracy(self):
         """Test goal classification accuracy"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -2005,8 +1965,7 @@ class GoalClassifierMetricsIntegrationTestCase(TestCase):
 
     def test_read_only_flag(self):
         """Test read-only flag is set correctly"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
 
@@ -2026,8 +1985,7 @@ class RealWorldGoalClassificationTestCase(TestCase):
 
     def test_real_world_dashboard_query(self):
         """Test real-world dashboard reporting query"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -2050,8 +2008,7 @@ class RealWorldGoalClassificationTestCase(TestCase):
 
     def test_real_world_ecommerce_transaction(self):
         """Test real-world e-commerce transaction"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """
@@ -2069,8 +2026,7 @@ class RealWorldGoalClassificationTestCase(TestCase):
 
     def test_real_world_analytical_query(self):
         """Test real-world analytical query"""
-        from analyzer.ml.analysis.semantic_analyzer import \
-            SemanticFeatureExtractor
+        from analyzer.ml.analysis.semantic_analyzer import SemanticFeatureExtractor
 
         extractor = SemanticFeatureExtractor()
         query = """

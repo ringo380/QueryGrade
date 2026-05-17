@@ -18,8 +18,15 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 
-from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
-                             QueryFeedback, TrainingData, UserQueryHistory)
+from analyzer.models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 
 class Command(BaseCommand):

@@ -16,12 +16,17 @@ monolithic models.py to ensure Django migrations continue to work correctly.
 
 # Machine learning models
 from .ml_models import FeedbackLearning, LearningMetrics, MLModel, TrainingData
+
 # Core query models
 from .query_models import Query, QueryAnalysis
+
 # User interaction models
 from .user_models import QueryFeedback, UserQueryHistory
-# Live database connection profiles
-from .connection_models import UserDatabaseConnection
+
+# Live database connection profiles — must stay last: connection_models imports
+# analyzer.services which re-imports from this module; the names above must
+# already be bound before that chain resolves.
+from .connection_models import UserDatabaseConnection  # isort: skip
 
 __all__ = [
     # Query models

@@ -5,6 +5,7 @@ Simple test script to validate ML integration works without Django admin issues
 
 import os
 import sys
+
 import django
 from django.conf import settings
 
@@ -12,13 +13,15 @@ from django.conf import settings
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Set up Django settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'querygrade.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "querygrade.settings")
 django.setup()
 
-# Now we can import Django components
-from analyzer.ml.unified_query_analyzer import UnifiedQueryAnalyzer, AnalysisRequest
 import asyncio
 import json
+
+# Now we can import Django components
+from analyzer.ml.unified_query_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
+
 
 async def test_ml_integration():
     """Test the ML integration with a simple query"""
@@ -44,11 +47,11 @@ async def test_ml_integration():
             "use_case": "User engagement analysis",
             "expected_rows": 1000,
             "database_type": "mysql",
-            "database_version": "8.0"
+            "database_version": "8.0",
         },
         analysis_level="comprehensive",
         personalize=True,
-        include_rewrite=True
+        include_rewrite=True,
     )
 
     # Initialize unified analyzer
@@ -90,7 +93,9 @@ async def test_ml_integration():
 
         print("\n=== Personalized Recommendations ===")
         if result.personalized_recommendations:
-            print(json.dumps(result.personalized_recommendations, indent=2, default=str))
+            print(
+                json.dumps(result.personalized_recommendations, indent=2, default=str)
+            )
 
         print("\n=== Query Rewrite ===")
         if result.query_rewrite:
@@ -112,8 +117,10 @@ async def test_ml_integration():
     except Exception as e:
         print(f"\n❌ ML Integration test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def main():
     """Main test function"""
@@ -129,6 +136,7 @@ def main():
     else:
         print("\n💥 Tests failed! Check the errors above.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -24,9 +24,16 @@ from django.test import TransactionTestCase, override_settings
 
 from analyzer.exceptions import EmptyQueryError
 from analyzer.ml.core.hybrid_grader import HybridQueryGrader
-from analyzer.models import (FeedbackLearning, LearningMetrics, MLModel, Query,
-                             QueryAnalysis, QueryFeedback, TrainingData,
-                             UserQueryHistory)
+from analyzer.models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    Query,
+    QueryAnalysis,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 
 @override_settings(

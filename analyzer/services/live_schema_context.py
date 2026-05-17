@@ -92,8 +92,11 @@ class LiveSchemaContext:
         for selectivity / cardinality estimates already used elsewhere.
         """
         from analyzer.ml.integration.database_stats import (
-            ColumnStatistics, DataDistribution, IndexStatistics,
-            TableStatistics)
+            ColumnStatistics,
+            DataDistribution,
+            IndexStatistics,
+            TableStatistics,
+        )
 
         for tbl in self.tables.values():
             manager.table_stats[tbl.name] = TableStatistics(
@@ -261,7 +264,10 @@ def schema_fingerprint(ctx: LiveSchemaContext) -> str:
             n: {
                 "cols": [c["name"] for c in t.columns],
                 "idx": [list(i.column_key()) for i in t.indexes],
-                "fk": [(fk.get("columns"), fk.get("referenced_table")) for fk in t.foreign_keys],
+                "fk": [
+                    (fk.get("columns"), fk.get("referenced_table"))
+                    for fk in t.foreign_keys
+                ],
             }
             for n, t in sorted(ctx.tables.items())
         },

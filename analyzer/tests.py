@@ -3,8 +3,12 @@ import os
 import pandas as pd
 from django.test import TestCase
 
-from analyzer.parser import (detect_anomalies, detect_anomalies_general,
-                             parse_mysql_general_log, parse_mysql_slow_log)
+from analyzer.parser import (
+    detect_anomalies,
+    detect_anomalies_general,
+    parse_mysql_general_log,
+    parse_mysql_slow_log,
+)
 
 
 class ParserTestCase(TestCase):
@@ -34,8 +38,7 @@ class ParserTestCase(TestCase):
         df = parse_mysql_slow_log(self.sample_slow_log_path)
         df = df.head(10)  # Use a smaller subset for testing
         # Need to import the required functions for the complete workflow
-        from analyzer.parser import (clean_data, feature_engineering,
-                                     prepare_features)
+        from analyzer.parser import clean_data, feature_engineering, prepare_features
 
         df = clean_data(df)
         df = feature_engineering(df)
@@ -48,8 +51,10 @@ class ParserTestCase(TestCase):
         df = parse_mysql_general_log(self.sample_general_log_path)
         df = df.head(10)  # Use a smaller subset for testing
         # Need to import the required functions for the complete workflow
-        from analyzer.parser import (feature_engineering_general_log,
-                                     prepare_features_general)
+        from analyzer.parser import (
+            feature_engineering_general_log,
+            prepare_features_general,
+        )
 
         df = feature_engineering_general_log(df)
         x_scaled = prepare_features_general(df)

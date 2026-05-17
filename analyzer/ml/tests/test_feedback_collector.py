@@ -13,8 +13,14 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from analyzer.ml.core.feedback_collector import FeedbackCollector
-from analyzer.models import (FeedbackLearning, Query, QueryAnalysis,
-                             QueryFeedback, TrainingData, UserQueryHistory)
+from analyzer.models import (
+    FeedbackLearning,
+    Query,
+    QueryAnalysis,
+    QueryFeedback,
+    TrainingData,
+    UserQueryHistory,
+)
 
 
 class FeedbackCollectorTestCase(TestCase):

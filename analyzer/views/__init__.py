@@ -15,33 +15,69 @@ All views are re-exported here for backward compatibility with existing URL conf
 """
 
 # Async processing and API views
-from .async_views import (api_unified_query_analysis, batch_analysis_view,
-                          performance_report_view)
+from .async_views import (
+    api_unified_query_analysis,
+    batch_analysis_view,
+    performance_report_view,
+)
+
 # Authentication views
-from .auth_views import (account_view, login_view, logout_view,
-                         password_change, password_reset_confirm,
-                         password_reset_request, register_view)
+from .auth_views import (
+    account_view,
+    login_view,
+    logout_view,
+    password_change,
+    password_reset_confirm,
+    password_reset_request,
+    register_view,
+)
+
 # Comparison and batch analysis views
 from .comparison_views import batch_analysis, compare_results, query_compare
+
 # Saved DB connection management
-from .connection_views import (connection_create, connection_delete,
-                               connection_edit, connection_test,
-                               connections_list)
+from .connection_views import (
+    connection_create,
+    connection_delete,
+    connection_edit,
+    connection_test,
+    connections_list,
+)
+
 # Database introspection views
-from .database_views import (contextualized_results, database_analyze,
-                             database_schema, query_with_context)
+from .database_views import (
+    contextualized_results,
+    database_analyze,
+    database_schema,
+    query_with_context,
+)
+
 # Feedback views
 from .feedback_views import feedback_analytics, quick_feedback, submit_feedback
+
 # History views
 from .history_views import query_history
+
 # Query grading views
-from .query_grading_views import (batch_grade_queries, batch_results,
-                                  compare_queries, enhanced_grade_results,
-                                  grade_query, grade_query_ajax,
-                                  grade_results)
+from .query_grading_views import (
+    batch_grade_queries,
+    batch_results,
+    compare_queries,
+    enhanced_grade_results,
+    grade_query,
+    grade_query_ajax,
+    grade_results,
+)
+
 # Upload and async processing views
-from .upload_views import (analyze, async_processing_status, async_results,
-                           check_task_status, index)
+from .upload_views import (
+    analyze,
+    async_processing_status,
+    async_results,
+    check_task_status,
+    index,
+)
+
 # Utility functions
 from .utils import csrf_failure, get_client_ip
 

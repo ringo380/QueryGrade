@@ -26,8 +26,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_ratelimit.decorators import ratelimit
 
 from ..forms import BatchQueryForm
-from ..ml.analysis.unified_analyzer import (AnalysisRequest,
-                                            UnifiedQueryAnalyzer)
+from ..ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
 from ..models import QueryAnalysis
 from ..query_analyzer import analyze_query
 from .utils import get_client_ip

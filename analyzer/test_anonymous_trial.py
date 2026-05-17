@@ -12,8 +12,7 @@ from django.test import Client, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from analyzer.models import Query, QueryAnalysis, UserQueryHistory
-from analyzer.views.constants import (ANON_ANALYSIS_SESSION_KEY,
-                                      ANON_TRIAL_COUNT_KEY)
+from analyzer.views.constants import ANON_ANALYSIS_SESSION_KEY, ANON_TRIAL_COUNT_KEY
 
 SIMPLE_QUERY = "SELECT id, name FROM users WHERE id = 1;"
 

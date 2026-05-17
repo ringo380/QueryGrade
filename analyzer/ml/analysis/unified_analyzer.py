@@ -14,25 +14,31 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..integration.database_stats import (DatabaseStatisticsManager,
-                                          generate_context_aware_features)
-from ..integration.performance_predictor import (PerformanceBaseline,
-                                                 PerformanceImpactPredictor)
+from ..integration.database_stats import (
+    DatabaseStatisticsManager,
+    generate_context_aware_features,
+)
+from ..integration.performance_predictor import (
+    PerformanceBaseline,
+    PerformanceImpactPredictor,
+)
 from ..optimization.plan_predictor import QueryPlanPredictor
 from ..optimization.query_rewriter import IntelligentQueryRewriter
 from ..recommendations.contextual_engine import (
-    ContextualRecommendationsEngine, RecommendationContext)
+    ContextualRecommendationsEngine,
+    RecommendationContext,
+)
 from ..recommendations.learning_paths import LearningPathGenerator
 from ..recommendations.natural_language import (
-    FeedbackLevel, NaturalLanguageFeedbackGenerator)
-from ..recommendations.personalization_engine import \
-    FeedbackPersonalizationEngine
-from .anti_pattern_detector import (AntiPatternDetector,
-                                    analyze_query_antipatterns)
+    FeedbackLevel,
+    NaturalLanguageFeedbackGenerator,
+)
+from ..recommendations.personalization_engine import FeedbackPersonalizationEngine
+from .anti_pattern_detector import AntiPatternDetector, analyze_query_antipatterns
 from .pattern_library import QueryPatternLibrary, analyze_query_patterns
+
 # Import our ML components - updated paths for reorganization
-from .semantic_analyzer import (SemanticFeatureExtractor,
-                                analyze_query_semantics)
+from .semantic_analyzer import SemanticFeatureExtractor, analyze_query_semantics
 from .workload_patterns import WorkloadPatternRecognizer, analyze_workload
 
 
