@@ -177,8 +177,14 @@ class OnlineLearningEngine:
 
             # Check if model supports partial_fit
             if hasattr(self.current_model, "partial_fit"):
-                # Direct incremental update
-                self.current_model.partial_fit(X, y, sample_weight=weights)
+                # Direct incremental update. Older estimators
+                # (e.g. PassiveAggressiveRegressor) do not accept sample_weight in
+                # partial_fit, so retry without weights on TypeError rather than
+                # let the whole update fail.
+                try:
+                    self.current_model.partial_fit(X, y, sample_weight=weights)
+                except TypeError:
+                    self.current_model.partial_fit(X, y)
                 update_method = "partial_fit"
             else:
                 # Simulate incremental learning with weighted update

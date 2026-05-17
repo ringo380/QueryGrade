@@ -27,7 +27,7 @@ try:
     import joblib
     from sklearn.base import BaseEstimator, RegressorMixin
     from sklearn.ensemble import RandomForestRegressor
-    from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
+    from sklearn.linear_model import SGDRegressor
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from sklearn.preprocessing import StandardScaler
 
@@ -451,10 +451,20 @@ class IncrementalLearningEngine:
                 n_estimators=20, max_depth=8, memory_limit=5000
             )
 
-            # Backup models for comparison
+            # Backup models for comparison.
+            # PassiveAggressiveRegressor was deprecated in sklearn 1.8 and removed
+            # in 1.10; the sklearn-recommended replacement is SGDRegressor with
+            # the PA-1 configuration, which also accepts sample_weight in
+            # partial_fit (PA did not).
             self.backup_models = [
                 SGDRegressor(learning_rate="adaptive", eta0=0.01, random_state=42),
-                PassiveAggressiveRegressor(C=1.0, random_state=42),
+                SGDRegressor(
+                    loss="epsilon_insensitive",
+                    penalty=None,
+                    learning_rate="pa1",
+                    eta0=1.0,
+                    random_state=42,
+                ),
             ]
 
             logger.info("Incremental learning models initialized")
