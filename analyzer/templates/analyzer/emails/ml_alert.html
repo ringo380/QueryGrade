@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ML alert: {{ alert_type_display }}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f2937; max-width: 640px; margin: 0 auto; padding: 24px;">
+
+  <div style="padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;
+              {% if alert.severity == 'CRITICAL' %}background:#fef2f2; border-left:4px solid #dc2626;
+              {% elif alert.severity == 'HIGH' %}background:#fff7ed; border-left:4px solid #ea580c;
+              {% elif alert.severity == 'MEDIUM' %}background:#fefce8; border-left:4px solid #ca8a04;
+              {% else %}background:#f0fdf4; border-left:4px solid #16a34a;{% endif %}">
+    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 600;">
+      [{{ severity_display }}] ML alert
+    </div>
+    <div style="font-size: 18px; font-weight: 700; margin-top: 4px;">
+      {{ alert_type_display }} — {{ model.name }} v{{ model.version }}
+    </div>
+  </div>
+
+  <p style="font-size: 15px; line-height: 1.5;">{{ alert.message }}</p>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+    <tr style="background:#f9fafb;">
+      <td style="padding: 8px 12px; color: #6b7280; width: 30%;">Model</td>
+      <td style="padding: 8px 12px;">{{ model.name }} v{{ model.version }} ({{ model.get_model_type_display }})</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 12px; color: #6b7280;">Status</td>
+      <td style="padding: 8px 12px;">{{ model.get_status_display }}</td>
+    </tr>
+    <tr style="background:#f9fafb;">
+      <td style="padding: 8px 12px; color: #6b7280;">Severity</td>
+      <td style="padding: 8px 12px;">{{ severity_display }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 12px; color: #6b7280;">Raised</td>
+      <td style="padding: 8px 12px;">{{ alert.created_at|date:"Y-m-d H:i T" }}</td>
+    </tr>
+    {% if alert.payload.estimated_improvement %}
+    <tr style="background:#f9fafb;">
+      <td style="padding: 8px 12px; color: #6b7280;">Est. improvement</td>
+      <td style="padding: 8px 12px;">{{ alert.payload.estimated_improvement|floatformat:3 }} from retrain</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  {% if alert.payload.evidence %}
+  <div style="margin: 20px 0;">
+    <div style="font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Evidence</div>
+    <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 14px;">
+      {% for key, value in alert.payload.evidence.items %}
+      <li><span style="color: #6b7280;">{{ key }}:</span> {{ value }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <a href="{{ alert_url }}" style="display: inline-block; background:#4f46e5; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; margin-top: 8px;">
+    Review &amp; triage →
+  </a>
+
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 28px 0 12px;">
+  <p style="font-size: 12px; color: #9ca3af; line-height: 1.5;">
+    QueryGrade ML monitoring — issue #5.
+    Further alerts of this same type for this same model will be suppressed
+    for 4 hours per recipient to avoid pager-bombing on a flapping detector.
+  </p>
+</body>
+</html>

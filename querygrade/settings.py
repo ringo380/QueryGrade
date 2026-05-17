@@ -293,6 +293,17 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@querygrade.com")
 
+# ML monitoring alerts (issue #5). Comma-separated recipient list; falls back
+# to DEFAULT_FROM_EMAIL if unset (which means the alert goes back to the same
+# inbox the system sends *from* — useful for staging, sufficient for a small
+# ops team in prod). Set via `railway variables --set "ML_ALERT_RECIPIENTS=..."`.
+ML_ALERT_RECIPIENTS = config("ML_ALERT_RECIPIENTS", default="", cast=Csv())
+
+# Base URL for absolute links in transactional email (e.g., the "Review and
+# triage" deep link in ML alert mail). Defaults to the production hostname
+# so alerts mailed from staging without this var still point at something real.
+SITE_URL = config("SITE_URL", default="https://querygrade.com")
+
 # Django REST Framework configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
