@@ -10,7 +10,7 @@ cryptography>=42.0
 pandas>=2.0.0
 scikit-learn>=1.5.0
 numpy>=1.21.0
-whitenoise==6.2.0
+whitenoise==6.12.0
 sqlparse>=0.4.2
 djangorestframework>=3.14.0
 djangorestframework-simplejwt>=5.2.0
