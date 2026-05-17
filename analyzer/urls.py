@@ -9,6 +9,7 @@ from django.urls import path
 
 # ML Dashboard views (separate module)
 from .ml import dashboard_views
+from .views import ml_alert_views
 
 # Import from modular views package
 from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views; Saved connection views
@@ -139,6 +140,27 @@ urlpatterns = [
         "ml/api/trigger-training/",
         dashboard_views.dashboard_api_trigger_training,
         name="ml_api_trigger_training",
+    ),
+    # ML alert triage (issue #5). List view ships in PR 5 of the stack.
+    path(
+        "ml/alerts/<int:alert_id>/ack/",
+        ml_alert_views.ack_alert,
+        name="ml_alert_ack",
+    ),
+    path(
+        "ml/alerts/<int:alert_id>/dismiss/",
+        ml_alert_views.dismiss_alert,
+        name="ml_alert_dismiss",
+    ),
+    path(
+        "ml/alerts/<int:alert_id>/false-positive/",
+        ml_alert_views.mark_false_positive,
+        name="ml_alert_false_positive",
+    ),
+    path(
+        "ml/models/<int:model_id>/rollback/",
+        ml_alert_views.rollback_model,
+        name="ml_model_rollback",
     ),
     # API endpoints
     path(
