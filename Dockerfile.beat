@@ -1,0 +1,31 @@
+# Celery Beat scheduler. Lightweight — beat only emits scheduled tasks; the
+# worker (Dockerfile.worker) executes them. So this image deliberately uses
+# the slim prod deps set (no torch/tensorflow/transformers), keeping the
+# beat service cheap and fast to redeploy.
+#
+# Issue #5 (ML Monitoring): beat fires `analyzer.tasks.monitor_ml_models`
+# every 15 min; see `querygrade/celery.py:beat_schedule`.
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements-prod.txt ./
+RUN pip install -r requirements-prod.txt
+
+COPY . .
+
+# `-S` schedules with a persistent shelf file so a beat restart doesn't
+# replay missed ticks. Persist to /tmp (Railway's writable scratch).
+CMD ["celery", "-A", "querygrade", "beat", "--loglevel=info", \
+     "-s", "/tmp/celerybeat-schedule"]
