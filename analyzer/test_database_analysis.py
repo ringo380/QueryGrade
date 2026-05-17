@@ -223,7 +223,7 @@ class DatabaseAnalysisViewsTest(TestCase):
         """Test database analyze view GET request."""
         response = self.client.get(reverse("database_analyze"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Database Architecture Analysis")
+        self.assertContains(response, "Connect a database")
         self.assertContains(response, "Database Engine")
 
     def test_database_analyze_requires_login(self):

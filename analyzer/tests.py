@@ -13,11 +13,14 @@ from analyzer.parser import (
 
 class ParserTestCase(TestCase):
     def setUp(self):
+        # Sample MySQL logs live at the repo-root `samples/` dir, not under
+        # `analyzer/samples/` (no such directory exists).
+        repo_root = os.path.dirname(os.path.dirname(__file__))
         self.sample_slow_log_path = os.path.join(
-            os.path.dirname(__file__), "samples", "mysql-slow-query.log"
+            repo_root, "samples", "mysql-slow-query.log"
         )
         self.sample_general_log_path = os.path.join(
-            os.path.dirname(__file__), "samples", "mysql-general-query.log"
+            repo_root, "samples", "mysql-general-query.log"
         )
 
     def test_parse_mysql_slow_log(self):

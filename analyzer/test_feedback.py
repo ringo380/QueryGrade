@@ -117,7 +117,7 @@ class FeedbackSystemTestCase(TransactionTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Provide Feedback")
+        self.assertContains(response, "Provide feedback")
         self.assertContains(response, "How accurate was the analysis?")
         self.assertContains(response, "How useful were the recommendations?")
         self.assertContains(response, "How clear was the feedback?")
@@ -205,7 +205,7 @@ class FeedbackSystemTestCase(TransactionTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Update Your Feedback")
+        self.assertContains(response, "Update your feedback")
         # Check form has existing values (this is a basic check)
         self.assertContains(response, "Existing feedback")
 
@@ -288,11 +288,11 @@ class FeedbackSystemTestCase(TransactionTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Feedback Analytics")
+        self.assertContains(response, "Feedback analytics")
         # Template shows "Feedback will appear here" when no aggregated stats available
         # The analytics view may require minimum feedback threshold
         # Just verify page renders successfully
-        self.assertIn("Feedback Analytics", response.content.decode())
+        self.assertIn("Feedback analytics", response.content.decode())
 
     def test_feedback_analytics_no_data(self):
         """Test feedback analytics page with no feedback data."""
@@ -306,7 +306,8 @@ class FeedbackSystemTestCase(TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         # Template shows "Feedback will appear here once users start providing ratings"
         self.assertContains(
-            response, "Feedback will appear here once users start providing ratings"
+            response,
+            "Feedback analytics will populate as users rate their analyses",
         )
 
     def test_feedback_form_validation(self):
@@ -330,7 +331,9 @@ class FeedbackSystemTestCase(TransactionTestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Provide Feedback")
+        # The detailed-feedback CTA links to submit_feedback; the visible label
+        # is "Detailed feedback" (was "Provide Feedback" pre-UX-pass).
+        self.assertContains(response, "Detailed feedback")
         self.assertContains(
             response, reverse("submit_feedback", args=[self.analysis.id])
         )

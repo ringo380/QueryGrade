@@ -141,11 +141,13 @@ class QueryOptimizationTestCase(TransactionTestCase):
         results_response = self.client.get(reverse("grade_results", args=[analysis.id]))
         self.assertEqual(results_response.status_code, 200)
 
-        # Check that optimization section is present if there are issues
+        # Check that optimization section is present if there are issues.
+        # Heading / tab labels were lowercased + shortened in the UX pass; assert
+        # the current strings rather than the pre-pass title-cased versions.
         if len(analysis.issues_found) > 0:
-            self.assertContains(results_response, "Query Optimization Suggestions")
-            self.assertContains(results_response, "Optimized Query")
-            self.assertContains(results_response, "Side-by-Side Comparison")
+            self.assertContains(results_response, "Optimization suggestions")
+            self.assertContains(results_response, "Optimized")
+            self.assertContains(results_response, "Side-by-side")
             self.assertContains(results_response, "Explanations")
 
     def test_optimization_with_no_issues(self):
