@@ -22,6 +22,9 @@ from .log_tasks import process_log_file_async
 # Maintenance tasks
 from .maintenance_tasks import cleanup_temp_files
 
+# ML monitoring tasks
+from .monitoring_tasks import monitor_ml_models
+
 # Query analysis tasks
 from .query_tasks import batch_analyze_queries
 
@@ -42,4 +45,6 @@ __all__ = [
     "cleanup_temp_files",
     # Report tasks
     "generate_performance_report",
+    # ML monitoring tasks
+    "monitor_ml_models",
 ]
