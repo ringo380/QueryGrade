@@ -171,12 +171,13 @@ class QueryGradingIntegrationTestCase(TransactionTestCase):
             results_response, f"{analysis.grade}"
         )  # Grade letter is displayed
         self.assertContains(results_response, f"{analysis.score}")  # Score is displayed
-        self.assertContains(results_response, "Query Analysis Results")
+        # Page title was retitled to "Grade results" in the UX pass.
+        self.assertContains(results_response, "Grade results")
 
         # Step 6: Check query history page
         history_response = self.client.get(reverse("query_history"))
         self.assertEqual(history_response.status_code, 200)
-        self.assertContains(history_response, "Query History")
+        self.assertContains(history_response, "Query history")
         self.assertContains(history_response, analysis.grade)
         self.assertContains(history_response, "SELECT")
 
@@ -211,28 +212,24 @@ class QueryGradingIntegrationTestCase(TransactionTestCase):
         self.assertContains(results_response, "Recommendations")
 
     def test_authentication_required(self):
-        """Test that authentication is required for grading pages."""
+        """Test that authentication is required for protected pages.
+
+        Note: the grade form itself is no longer login-gated — anonymous users
+        can grade up to ANON_TRIAL_CAP queries per session. Pages that remain
+        login-gated are the user-scoped ones (history, account, connections).
+        """
 
         # Logout first since setUp force_login's the user
         self.client.logout()
 
-        # Try to access grade query page without login
+        # /grade/ is anonymously accessible (trial flow)
         grade_response = self.client.get(reverse("grade_query"))
-        self.assertEqual(grade_response.status_code, 302)  # Redirect to login
+        self.assertEqual(grade_response.status_code, 200)
 
-        # Try to access history page without login
+        # History page still requires login (it's user-scoped)
         history_response = self.client.get(reverse("query_history"))
-        self.assertEqual(history_response.status_code, 302)  # Redirect to login
-
-        # Create an analysis to test results page
-        self.client.login(username="integrationuser", password="testpass123")
-        self.client.post(reverse("grade_query"), {"sql_query": "SELECT * FROM users;"})
-        analysis = QueryAnalysis.objects.first()
-        self.client.logout()
-
-        # Try to access results page without login
-        results_response = self.client.get(reverse("grade_results", args=[analysis.id]))
-        self.assertEqual(results_response.status_code, 302)  # Redirect to login
+        self.assertEqual(history_response.status_code, 302)
+        self.assertTrue(history_response.url.startswith("/login/"))
 
     def test_invalid_query_handling(self):
         """Test handling of invalid SQL queries."""
@@ -380,10 +377,13 @@ class QueryGradingIntegrationTestCase(TransactionTestCase):
         analysis = QueryAnalysis.objects.first()
         results_response = self.client.get(reverse("grade_results", args=[analysis.id]))
 
-        # Check for grade badge and score display
-        self.assertContains(results_response, f"grade-{analysis.grade.lower()}")
+        # The grade-{letter} CSS class was retired in the UX pass; the grade
+        # pill is now styled via Tailwind utilities (bg-emerald-50 / bg-lime-50
+        # / bg-amber-50 / bg-orange-50 / bg-red-50). Assert the visible grade
+        # letter and the formatted score directly.
+        self.assertContains(results_response, analysis.grade)
         self.assertContains(results_response, f"{analysis.score:.1f}")
 
-        # Check history page formatting
+        # History page formatting — assert grade letter appears for this row
         history_response = self.client.get(reverse("query_history"))
-        self.assertContains(history_response, f"grade-{analysis.grade.lower()}")
+        self.assertContains(history_response, analysis.grade)

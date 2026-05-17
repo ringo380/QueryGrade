@@ -73,7 +73,7 @@ class AnonymousTrialTestCase(TransactionTestCase):
         """GET /grade/ for anon shows the trial banner and form."""
         response = self.client.get(reverse("grade_query"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Trial mode")
+        self.assertContains(response, "free grades left")
         self.assertContains(response, "SQL Query Grader")
 
     # ---------- POST /grade/ ----------
