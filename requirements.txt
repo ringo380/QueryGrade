@@ -21,7 +21,7 @@ django-ratelimit==4.1.0
 python-decouple>=3.8
 
 # Machine Learning Dependencies
-joblib>=1.2.0
+joblib>=1.5.3
 
 # Documentation Loading Dependencies
 beautifulsoup4>=4.12.0
