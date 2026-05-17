@@ -12,7 +12,7 @@ from django.contrib.admin import DateFieldListFilter
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from ..models import FeedbackLearning, LearningMetrics, MLModel, TrainingData
+from ..models import FeedbackLearning, LearningMetrics, MLAlert, MLModel, TrainingData
 
 
 @admin.register(MLModel)
@@ -334,3 +334,71 @@ class FeedbackLearningAdmin(admin.ModelAdmin):
             .get_queryset(request)
             .select_related("user_history__user", "user_history__query")
         )
+
+
+@admin.register(MLAlert)
+class MLAlertAdmin(admin.ModelAdmin):
+    """Admin interface for MLAlert — monitoring signals raised by the
+    periodic monitor_models task. Acknowledge / dismiss / mark false
+    positive here for ad-hoc triage; the dashboard UI offers the same
+    actions in a friendlier surface."""
+
+    list_display = (
+        "created_at",
+        "severity",
+        "alert_type",
+        "status",
+        "model",
+        "short_message",
+    )
+    list_filter = (
+        "severity",
+        "status",
+        "alert_type",
+        ("created_at", DateFieldListFilter),
+    )
+    search_fields = ("message", "resolution", "model__name", "model__version")
+    readonly_fields = ("created_at", "model", "alert_type", "payload_pretty")
+    ordering = ("-created_at",)
+
+    fieldsets = (
+        (
+            "Alert",
+            {
+                "fields": (
+                    "model",
+                    "alert_type",
+                    "severity",
+                    "status",
+                    "message",
+                    "payload_pretty",
+                )
+            },
+        ),
+        (
+            "Triage",
+            {
+                "fields": (
+                    "acknowledged_by",
+                    "acknowledged_at",
+                    "resolution",
+                ),
+            },
+        ),
+        ("Timestamps", {"fields": ("created_at",), "classes": ("collapse",)}),
+    )
+
+    def short_message(self, obj):
+        return (obj.message[:60] + "…") if len(obj.message) > 60 else obj.message
+
+    short_message.short_description = "Message"
+
+    def payload_pretty(self, obj):
+        if not obj.payload:
+            return "—"
+        return format_html("<pre>{}</pre>", json.dumps(obj.payload, indent=2))
+
+    payload_pretty.short_description = "Payload"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("model", "acknowledged_by")

@@ -23,6 +23,7 @@ admin.site.index_title = "Machine Learning Dashboard"
 from .ml_admin import (
     FeedbackLearningAdmin,
     LearningMetricsAdmin,
+    MLAlertAdmin,
     MLModelAdmin,
     TrainingDataAdmin,
 )
@@ -39,4 +40,5 @@ __all__ = [
     "TrainingDataAdmin",
     "LearningMetricsAdmin",
     "FeedbackLearningAdmin",
+    "MLAlertAdmin",
 ]
