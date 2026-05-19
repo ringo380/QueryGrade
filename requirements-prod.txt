@@ -9,7 +9,7 @@ psycopg2-binary>=2.9.3
 cryptography>=42.0
 pandas>=2.0.0
 scikit-learn>=1.5.0
-numpy>=1.21.0
+numpy>=2.4.6
 whitenoise==6.12.0
 sqlparse>=0.4.2
 djangorestframework>=3.14.0
