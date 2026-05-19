@@ -26,4 +26,4 @@ python-decouple>=3.8
 
 # Documentation Loading Dependencies
 beautifulsoup4>=4.12.0
-requests>=2.31.0
+requests>=2.34.2
