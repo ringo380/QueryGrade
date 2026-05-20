@@ -1,0 +1,11 @@
+# Per-service Railway config for the Celery worker (issue #5).
+# Selected via the service's "Config File Path" = railway.worker.toml, which
+# makes this service ignore the default railway.toml (that one is web-only and
+# would otherwise force Dockerfile.web + a gunicorn start command).
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.worker"
+
+[deploy]
+# No preDeployCommand: migrations + init_superuser are owned by the web service.
+startCommand = "celery -A querygrade worker --loglevel=info"

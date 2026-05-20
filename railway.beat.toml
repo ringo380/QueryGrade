@@ -1,0 +1,10 @@
+# Per-service Railway config for the Celery Beat scheduler (issue #5).
+# Selected via the service's "Config File Path" = railway.beat.toml so it
+# ignores the web-only default railway.toml (Dockerfile.web + gunicorn).
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.beat"
+
+[deploy]
+# Beat only emits scheduled tasks; the worker executes them. No preDeploy.
+startCommand = "celery -A querygrade beat --loglevel=info -s /tmp/celerybeat-schedule"
