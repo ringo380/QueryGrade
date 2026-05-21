@@ -362,17 +362,18 @@ class TrainingPipelineManager:
     def _generate_model_version(self) -> str:
         """Generate version string for new model.
 
-        Must fit MLModel.version (varchar(20)); the model name is stored
-        separately in MLModel.name, so the version is just a timestamp tag
-        (e.g. "v20260521_020730", 16 chars). The descriptive model name is
-        re-applied to the on-disk filename in _save_model / _record_training_metrics.
+        A bare timestamp (e.g. "20260521_020730", 15 chars) — no leading "v".
+        Display sites render this as `v{version}` (MLModel.__str__, the alert
+        templates, model_manager/hybrid_grader logs, rollback messages), so a
+        stored leading "v" would double it ("vv..."). The model name is stored
+        separately in MLModel.name and re-applied to the on-disk filename in
+        _save_model / _record_training_metrics. Fits MLModel.version varchar(20).
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"v{timestamp}"
+        return datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def _model_filename(self, model_version: str) -> str:
-        """On-disk filename: descriptive name + short version, e.g.
-        query_grader_v20260521_020730.pkl."""
+        """On-disk filename: descriptive name + version, e.g.
+        query_grader_20260521_020730.pkl."""
         return f"{self.config.model_name}_{model_version}.pkl"
 
     def _save_model(self, model, model_version: str) -> str:
