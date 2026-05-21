@@ -34,7 +34,10 @@ from analyzer.database_introspector import DatabaseIntrospector
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 60 * 60 * 2  # 2 hours, matching query_analysis_cache convention
-CACHE_PREFIX = "live_schema:v1:"
+# v2: snapshot now carries per-column NDV (in column dicts) and per-table
+# ``last_analyzed``. The prefix bump retires v1 entries (they age out within the
+# TTL) so the first grade per connection re-introspects with the richer payload.
+CACHE_PREFIX = "live_schema:v2:"
 
 
 @dataclass
@@ -54,7 +57,8 @@ class TableSnapshot:
     schema: str = ""
     row_count: Optional[int] = None
     size_mb: Optional[float] = None
-    columns: List[Dict] = field(default_factory=list)
+    last_analyzed: Optional[str] = None  # ISO timestamp of last stats refresh
+    columns: List[Dict] = field(default_factory=list)  # each may carry an "ndv" key
     indexes: List[IndexSnapshot] = field(default_factory=list)
     foreign_keys: List[Dict] = field(default_factory=list)
 
@@ -99,13 +103,19 @@ class LiveSchemaContext:
         )
 
         for tbl in self.tables.values():
+            last_analyzed = datetime.utcnow()
+            if tbl.last_analyzed:
+                try:
+                    last_analyzed = datetime.fromisoformat(tbl.last_analyzed)
+                except (ValueError, TypeError):
+                    pass
             manager.table_stats[tbl.name] = TableStatistics(
                 table_name=tbl.name,
                 row_count=tbl.row_count or 0,
                 page_count=0,
                 avg_row_size=0,
                 total_size_mb=tbl.size_mb or 0.0,
-                last_analyzed=datetime.utcnow(),
+                last_analyzed=last_analyzed,
             )
             for idx in tbl.indexes:
                 manager.index_stats[tbl.name].append(
@@ -126,12 +136,13 @@ class LiveSchemaContext:
                     )
                 )
             for col in tbl.columns:
+                ndv = col.get("ndv")
                 manager.column_stats[tbl.name][col["name"]] = ColumnStatistics(
                     column_name=col["name"],
                     table_name=tbl.name,
                     data_type=str(col.get("type", "")),
                     nullable=bool(col.get("nullable", True)),
-                    distinct_values=tbl.row_count or 0,
+                    distinct_values=(ndv if ndv is not None else (tbl.row_count or 0)),
                     null_percentage=0.0,
                     avg_length=col.get("max_length") or 0,
                     max_length=col.get("max_length") or 0,
@@ -229,6 +240,7 @@ def build_live_context(
             schema=t.schema,
             row_count=t.row_count,
             size_mb=t.size_mb,
+            last_analyzed=t.last_analyzed,
             columns=list(t.columns),
             indexes=[
                 IndexSnapshot(

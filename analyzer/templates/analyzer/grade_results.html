@@ -283,6 +283,51 @@
   {% endif %}
   {% endwith %}
 
+  {% with ins_block=analysis.schema_insights %}
+  {% if ins_block.insights %}
+  <details id="schema-insights" class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] p-5" {% if g == 'c' or g == 'd' or g == 'f' %}open{% endif %}>
+    <summary class="cursor-pointer flex items-center justify-between flex-wrap gap-2 list-none">
+      <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <span>🔎</span><span>Schema insights</span>
+        <span class="text-xs font-normal text-gray-500">schema-aware · live DB</span>
+      </h3>
+      <span class="text-xs text-slate-500 dark:text-slate-400">{{ ins_block.insights|length }} finding{{ ins_block.insights|length|pluralize }}</span>
+    </summary>
+
+    {% if ins_block.insights %}
+    <ul class="mt-4 space-y-3">
+      {% for ins in ins_block.insights %}
+      <li class="rounded-md border border-gray-200 dark:border-[#1f1f23] p-4">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ ins.title }}</span>
+          <span class="text-xs font-medium px-2 py-0.5 rounded
+            {% if ins.severity == 'high' %}bg-red-100 text-red-700
+            {% elif ins.severity == 'medium' %}bg-amber-100 text-amber-700
+            {% elif ins.severity == 'low' %}bg-slate-100 text-slate-600
+            {% else %}bg-blue-50 text-blue-600{% endif %}">
+            {{ ins.severity|title }}
+          </span>
+        </div>
+        <p class="mt-2 text-sm text-gray-700 dark:text-slate-300">{{ ins.detail }}</p>
+        {% if ins.suggestion %}
+          <p class="mt-1 text-xs text-gray-500"><span class="font-semibold">Suggestion:</span> {{ ins.suggestion }}</p>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if ins_block.skipped %}
+    <div class="mt-4 text-xs text-gray-400 dark:text-slate-500 space-y-1">
+      {% for reason in ins_block.skipped %}
+        <p>ℹ️ {{ reason }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </details>
+  {% endif %}
+  {% endwith %}
+
   {% if optimization_result and optimization_result.optimizations_applied %}
   <section class="bg-white dark:bg-[#111113] rounded-lg border border-gray-200 dark:border-[#1f1f23] p-5">
     <div class="flex items-center justify-between">
