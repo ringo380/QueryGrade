@@ -83,6 +83,9 @@ class QueryAnalysis(models.Model):
     index_recommendations = models.JSONField(
         default=dict, blank=True, help_text="Schema-aware index recommendations"
     )
+    schema_insights = models.JSONField(
+        default=dict, blank=True, help_text="Schema-aware non-index insights"
+    )
     performance_notes = models.TextField(
         blank=True, help_text="Performance analysis notes"
     )

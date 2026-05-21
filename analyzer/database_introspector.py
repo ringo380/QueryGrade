@@ -18,6 +18,7 @@ class TableInfo:
     schema: str = "public"
     row_count: Optional[int] = None
     size_mb: Optional[float] = None
+    last_analyzed: Optional[str] = None  # ISO timestamp of last stats refresh, or None
     columns: List[Dict[str, Any]] = None
     indexes: List[Dict[str, Any]] = None
     foreign_keys: List[Dict[str, Any]] = None
@@ -180,6 +181,19 @@ class DatabaseIntrospector:
                             f"Could not get size info for table {table_name}: {e}"
                         )
 
+                    # Best-effort planner statistics: number-of-distinct-values
+                    # per column and the last stats-refresh time. Both degrade
+                    # to absent (None / unset) on backends or permission sets
+                    # that can't report them — never raises.
+                    ndv = self._get_column_ndv(cursor, table_name)
+                    if ndv:
+                        for col in table.columns:
+                            if col["name"] in ndv:
+                                col["ndv"] = ndv[col["name"]]
+                    table.last_analyzed = self._get_table_stats_freshness(
+                        cursor, table_name
+                    )
+
                     tables.append(table)
                     self._tables_cache[table_name] = table
 
@@ -311,6 +325,106 @@ class DatabaseIntrospector:
 
         except Exception as e:
             logger.debug(f"Error getting size for {table_name}: {e}")
+            return None
+
+    def _get_column_ndv(self, cursor, table_name: str) -> Dict[str, Optional[int]]:
+        """Best-effort number-of-distinct-values per column from planner stats.
+
+        Returns ``{column_name: ndv}`` where ndv is an absolute estimate (int)
+        or ``None`` when the backend reports it but can't quantify. Columns
+        absent from the result simply have no NDV known.
+
+        * PostgreSQL: ``pg_stats.n_distinct`` — positive = absolute estimate;
+          negative = fraction of row_count (PG convention), which we convert.
+        * MySQL: ``information_schema.STATISTICS.CARDINALITY`` for the leading
+          column of each index (the only place MySQL exposes per-column NDV).
+        * SQLite: no per-column NDV available → ``{}``.
+        """
+        engine = self.config["engine"]
+        try:
+            if engine == "postgresql":
+                cursor.execute(
+                    """
+                    SELECT attname, n_distinct
+                    FROM pg_stats
+                    WHERE tablename = %s
+                    """,
+                    [table_name],
+                )
+                out: Dict[str, Optional[int]] = {}
+                row_count = self._get_table_row_count(cursor, table_name) or 0
+                for col_name, n_distinct in cursor.fetchall():
+                    if n_distinct is None:
+                        out[col_name] = None
+                    elif n_distinct >= 0:
+                        out[col_name] = int(n_distinct)
+                    else:
+                        # Negative: fraction of total rows.
+                        out[col_name] = int(round(abs(n_distinct) * row_count))
+                return out
+            elif engine == "mysql":
+                cursor.execute(
+                    """
+                    SELECT column_name, MAX(cardinality)
+                    FROM information_schema.statistics
+                    WHERE table_name = %s AND seq_in_index = 1
+                    GROUP BY column_name
+                    """,
+                    [table_name],
+                )
+                return {
+                    name: (int(card) if card is not None else None)
+                    for name, card in cursor.fetchall()
+                }
+            else:  # sqlite and others
+                return {}
+        except Exception as e:
+            logger.debug(f"Error getting NDV for {table_name}: {e}")
+            return {}
+
+    def _get_table_stats_freshness(self, cursor, table_name: str) -> Optional[str]:
+        """Best-effort ISO timestamp of the table's last statistics refresh.
+
+        * PostgreSQL: ``pg_stat_user_tables.last_analyze`` (manual ANALYZE),
+          coalesced with ``last_autoanalyze``.
+        * MySQL (InnoDB): ``mysql.innodb_table_stats.last_update`` — the real
+          persistent-stats refresh time. NOT ``information_schema.tables``
+          ``.update_time``, which is the last *data* write, not a stats refresh.
+          If the user lacks read on ``mysql.innodb_table_stats`` this returns
+          ``None`` (the staleness insight then reports "skipped").
+        * SQLite: no ANALYZE timestamp is tracked → ``None``.
+        """
+        engine = self.config["engine"]
+        try:
+            if engine == "postgresql":
+                cursor.execute(
+                    """
+                    SELECT COALESCE(last_analyze, last_autoanalyze)
+                    FROM pg_stat_user_tables
+                    WHERE relname = %s
+                    """,
+                    [table_name],
+                )
+            elif engine == "mysql":
+                cursor.execute(
+                    """
+                    SELECT last_update
+                    FROM mysql.innodb_table_stats
+                    WHERE table_name = %s
+                    """,
+                    [table_name],
+                )
+            else:  # sqlite and others
+                return None
+
+            result = cursor.fetchone()
+            if result and result[0] is not None:
+                value = result[0]
+                # psycopg/mysqlclient return datetime objects.
+                return value.isoformat() if hasattr(value, "isoformat") else str(value)
+            return None
+        except Exception as e:
+            logger.debug(f"Error getting stats freshness for {table_name}: {e}")
             return None
 
     def analyze_query_context(self, sql_query: str) -> Dict[str, Any]:

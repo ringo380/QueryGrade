@@ -129,6 +129,25 @@ def grade_query(request):
                             logger.exception("index_features extraction failed")
                         analysis.index_recommendations = payload
                         analysis.save(update_fields=["index_recommendations"])
+
+                        # Schema-aware non-index insights (issue #6, scope A) —
+                        # reuse the live_schema already built above. Guarded so an
+                        # advisor failure never loses the index recs already saved.
+                        schema_insight_count = 0
+                        try:
+                            from analyzer.services.schema_advisor import SchemaAdvisor
+
+                            insight_result = SchemaAdvisor(
+                                connection=db_connection, live_schema=live_schema
+                            ).analyze(sql_query)
+                            analysis.schema_insights = insight_result.to_dict()
+                            analysis.save(update_fields=["schema_insights"])
+                            schema_insight_count = len(insight_result.insights)
+                        except Exception:
+                            logger.exception(
+                                "SchemaAdvisor failed for analysis %s", analysis.id
+                            )
+
                         db_connection.touch()
                         # GA4 event: index_recommendation_generated.
                         try:
@@ -145,6 +164,7 @@ def grade_query(request):
                                 "database_engine": db_connection.engine,
                                 "confidence_high_count": high_conf,
                                 "redundant_filtered_count": rec_result.filtered_redundant,
+                                "schema_insight_count": schema_insight_count,
                             }
                             request.session.modified = True
                         except Exception:
