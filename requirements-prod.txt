@@ -15,7 +15,7 @@ sqlparse>=0.4.2
 djangorestframework>=3.14.0
 djangorestframework-simplejwt>=5.2.0
 celery>=5.2.0
-redis>=4.0.0
+redis>=7.4.0
 django-redis>=5.0.0
 joblib>=1.5.3
 
