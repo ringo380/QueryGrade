@@ -19,6 +19,9 @@ redis>=4.0.0
 django-redis>=5.0.0
 joblib>=1.5.3
 
+# Email delivery (Resend HTTP API — Railway blocks outbound SMTP)
+django-anymail[resend]>=10.0
+
 # Security & Configuration
 django-csp==4.0
 django-ratelimit==4.1.0

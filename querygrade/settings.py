@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "django_ratelimit",
+    "anymail",
     "analyzer",
 ]
 
@@ -276,11 +277,25 @@ LOGIN_REDIRECT_URL = "/"
 # Redirect to login URL if user tries to access a login required page and is not logged in
 LOGIN_URL = "/login/"
 
-# Email Configuration for Password Reset
+# Email Configuration (password reset + ML monitoring alerts).
+#
+# IMPORTANT: Railway blocks outbound SMTP ports (25/465/587) from containers,
+# so SMTP backends silently fail with "Network is unreachable" in production.
+# We send via Resend's HTTPS API (port 443) through django-anymail instead.
+# EMAIL_BACKEND defaults to console for local dev; prod sets it to
+# "anymail.backends.resend.EmailBackend" with RESEND_API_KEY.
 EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND",
     "django.core.mail.backends.console.EmailBackend",  # Development: prints to console
 )
+
+# Anymail / Resend (HTTP API — works through Railway's egress).
+ANYMAIL = {
+    "RESEND_API_KEY": os.environ.get("RESEND_API_KEY", ""),
+}
+
+# Legacy SMTP settings — retained for local/alt use, but NOT used in prod
+# (Railway blocks SMTP egress; see note above).
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in (
