@@ -85,7 +85,7 @@ class AlertEvaluatorTests(TestCase):
         self.assertEqual(alert.payload["reason"], "performance_degradation")
         self.assertEqual(alert.payload["urgency"], "HIGH")
 
-    def test_dedupes_within_window(self):
+    def test_dedupes_against_existing_open(self):
         triggers = [_make_trigger(), _make_trigger()]
         with patch.object(
             alert_evaluator.ConfidenceBasedRetrainingSystem,
@@ -94,19 +94,19 @@ class AlertEvaluatorTests(TestCase):
         ):
             created, skipped = alert_evaluator.run_evaluation()
 
-        # First trigger creates an alert, second is deduped against it
+        # First trigger creates an alert, second is suppressed by it
         self.assertEqual(len(created), 1)
         self.assertEqual(skipped, 1)
         self.assertEqual(MLAlert.objects.count(), 1)
 
-    def test_dedupe_only_applies_to_open_alerts(self):
-        # Pre-existing RESOLVED alert of same type shouldn't block a new OPEN one
+    def test_acknowledged_alert_also_suppresses(self):
+        # An ACKNOWLEDGED (not just OPEN) alert of the same type suppresses new ones.
         MLAlert.objects.create(
             model=self.model,
             alert_type="PERFORMANCE",
             severity="MEDIUM",
-            status="RESOLVED",
-            message="Previously resolved.",
+            status="ACKNOWLEDGED",
+            message="Operator is on it.",
         )
         with patch.object(
             alert_evaluator.ConfidenceBasedRetrainingSystem,
@@ -114,23 +114,53 @@ class AlertEvaluatorTests(TestCase):
             return_value=[_make_trigger()],
         ):
             created, skipped = alert_evaluator.run_evaluation()
-        self.assertEqual(len(created), 1)
-        self.assertEqual(skipped, 0)
+        self.assertEqual(len(created), 0)
+        self.assertEqual(skipped, 1)
 
-    def test_dedupe_window_expires_after_an_hour(self):
-        # Open alert older than 1h should not block a new one
+    def test_unresolved_suppresses_regardless_of_age(self):
+        # An OPEN alert older than the old 1h window still suppresses (no time bound).
         stale = MLAlert.objects.create(
             model=self.model,
             alert_type="PERFORMANCE",
             severity="HIGH",
             status="OPEN",
-            message="Stale open alert.",
+            message="Stale but still unresolved.",
         )
-        # Bypass auto_now_add by direct update
         MLAlert.objects.filter(pk=stale.pk).update(
-            created_at=timezone.now() - timedelta(hours=2)
+            created_at=timezone.now() - timedelta(hours=26)
         )
+        with patch.object(
+            alert_evaluator.ConfidenceBasedRetrainingSystem,
+            "evaluate_retraining_need",
+            return_value=[_make_trigger()],
+        ):
+            created, skipped = alert_evaluator.run_evaluation()
+        self.assertEqual(len(created), 0)
+        self.assertEqual(skipped, 1)
 
+    def test_resolve_cooldown(self):
+        # A recently-RESOLVED alert (acknowledged_at=now) suppresses re-alerting...
+        recent = MLAlert.objects.create(
+            model=self.model,
+            alert_type="PERFORMANCE",
+            severity="MEDIUM",
+            status="RESOLVED",
+            message="Just resolved.",
+            acknowledged_at=timezone.now(),
+        )
+        with patch.object(
+            alert_evaluator.ConfidenceBasedRetrainingSystem,
+            "evaluate_retraining_need",
+            return_value=[_make_trigger()],
+        ):
+            created, skipped = alert_evaluator.run_evaluation()
+        self.assertEqual(len(created), 0)
+        self.assertEqual(skipped, 1)
+
+        # ...but once the cooldown has elapsed, a new alert is allowed.
+        MLAlert.objects.filter(pk=recent.pk).update(
+            acknowledged_at=timezone.now() - timedelta(hours=7)
+        )
         with patch.object(
             alert_evaluator.ConfidenceBasedRetrainingSystem,
             "evaluate_retraining_need",

@@ -48,7 +48,11 @@ URGENCY_TO_SEVERITY = {
     TriggerUrgency.CRITICAL: "CRITICAL",
 }
 
-DEDUPE_WINDOW = timedelta(hours=1)
+UNRESOLVED_STATUSES = ("OPEN", "ACKNOWLEDGED")
+# After an alert is RESOLVED/FALSE_POSITIVE, wait this long before re-alerting
+# the same (model, alert_type) — so resolving a persistent-condition alert
+# doesn't respawn it on the very next monitoring tick.
+RESOLVE_COOLDOWN = timedelta(hours=6)
 
 
 def _serialize_evidence(evidence: dict) -> dict:
@@ -86,13 +90,28 @@ def _active_target_model() -> Optional[MLModel]:
     return target
 
 
-def _recent_open_alert_exists(model: MLModel, alert_type: str) -> bool:
-    cutoff = timezone.now() - DEDUPE_WINDOW
+def _should_suppress_alert(model: MLModel, alert_type: str) -> bool:
+    """Whether to skip creating a new alert for this (model, alert_type).
+
+    Caps pile-up at one live alert per type: an unresolved alert (OPEN or
+    ACKNOWLEDGED) suppresses new ones **regardless of age** — it already
+    represents the live condition until an operator triages it. After the
+    alert is RESOLVED/FALSE_POSITIVE, a RESOLVE_COOLDOWN keeps a persistent
+    condition from immediately respawning on the next tick (uses
+    `acknowledged_at`, set on terminal transition by the triage views and the
+    bulk-resolve op).
+    """
+    if MLAlert.objects.filter(
+        model=model, alert_type=alert_type, status__in=UNRESOLVED_STATUSES
+    ).exists():
+        return True
+
+    cutoff = timezone.now() - RESOLVE_COOLDOWN
     return MLAlert.objects.filter(
         model=model,
         alert_type=alert_type,
-        status="OPEN",
-        created_at__gte=cutoff,
+        status__in=("RESOLVED", "FALSE_POSITIVE"),
+        acknowledged_at__gte=cutoff,
     ).exists()
 
 
@@ -108,12 +127,11 @@ def trigger_to_alert(trigger: RetrainingTrigger, model: MLModel) -> Optional[MLA
         )
         return None
 
-    if _recent_open_alert_exists(model, alert_type):
+    if _should_suppress_alert(model, alert_type):
         logger.debug(
-            "Skipping duplicate alert: model=%s type=%s (dedupe window %s)",
+            "Skipping duplicate alert: model=%s type=%s (unresolved exists or within resolve cooldown)",
             model.pk,
             alert_type,
-            DEDUPE_WINDOW,
         )
         return None
 
