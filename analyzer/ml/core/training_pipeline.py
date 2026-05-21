@@ -360,13 +360,24 @@ class TrainingPipelineManager:
         return {}
 
     def _generate_model_version(self) -> str:
-        """Generate version string for new model."""
+        """Generate version string for new model.
+
+        Must fit MLModel.version (varchar(20)); the model name is stored
+        separately in MLModel.name, so the version is just a timestamp tag
+        (e.g. "v20260521_020730", 16 chars). The descriptive model name is
+        re-applied to the on-disk filename in _save_model / _record_training_metrics.
+        """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"{self.config.model_name}_v{timestamp}"
+        return f"v{timestamp}"
+
+    def _model_filename(self, model_version: str) -> str:
+        """On-disk filename: descriptive name + short version, e.g.
+        query_grader_v20260521_020730.pkl."""
+        return f"{self.config.model_name}_{model_version}.pkl"
 
     def _save_model(self, model, model_version: str) -> str:
         """Save trained model to disk."""
-        model_filename = f"{model_version}.pkl"
+        model_filename = self._model_filename(model_version)
         model_path = os.path.join(self.model_dir, model_filename)
 
         # Save model and scaler together
@@ -395,7 +406,7 @@ class TrainingPipelineManager:
         """Record training metrics in database."""
         import hashlib as _hashlib
 
-        model_path = os.path.join(self.model_dir, f"{model_version}.pkl")
+        model_path = os.path.join(self.model_dir, self._model_filename(model_version))
 
         # Compute file size and checksum
         try:
