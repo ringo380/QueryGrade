@@ -6,6 +6,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}QueryGrade{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}QueryGrade analyzes and grades your SQL queries, flags performance issues, and recommends indexes so you can write faster, cleaner SQL.{% endblock %}">
+  <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="QueryGrade">
+  <meta property="og:title" content="{% block og_title %}QueryGrade · SQL query analysis &amp; grading{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Analyze and grade your SQL queries, flag performance issues, and get index recommendations.{% endblock %}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'analyzer/img/favicon.svg' %}{% endblock %}">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{% block twitter_title %}QueryGrade · SQL query analysis &amp; grading{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}Analyze and grade your SQL queries, flag performance issues, and get index recommendations.{% endblock %}">
   <link rel="icon" type="image/svg+xml" href="{% static 'analyzer/img/favicon.svg' %}">
   <style>
     @font-face {

@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /async/
+Disallow: /ml/
+Disallow: /account/
+Disallow: /history/
+Disallow: /connections/
+Disallow: /grade/results/
+Disallow: /grade/enhanced/
+
+Sitemap: {{ scheme }}://{{ host }}/sitemap.xml
