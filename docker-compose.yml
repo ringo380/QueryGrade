@@ -1,7 +1,11 @@
 services:
   web:
     build: .
-    command: gunicorn --bind 0.0.0.0:8000 querygrade.wsgi
+    # No `command:` override here on purpose. The image CMD runs
+    # migrate + collectstatic before gunicorn; overriding it with a bare
+    # gunicorn skips both, and the app comes up against an empty database
+    # and 500s on the first request ("relation django_session does not
+    # exist"). Keep startup defined in one place: Dockerfile CMD.
     volumes:
       - .:/app
     ports:
@@ -14,7 +18,12 @@ services:
       - DB_PASSWORD=postgres
       - DB_HOST=db
     depends_on:
-      - db
+      db:
+        # Plain `depends_on: [db]` only waits for the container to start,
+        # not for Postgres to accept connections. Postgres usually wins the
+        # race, but now that startup runs migrate the cost of losing it is a
+        # dead web container rather than a retry, so wait for readiness.
+        condition: service_healthy
 
   db:
     image: postgres:13-alpine
@@ -24,6 +33,12 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 volumes:
   postgres_data:
