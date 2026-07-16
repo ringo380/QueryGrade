@@ -6,17 +6,35 @@ Usage:
     python manage.py process_ml_feedback --days 7
     python manage.py process_ml_feedback --dry-run
     python manage.py process_ml_feedback --force-all
+    python manage.py process_ml_feedback --stats-only
+
+Feedback reaches a Query through UserQueryHistory, not directly: a history
+row carries either a detailed QueryFeedback (accuracy/usefulness/clarity
+ratings) or a simple was_helpful thumbs up/down. FeedbackCollector accepts
+both, so the selection and stats here count both -- counting only
+QueryFeedback would under-report and disagree with what actually gets
+processed.
 """
 
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from analyzer.ml.core.feature_extractor import FeatureExtractor
 from analyzer.ml.core.feedback_collector import FeedbackCollector
-from analyzer.models import Query, QueryFeedback, TrainingData
+from analyzer.models import Query, QueryFeedback, TrainingData, UserQueryHistory
+
+
+def _pct(part, whole):
+    """Percentage that tolerates an empty dataset.
+
+    Feedback volume is legitimately zero on a fresh or low-traffic install,
+    and a stats command must not blow up in exactly the situation you would
+    run it to diagnose.
+    """
+    return f"{(part / whole * 100):.1f}%" if whole else "n/a"
 
 
 class Command(BaseCommand):
@@ -49,8 +67,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "--min-feedback",
             type=int,
-            default=2,
-            help="Minimum number of feedback items required per query (default: 2)",
+            default=None,
+            help=(
+                "Minimum feedback items required per query. Defaults to "
+                "FeedbackCollector.min_feedback_count, which is the threshold "
+                "actually enforced during processing."
+            ),
         )
 
         parser.add_argument(
@@ -66,13 +88,18 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Handle the feedback processing command."""
         try:
-            if options["stats_only"]:
-                self.show_feedback_statistics(options)
-                return
-
             # Initialize components
             self.feedback_collector = FeedbackCollector()
             self.feature_extractor = FeatureExtractor()
+
+            # Selecting on a lower threshold than the collector enforces would
+            # report queries as "ready" that processing then silently skips.
+            if options["min_feedback"] is None:
+                options["min_feedback"] = self.feedback_collector.min_feedback_count
+
+            if options["stats_only"]:
+                self.show_feedback_statistics(options)
+                return
 
             # Get feedback to process
             queries_to_process = self._get_queries_to_process(options)
@@ -92,7 +119,8 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Feedback processing completed. Created training data for {processed_count} queries."
+                    f"Feedback processing completed. Created training data for "
+                    f"{processed_count} queries."
                 )
             )
 
@@ -104,55 +132,86 @@ class Command(BaseCommand):
 
             raise CommandError(f"Feedback processing failed: {str(e)}")
 
+    def _feedback_histories(self):
+        """History rows carrying feedback, in either of the two forms."""
+        return UserQueryHistory.objects.filter(
+            Q(detailed_feedback__isnull=False) | Q(was_helpful__isnull=False)
+        )
+
+    def _feedback_count_for(self, query):
+        """How many feedback items a query has, counted as the collector counts."""
+        return self._feedback_histories().filter(query=query).count()
+
     def show_feedback_statistics(self, options):
         """Show feedback statistics."""
         self.stdout.write(self.style.SUCCESS("Feedback Statistics"))
         self.stdout.write("=" * 40)
 
-        # Total feedback counts
-        total_feedback = QueryFeedback.objects.count()
-        positive_feedback = QueryFeedback.objects.filter(is_helpful=True).count()
-        negative_feedback = QueryFeedback.objects.filter(is_helpful=False).count()
+        histories = self._feedback_histories()
+        total_feedback = histories.count()
+        detailed_count = QueryFeedback.objects.count()
+        simple_count = UserQueryHistory.objects.filter(
+            detailed_feedback__isnull=True, was_helpful__isnull=False
+        ).count()
 
         self.stdout.write(f"Total feedback items: {total_feedback}")
+        self.stdout.write(f"  Detailed (QueryFeedback): {detailed_count}")
+        self.stdout.write(f"  Simple (was_helpful):     {simple_count}")
+
+        recommend_yes = QueryFeedback.objects.filter(would_recommend=True).count()
+        helpful_yes = UserQueryHistory.objects.filter(was_helpful=True).count()
         self.stdout.write(
-            f"Positive feedback: {positive_feedback} ({positive_feedback/total_feedback*100:.1f}%)"
-        )
-        self.stdout.write(
-            f"Negative feedback: {negative_feedback} ({negative_feedback/total_feedback*100:.1f}%)"
+            f"Positive: would_recommend={recommend_yes} "
+            f"({_pct(recommend_yes, detailed_count)} of detailed), "
+            f"was_helpful={helpful_yes} "
+            f"({_pct(helpful_yes, simple_count)} of simple)"
         )
 
         # Recent feedback
         days = options["days"]
         recent_cutoff = timezone.now() - timedelta(days=days)
-        recent_feedback = QueryFeedback.objects.filter(
-            created_at__gte=recent_cutoff
-        ).count()
+        recent_feedback = histories.filter(submitted_at__gte=recent_cutoff).count()
         self.stdout.write(f"Feedback in last {days} days: {recent_feedback}")
 
-        # Feedback by score agreement
+        # Rating distribution across the three detailed axes.
         self.stdout.write("")
-        self.stdout.write("Feedback by score agreement:")
-        for score in range(1, 6):
-            count = QueryFeedback.objects.filter(score_agreement=score).count()
-            self.stdout.write(f"  Score {score}: {count} items")
+        self.stdout.write("Detailed rating distribution (1-5):")
+        for field in ("accuracy_rating", "usefulness_rating", "clarity_rating"):
+            counts = [
+                QueryFeedback.objects.filter(**{field: score}).count()
+                for score in range(1, 6)
+            ]
+            self.stdout.write(f"  {field:<18} {counts}")
 
         # Queries with feedback
         queries_with_feedback = (
-            Query.objects.filter(queryfeedback__isnull=False).distinct().count()
+            histories.values("query").distinct().count()
         )
         total_queries = Query.objects.count()
+        self.stdout.write("")
         self.stdout.write(
-            f"Queries with feedback: {queries_with_feedback}/{total_queries} ({queries_with_feedback/total_queries*100:.1f}%)"
+            f"Queries with feedback: {queries_with_feedback}/{total_queries} "
+            f"({_pct(queries_with_feedback, total_queries)})"
         )
 
-        # Training data status
+        # Training data status, split by origin. is_validated does NOT separate
+        # real from synthetic -- the seed rows set it True as well -- so the
+        # only honest split is validation_source.
         training_data_count = TrainingData.objects.count()
-        self.stdout.write(f"Training data samples: {training_data_count}")
+        synthetic = TrainingData.objects.filter(
+            validation_source="synthetic_seed"
+        ).count()
+        self.stdout.write(
+            f"Training data samples: {training_data_count} "
+            f"({synthetic} synthetic seed, {training_data_count - synthetic} real)"
+        )
 
         # Queries ready for processing
         queries_ready = self._get_queries_to_process(options)
-        self.stdout.write(f"Queries ready for processing: {len(queries_ready)}")
+        self.stdout.write(
+            f"Queries ready for processing "
+            f"(>= {options['min_feedback']} feedback items): {len(queries_ready)}"
+        )
 
     def _get_queries_to_process(self, options):
         """Get list of queries that need feedback processing."""
@@ -165,8 +224,9 @@ class Command(BaseCommand):
         # Filter by date range
         if not options["force_all"]:
             cutoff_date = timezone.now() - timedelta(days=options["days"])
+            recent = self._feedback_histories().filter(submitted_at__gte=cutoff_date)
             queryset = queryset.filter(
-                queryfeedback__created_at__gte=cutoff_date
+                id__in=recent.values("query")
             ).distinct()
 
         # Get queries with sufficient feedback
@@ -174,9 +234,7 @@ class Command(BaseCommand):
         min_feedback = options["min_feedback"]
 
         for query in queryset:
-            feedback_count = query.queryfeedback_set.count()
-
-            if feedback_count >= min_feedback:
+            if self._feedback_count_for(query) >= min_feedback:
                 # Check if already processed (unless force_all)
                 if not options["force_all"]:
                     existing_training_data = TrainingData.objects.filter(
@@ -198,11 +256,12 @@ class Command(BaseCommand):
 
         total_feedback_items = 0
         for query in queries_to_process[:10]:  # Show first 10
-            feedback_count = query.queryfeedback_set.count()
+            feedback_count = self._feedback_count_for(query)
             total_feedback_items += feedback_count
 
             self.stdout.write(
-                f"Query {query.id} ({query.query_type}): {feedback_count} feedback items"
+                f"Query {query.id} ({query.query_type}): "
+                f"{feedback_count} feedback items"
             )
 
         if len(queries_to_process) > 10:
@@ -233,7 +292,8 @@ class Command(BaseCommand):
                     processed_count += 1
                     if verbose:
                         self.stdout.write(
-                            f"  Created training data with score {training_data.target_score:.1f} "
+                            f"  Created training data with score "
+                            f"{training_data.target_score:.1f} "
                             f"(weight: {training_data.feedback_weight:.2f})"
                         )
                 else:
@@ -252,83 +312,3 @@ class Command(BaseCommand):
                 continue
 
         return processed_count
-
-    def _analyze_feedback_quality(self, options):
-        """Analyze feedback quality and user reliability."""
-        self.stdout.write(self.style.SUCCESS("Feedback Quality Analysis"))
-        self.stdout.write("=" * 40)
-
-        # User reliability analysis
-        from django.contrib.auth.models import User
-        from django.db.models import Avg, Count
-
-        user_stats = (
-            User.objects.filter(queryfeedback__isnull=False)
-            .annotate(
-                feedback_count=Count("queryfeedback"),
-                avg_score_agreement=Avg("queryfeedback__score_agreement"),
-            )
-            .filter(feedback_count__gte=5)  # Users with at least 5 feedback items
-            .order_by("-feedback_count")
-        )
-
-        self.stdout.write("Top feedback contributors:")
-        for user in user_stats[:10]:
-            reliability = self._calculate_user_reliability(user)
-            self.stdout.write(
-                f"  {user.username}: {user.feedback_count} items, "
-                f"avg agreement: {user.avg_score_agreement:.1f}, "
-                f"reliability: {reliability:.2f}"
-            )
-
-        # Feedback consistency analysis
-        self.stdout.write("")
-        self.stdout.write("Feedback consistency by query complexity:")
-
-        complexity_ranges = [
-            (0, 25, "Simple"),
-            (25, 50, "Medium"),
-            (50, 75, "Complex"),
-            (75, 100, "Very Complex"),
-        ]
-
-        for min_complexity, max_complexity, label in complexity_ranges:
-            queries = Query.objects.filter(
-                estimated_complexity__gte=min_complexity,
-                estimated_complexity__lt=max_complexity,
-                queryfeedback__isnull=False,
-            ).distinct()
-
-            if queries.exists():
-                avg_agreement = (
-                    QueryFeedback.objects.filter(query__in=queries).aggregate(
-                        avg=Avg("score_agreement")
-                    )["avg"]
-                    or 0
-                )
-
-                self.stdout.write(
-                    f"  {label} ({min_complexity}-{max_complexity}): {avg_agreement:.1f} avg agreement"
-                )
-
-    def _calculate_user_reliability(self, user):
-        """Calculate user reliability score based on feedback consistency."""
-        # This is a simplified reliability calculation
-        # In practice, you might want to use more sophisticated methods
-
-        feedback_items = QueryFeedback.objects.filter(user=user)
-        if not feedback_items.exists():
-            return 0.0
-
-        # Calculate variance in score agreements (lower variance = more reliable)
-        scores = list(feedback_items.values_list("score_agreement", flat=True))
-        mean_score = sum(scores) / len(scores)
-        variance = sum((score - mean_score) ** 2 for score in scores) / len(scores)
-
-        # Convert to reliability score (0-1, higher is better)
-        # Lower variance means higher reliability
-        reliability = max(
-            0, 1 - variance / 4
-        )  # 4 is max possible variance for 1-5 scale
-
-        return reliability
