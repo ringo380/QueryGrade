@@ -20,7 +20,7 @@ import asyncio
 import json
 
 # Now we can import Django components
-from analyzer.ml.unified_query_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
+from analyzer.ml.analysis.unified_analyzer import AnalysisRequest, UnifiedQueryAnalyzer
 
 
 async def test_ml_integration():

@@ -31,3 +31,6 @@ requests>=2.31.0
 
 # Testing & Coverage
 coverage>=7.13.5
+# Test-only: memory assertions in analyzer/ml/tests. Deliberately absent from
+# requirements-prod.txt, which stays slim for the deployed web image.
+psutil>=5.9.0
