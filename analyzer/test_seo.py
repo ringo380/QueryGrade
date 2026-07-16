@@ -6,12 +6,30 @@ indexing, and only shows up in Search Console weeks later. The checks here
 exercise the real responses so a regression surfaces at test time instead.
 """
 
+import re
+import struct
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse
 
-from django.test import TestCase
+from django.contrib.staticfiles import finders
+from django.test import TestCase, override_settings
 
 SITEMAP_NS = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+# Any page rendering {% static %} needs a staticfiles manifest under the
+# default CompressedManifestStaticFilesStorage, and the manifest is a
+# collectstatic build artifact that is gitignored. Without this override a
+# fresh clone cannot run these tests at all - every render raises
+# "Missing staticfiles manifest entry". Swap in the unhashed storage so the
+# tests exercise the templates rather than the build state of staticfiles/.
+no_manifest = override_settings(
+    STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        },
+    }
+)
 
 
 def sitemap_locs(client):
@@ -21,6 +39,7 @@ def sitemap_locs(client):
     return [el.text for el in root.findall(".//s:loc", SITEMAP_NS)]
 
 
+@no_manifest
 class SitemapTests(TestCase):
     def test_sitemap_is_served_as_well_formed_xml(self):
         response = self.client.get("/sitemap.xml")
@@ -103,6 +122,7 @@ class RobotsTxtTests(TestCase):
                     )
 
 
+@no_manifest
 class MetaTagTests(TestCase):
     def test_home_page_has_exactly_one_self_referencing_canonical(self):
         response = self.client.get(
@@ -122,3 +142,79 @@ class MetaTagTests(TestCase):
         self.assertIn('<meta name="robots" content="index, follow">', html)
         self.assertIn('<meta name="description" content="', html)
         self.assertIn('<meta property="og:title" content="', html)
+
+
+@no_manifest
+class SocialCardTests(TestCase):
+    """og:image has to be a raster image at a size the platforms accept.
+
+    Facebook, LinkedIn, and X all reject SVG and silently render the post
+    with no image, which is invisible from the app's side - the asset still
+    returns 200, so a reachability check passes while previews stay broken.
+    """
+
+    def og_image_url(self):
+        response = self.client.get(
+            "/", HTTP_HOST="querygrade.com", HTTP_X_FORWARDED_PROTO="https"
+        )
+        match = re.search(
+            r'<meta property="og:image" content="([^"]+)"', response.content.decode()
+        )
+        self.assertIsNotNone(match, "no og:image meta tag found")
+        return match.group(1)
+
+    def test_og_image_is_absolute_https(self):
+        parsed = urlparse(self.og_image_url())
+
+        self.assertEqual(parsed.scheme, "https")
+        self.assertEqual(parsed.netloc, "querygrade.com")
+
+    def test_og_image_is_not_an_svg(self):
+        """The specific regression: an SVG here breaks every link preview."""
+        self.assertFalse(
+            urlparse(self.og_image_url()).path.endswith(".svg"),
+            "og:image is an SVG; social platforms reject it and render no "
+            "preview image.",
+        )
+
+    def test_og_image_file_is_a_png_of_the_declared_size(self):
+        """Parse the real file, and require the meta tags to match it.
+
+        Reads the PNG IHDR header directly rather than importing Pillow,
+        which is only a transitive dependency here.
+        """
+        path = urlparse(self.og_image_url()).path
+        # strip STATIC_URL to get the path finders understands
+        relative = path.replace("/static/", "", 1)
+        absolute = finders.find(relative)
+        self.assertIsNotNone(absolute, f"{relative} is not a findable static file")
+
+        with open(absolute, "rb") as handle:
+            header = handle.read(24)
+
+        self.assertEqual(
+            header[:8],
+            b"\x89PNG\r\n\x1a\n",
+            "og:image is not a real PNG (magic bytes do not match)",
+        )
+        width, height = struct.unpack(">II", header[16:24])
+        self.assertEqual(
+            (width, height),
+            (1200, 630),
+            "og:image must be 1200x630, the size Facebook/LinkedIn/X accept "
+            "without re-cropping",
+        )
+
+        html = self.client.get("/").content.decode()
+        self.assertIn(f'<meta property="og:image:width" content="{width}">', html)
+        self.assertIn(f'<meta property="og:image:height" content="{height}">', html)
+
+    def test_twitter_card_matches_the_large_image(self):
+        html = self.client.get("/").content.decode()
+
+        self.assertIn('<meta name="twitter:card" content="summary_large_image">', html)
+
+    def test_og_image_has_alt_text(self):
+        html = self.client.get("/").content.decode()
+
+        self.assertIn('<meta property="og:image:alt" content="', html)

@@ -15,9 +15,13 @@
   <meta property="og:title" content="{% block og_title %}QueryGrade · SQL query analysis &amp; grading{% endblock %}">
   <meta property="og:description" content="{% block og_description %}Analyze and grade your SQL queries, flag performance issues, and get index recommendations.{% endblock %}">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
-  <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'analyzer/img/favicon.svg' %}{% endblock %}">
+  {# Must be a raster format: Facebook, LinkedIn, and X all reject SVG for og:image. #}
+  <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'analyzer/img/og-card.png' %}{% endblock %}">
+  <meta property="og:image:width" content="{% block og_image_width %}1200{% endblock %}">
+  <meta property="og:image:height" content="{% block og_image_height %}630{% endblock %}">
+  <meta property="og:image:alt" content="{% block og_image_alt %}QueryGrade: analyze and grade your SQL queries, flag performance issues, and get index recommendations.{% endblock %}">
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{% block twitter_title %}QueryGrade · SQL query analysis &amp; grading{% endblock %}">
   <meta name="twitter:description" content="{% block twitter_description %}Analyze and grade your SQL queries, flag performance issues, and get index recommendations.{% endblock %}">
   <link rel="icon" type="image/svg+xml" href="{% static 'analyzer/img/favicon.svg' %}">
