@@ -1,9 +1,11 @@
-# Base image
-FROM python:3.9-slim-buster
+# Local dev image (docker-compose). Installs the full requirements.txt,
+# including test deps, which the slim Dockerfile.web deliberately omits.
+# Keep the base in sync with Dockerfile.web/.worker/.beat and CI (3.11).
+FROM python:3.11-slim-bookworm
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
