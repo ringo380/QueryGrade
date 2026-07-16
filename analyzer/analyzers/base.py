@@ -398,10 +398,16 @@ def analyze_query(
 
     if should_use_ml and getattr(settings, "ML_ENABLED", False):
         try:
-            from ..ml.hybrid_grader import HybridQueryGrader
+            from ..ml.core.hybrid_grader import HybridQueryGrader
 
             hybrid_grader = HybridQueryGrader()
             return hybrid_grader.analyze_query(sql_text, database_type, use_ml=True)
+        except ImportError:
+            # A missing module is a packaging bug, not a runtime condition.
+            # Folding it into the warning below let this path import a module
+            # that does not exist and fall back on every single call for as
+            # long as nobody read the logs.
+            raise
         except Exception as e:
             logger.warning(f"ML grading failed, falling back to rule-based: {str(e)}")
 

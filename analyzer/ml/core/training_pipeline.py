@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import pickle
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -31,6 +31,17 @@ from .feedback_collector import FeedbackCollector
 logger = logging.getLogger(__name__)
 
 
+def _setting(name, default):
+    """Read a threshold from settings, falling back to the literal default.
+
+    These knobs previously existed only in settings.py and were read by
+    nothing, so tuning them had no effect on anything.
+    """
+    from django.conf import settings
+
+    return type(default)(getattr(settings, name, default))
+
+
 @dataclass
 class TrainingConfig:
     """Configuration for training pipeline."""
@@ -41,13 +52,58 @@ class TrainingConfig:
     test_size: float = 0.2
     validation_size: float = 0.2
     cross_validation_folds: int = 5
-    min_training_samples: int = 50
+    min_training_samples: int = field(
+        default_factory=lambda: _setting("ML_MIN_TRAINING_SAMPLES", 50)
+    )
     max_training_samples: int = 10000
     feature_scaling: bool = True
     hyperparameter_tuning: bool = True
     model_versioning: bool = True
     auto_deployment: bool = False
-    performance_threshold: float = 0.7  # Minimum accuracy for deployment
+
+    # Minimum validation accuracy for deployment.
+    performance_threshold: float = field(
+        default_factory=lambda: _setting("ML_PERFORMANCE_THRESHOLD", 0.7)
+    )
+    # Minimum held-out TEST accuracy for deployment. Gating on validation
+    # alone is what let the synthetic bootstrap go ACTIVE at val=0.712 with
+    # test=0.095 -- a model with no predictive power that still cleared the
+    # bar, because the bar never looked at the held-out set.
+    test_performance_threshold: float = field(
+        default_factory=lambda: _setting("ML_TEST_PERFORMANCE_THRESHOLD", 0.7)
+    )
+    # A large validation-to-test gap means the model does not generalize,
+    # even if both numbers clear their bars on their own.
+    max_validation_test_gap: float = field(
+        default_factory=lambda: _setting("ML_MAX_VALIDATION_TEST_GAP", 0.15)
+    )
+
+    def meets_quality_gate(self, validation_accuracy, test_accuracy):
+        """Whether a trained model is good enough to deploy.
+
+        Returns (ok, reason). `reason` explains a refusal, so callers can say
+        why a model was held back instead of silently not deploying it.
+        """
+        validation_accuracy = validation_accuracy or 0.0
+        test_accuracy = test_accuracy or 0.0
+
+        if validation_accuracy < self.performance_threshold:
+            return False, (
+                f"validation accuracy {validation_accuracy:.3f} < "
+                f"{self.performance_threshold:.3f}"
+            )
+        if test_accuracy < self.test_performance_threshold:
+            return False, (
+                f"test accuracy {test_accuracy:.3f} < "
+                f"{self.test_performance_threshold:.3f}"
+            )
+        gap = validation_accuracy - test_accuracy
+        if gap > self.max_validation_test_gap:
+            return False, (
+                f"validation-test gap {gap:.3f} > {self.max_validation_test_gap:.3f}; "
+                f"model does not generalize"
+            )
+        return True, ""
 
 
 @dataclass
@@ -176,12 +232,17 @@ class TrainingPipelineManager:
                 metadata,
             )
 
-            # 12. Deploy model if meets threshold
-            if (
-                self.config.auto_deployment
-                and validation_accuracy >= self.config.performance_threshold
-            ):
-                self._deploy_model(model_version)
+            # 12. Deploy model if it clears the quality gate
+            if self.config.auto_deployment:
+                ok, reason = self.config.meets_quality_gate(
+                    validation_accuracy, test_accuracy
+                )
+                if ok:
+                    self._deploy_model(model_version)
+                else:
+                    logger.warning(
+                        f"Model {model_version} not deployed: {reason}"
+                    )
 
             training_time = (timezone.now() - start_time).total_seconds()
 

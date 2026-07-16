@@ -122,7 +122,18 @@ ML_ENABLED = os.environ.get("ML_ENABLED", "True").lower() in ("true", "1", "yes"
 ML_MODEL_PATH = os.path.join(BASE_DIR, "analyzer", "ml", "models")
 ML_MIN_TRAINING_SAMPLES = int(os.environ.get("ML_MIN_TRAINING_SAMPLES", "50"))
 ML_RETRAIN_THRESHOLD_DAYS = int(os.environ.get("ML_RETRAIN_THRESHOLD_DAYS", "7"))
+
+# Deploy quality gate, read by TrainingConfig. A model must clear BOTH the
+# validation and the held-out test bar, and not show too large a gap between
+# them. Gating on validation alone let the synthetic bootstrap deploy at
+# val=0.712 / test=0.095 -- see issue #92.
 ML_PERFORMANCE_THRESHOLD = float(os.environ.get("ML_PERFORMANCE_THRESHOLD", "0.7"))
+ML_TEST_PERFORMANCE_THRESHOLD = float(
+    os.environ.get("ML_TEST_PERFORMANCE_THRESHOLD", "0.7")
+)
+ML_MAX_VALIDATION_TEST_GAP = float(
+    os.environ.get("ML_MAX_VALIDATION_TEST_GAP", "0.15")
+)
 
 # ML Feature Flags
 ML_HYBRID_GRADING = os.environ.get("ML_HYBRID_GRADING", "True").lower() in (

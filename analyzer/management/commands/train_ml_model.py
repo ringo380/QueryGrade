@@ -118,15 +118,22 @@ class Command(BaseCommand):
                     )
                 )
 
-                if (
-                    options["deploy"]
-                    and result.validation_accuracy >= config.performance_threshold
-                ):
-                    self.stdout.write("Deploying model...")
-                    pipeline_manager._deploy_model(result.model_version)
-                    self.stdout.write(
-                        self.style.SUCCESS("Model deployed successfully!")
+                if options["deploy"]:
+                    ok, reason = config.meets_quality_gate(
+                        result.validation_accuracy, result.test_accuracy
                     )
+                    if ok:
+                        self.stdout.write("Deploying model...")
+                        pipeline_manager._deploy_model(result.model_version)
+                        self.stdout.write(
+                            self.style.SUCCESS("Model deployed successfully!")
+                        )
+                    else:
+                        # Say why. Silently not deploying is how a bad model
+                        # gets mistaken for a deploy that just did not happen.
+                        self.stdout.write(
+                            self.style.WARNING(f"Not deployed: {reason}")
+                        )
 
             else:
                 raise CommandError(f"Training failed: {result.error_message}")
