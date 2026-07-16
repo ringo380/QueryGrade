@@ -16,11 +16,13 @@ class StaticViewSitemap(Sitemap):
     changefreq = "weekly"
 
     # (url name, priority)
+    # Only list pages an anonymous crawler can actually reach. A login_required
+    # view redirects to /login/, which search engines index as a redirect and
+    # drop, so listing one here costs crawl budget and trust in the sitemap.
+    # test_seo.py enforces this by fetching every URL below anonymously.
     pages = [
         ("index", 1.0),
         ("grade_query", 0.9),
-        ("query_compare", 0.7),
-        ("database_analyze", 0.7),
         ("register", 0.5),
         ("login", 0.4),
     ]
