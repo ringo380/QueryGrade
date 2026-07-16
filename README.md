@@ -227,8 +227,11 @@ QueryGrade/
 │   ├── views.py         # Web interface views
 │   ├── templates/       # HTML templates
 │   └── static/          # CSS, JS, images
-├── requirements.txt     # Python dependencies
-├── Dockerfile          # Container configuration
+├── scripts/             # Developer utilities (og:image card generation)
+├── requirements.txt     # Python dependencies (full, includes test deps)
+├── requirements-prod.txt # Slim deps for the deployed web service
+├── Dockerfile          # Local dev image, used by docker-compose
+├── Dockerfile.web      # Production web image (see railway.toml)
 ├── docker-compose.yml  # Multi-service deployment
 └── k8s/               # Kubernetes deployment files
 ```
