@@ -300,8 +300,15 @@ def feature_engineering_general_log(df):
     Returns:
         pd.DataFrame: The DataFrame with engineered features.
     """
-    # Ensure all entries in the 'query' column are strings
-    df["query"] = df["query"].astype(str)
+    # Ensure all entries in the 'query' column are strings.
+    # A general log interleaves non-query commands (Connect, Quit, Init DB)
+    # that carry no SQL, so this column legitimately holds missing values.
+    # fillna() before astype() is load-bearing: under pandas < 3 an object
+    # column's astype(str) stringified NaN into the literal "nan", but pandas
+    # 3 keeps it a missing value in the new `str` dtype, so astype(str) alone
+    # is a no-op here and the apply(len) below raises
+    # "object of type 'float' has no len()" on any real general log.
+    df["query"] = df["query"].fillna("").astype(str)
 
     df["query_length"] = df["query"].apply(len)
     df["num_joins"] = df["query"].str.upper().str.count("JOIN")

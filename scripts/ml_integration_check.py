@@ -1,16 +1,24 @@
 #!/usr/bin/env python
-"""
-Simple test script to validate ML integration works without Django admin issues
+"""Manual end-to-end check of the unified ML analysis path.
+
+    python scripts/ml_integration_check.py
+
+A developer utility, NOT part of the test suite: it hits the real analyzer
+and prints a report. It lived at the repo root named test_ml_integration.py,
+where the test loader imported it on every run - so its own import errors
+surfaced as suite errors while contributing no tests.
 """
 
 import os
+import pathlib
 import sys
 
 import django
-from django.conf import settings
 
-# Add the current directory to Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# The repo root is one level up now that this lives in scripts/. sys.path[0]
+# is this file's own dir, so without this `import querygrade` fails no matter
+# what the cwd is.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 # Set up Django settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "querygrade.settings")
