@@ -76,6 +76,13 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
 
+    - name: Set up QEMU
+      # Required for the linux/arm64 leg of the build below: an amd64 runner
+      # needs QEMU/binfmt registered to emulate arm64. GitHub's image usually
+      # pre-registers it, but this makes the cross-build depend on our own step
+      # instead of the runner image staying that way.
+      uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8  # v4.2.0
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
 
