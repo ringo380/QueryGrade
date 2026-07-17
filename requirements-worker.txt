@@ -3,14 +3,23 @@
 
 -r requirements-prod.txt
 
-# Heavy ML frameworks — only loaded by analyzer/ml/ensemble and analyzer/ml/training
-matplotlib>=3.10.9
-tensorflow>=2.10.0
-torch>=1.13.0
-transformers>=4.25.0
-sentence-transformers>=2.2.0
-xgboost>=1.7.0
-lightgbm>=3.3.0
+# Heavy ML frameworks - only loaded by analyzer/ml/ensemble and analyzer/ml/training
+#
+# CAUTION: the caps below record what these floors ALREADY resolve to, not a
+# version anyone verified. Six of them had silently crossed majors while the
+# floors still claimed the old one (torch 1 -> 2, transformers 4 -> 5,
+# sentence-transformers 2 -> 5, xgboost 1 -> 3, lightgbm 3 -> 4, datasets
+# 2 -> 5). These deps are not installed in the local .venv, so the test suite
+# does not cover them; the caps freeze the drift rather than bless it. Anything
+# in analyzer/ml/ensemble or analyzer/ml/training should be treated as
+# unverified against these majors until it runs.
+matplotlib>=3.10.9,<4.0
+tensorflow>=2.10.0,<3.0
+torch>=1.13.0,<3.0
+transformers>=4.25.0,<6.0
+sentence-transformers>=2.2.0,<6.0
+xgboost>=1.7.0,<4.0
+lightgbm>=3.3.0,<5.0
 
-# HuggingFace datasets — used by load_huggingface_queries to seed TrainingData
-datasets>=2.14.0
+# HuggingFace datasets - used by load_huggingface_queries to seed TrainingData
+datasets>=2.14.0,<6.0

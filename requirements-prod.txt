@@ -2,31 +2,36 @@
 # Excludes heavy ML frameworks (tensorflow/torch/transformers/xgboost/lightgbm/matplotlib)
 # which are only used inside analyzer/ml/ensemble/ and analyzer/ml/training/.
 # Those run in the separate Celery worker service (see requirements-worker.txt).
+#
+# Upper bounds are load-bearing here, not tidiness: this file is installed fresh
+# on every deploy, so an unbounded `>=` floor silently ships whatever major
+# happens to be current. See the header in requirements.txt for the pandas 3
+# incident that motivated them. Keep the bounds in sync with requirements.txt.
 
 Django>=4.0,<5.0
-gunicorn>=22.0.0
-psycopg2-binary>=2.9.3
-cryptography>=42.0
-pandas>=2.0.0
-scikit-learn>=1.5.0
-numpy>=1.21.0
+gunicorn>=22.0.0,<27.0
+psycopg2-binary>=2.9.3,<3.0
+cryptography>=42.0,<50.0
+pandas>=2.0.0,<4.0
+scikit-learn>=1.5.0,<2.0
+numpy>=1.21.0,<3.0
 whitenoise==6.12.0
-sqlparse>=0.4.2
-djangorestframework>=3.14.0
-djangorestframework-simplejwt>=5.2.0
-celery>=5.2.0
-redis>=4.0.0
-django-redis>=5.0.0
-joblib>=1.5.3
+sqlparse>=0.4.2,<1.0
+djangorestframework>=3.14.0,<4.0
+djangorestframework-simplejwt>=5.2.0,<6.0
+celery>=5.2.0,<6.0
+redis>=4.0.0,<9.0
+django-redis>=5.0.0,<7.0
+joblib>=1.5.3,<2.0
 
-# Email delivery (Resend HTTP API — Railway blocks outbound SMTP)
-django-anymail[resend]>=10.0
+# Email delivery (Resend HTTP API - Railway blocks outbound SMTP)
+django-anymail[resend]>=10.0,<15.0
 
 # Security & Configuration
 django-csp==4.0
 django-ratelimit==4.1.0
-python-decouple>=3.8
+python-decouple>=3.8,<4.0
 
 # Documentation Loading Dependencies
-beautifulsoup4>=4.12.0
-requests>=2.31.0
+beautifulsoup4>=4.12.0,<5.0
+requests>=2.31.0,<3.0
