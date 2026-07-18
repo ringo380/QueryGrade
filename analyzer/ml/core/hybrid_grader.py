@@ -247,14 +247,21 @@ class HybridQueryGrader:
                 logger.info("No active ML model found")
                 return None
 
-            # Load model file
-            model_file_path = os.path.join(self.model_path, active_model.file_path)
-            if not os.path.exists(model_file_path):
-                logger.error(f"Model file not found: {model_file_path}")
-                return None
+            # Prefer the durable DB artifact (#91); it is reachable from any
+            # service. Fall back to the legacy container-local file only if no
+            # artifact was stored (models trained before this change).
+            from .model_storage import retrieve as retrieve_artifact
 
-            # Load the model — file may be a raw estimator or a dict bundle
-            model_data = joblib.load(model_file_path)
+            model_data = retrieve_artifact(active_model)
+            if model_data is None:
+                model_file_path = os.path.join(
+                    self.model_path, active_model.file_path
+                )
+                if not os.path.exists(model_file_path):
+                    logger.error(f"Model file not found: {model_file_path}")
+                    return None
+                # file may be a raw estimator or a dict bundle
+                model_data = joblib.load(model_file_path)
             if isinstance(model_data, dict):
                 self._model_scaler = model_data.get("scaler")
                 model = model_data["model"]
@@ -456,6 +463,15 @@ class HybridQueryGrader:
             training_samples=training_samples,
             deployed_at=timezone.now(),
         )
+
+        # Persist the serialized model to the shared database so the web
+        # service (which loads it on the grade path) can reach it even though
+        # this file was written to a container-local, ephemeral disk (#91).
+        from .model_storage import store as store_artifact
+
+        artifact = store_artifact(ml_model, model_data)
+        ml_model.checksum = artifact.checksum
+        ml_model.save(update_fields=["checksum"])
 
         logger.info(
             f"Saved model: {model_filename} with accuracy {validation_accuracy:.3f}"

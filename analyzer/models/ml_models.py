@@ -79,6 +79,35 @@ class MLModel(models.Model):
         return f"{self.name} v{self.version} ({self.status})"
 
 
+class MLModelArtifact(models.Model):
+    """Durable storage for a trained model's serialized bytes.
+
+    The ``.pkl`` files written to a container's local ``ml_models`` directory do
+    not survive a redeploy and are not shared between the web and worker
+    services, so an ``MLModel.file_path`` could dangle (see issue #91). This
+    holds the joblib-serialized model in the shared database instead, keyed
+    one-to-one to its ``MLModel`` row, so any service that can read the row can
+    also read the bytes. The artifact is small (the grade-path model is ~180KB);
+    large ensemble/torch artifacts should use object storage rather than this.
+
+    A separate table (not a column on ``MLModel``) keeps the common metadata
+    queries light — the blob is fetched only when a caller explicitly loads it.
+    """
+
+    model = models.OneToOneField(
+        MLModel, on_delete=models.CASCADE, related_name="artifact"
+    )
+    data = models.BinaryField(help_text="joblib-serialized model bytes")
+    byte_size = models.BigIntegerField(default=0)
+    checksum = models.CharField(
+        max_length=64, blank=True, help_text="SHA256 of the stored bytes"
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Artifact for {self.model_id} ({self.byte_size} bytes)"
+
+
 class TrainingData(models.Model):
     """Model to store aggregated training data from user feedback."""
 

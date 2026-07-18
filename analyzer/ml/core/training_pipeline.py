@@ -468,14 +468,18 @@ class TrainingPipelineManager:
         """Record training metrics in database."""
         import hashlib as _hashlib
 
-        model_path = os.path.join(self.model_dir, self._model_filename(model_version))
+        model_filename = self._model_filename(model_version)
+        model_path = os.path.join(self.model_dir, model_filename)
 
-        # Compute file size and checksum
+        # Read the freshly-written model bytes once, for both the checksum and
+        # the durable DB artifact (so the artifact is byte-identical to the file
+        # and shares its checksum).
         try:
-            file_size = os.path.getsize(model_path)
-            with open(model_path, "rb") as f:
-                checksum = _hashlib.sha256(f.read()).hexdigest()
+            model_bytes = open(model_path, "rb").read()
+            file_size = len(model_bytes)
+            checksum = _hashlib.sha256(model_bytes).hexdigest()
         except OSError:
+            model_bytes = None
             file_size = 0
             checksum = ""
 
@@ -484,14 +488,24 @@ class TrainingPipelineManager:
                 name=self.config.model_name,
                 model_type=self.config.model_type,
                 version=model_version,
-                status="TRAINING",
-                file_path=model_path,
+                # Store the bare filename, not the full path: the durable copy
+                # is the DB artifact below, and legacy file loaders join this
+                # against their model dir (a full path here would double-join).
+                file_path=model_filename,
                 file_size_bytes=file_size,
                 checksum=checksum,
                 training_accuracy=training_accuracy,
                 validation_accuracy=validation_accuracy,
                 training_samples=metadata.get("total_samples", 0),
+                status="TRAINING",
             )
+
+            # Persist the serialized model to the shared DB (#91) so any service
+            # can load it regardless of which container's disk holds the file.
+            if model_bytes is not None:
+                from .model_storage import store_bytes
+
+                store_bytes(model_record, model_bytes)
 
             now = timezone.now()
             LearningMetrics.objects.create(
@@ -593,17 +607,20 @@ class TrainingPipelineManager:
         )
 
         for model in old_models:
-            # Remove file if exists
-            if os.path.exists(model.file_path):
+            # Remove the legacy local file if present. file_path is a bare
+            # filename, so join it against the model dir. The durable DB
+            # artifact is removed by the cascade on model.delete() below.
+            local_file = os.path.join(self.model_dir, model.file_path)
+            if os.path.exists(local_file):
                 try:
-                    os.remove(model.file_path)
-                    logger.info(f"Removed old model file: {model.file_path}")
+                    os.remove(local_file)
+                    logger.info(f"Removed old model file: {local_file}")
                 except OSError as e:
                     logger.warning(
-                        f"Could not remove model file {model.file_path}: {e}"
+                        f"Could not remove model file {local_file}: {e}"
                     )
 
-            # Remove database record
+            # Remove database record (cascades to MLModelArtifact)
             model.delete()
 
         logger.info(f"Cleaned up {len(old_models)} old models")

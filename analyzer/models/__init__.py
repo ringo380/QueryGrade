@@ -16,7 +16,13 @@ monolithic models.py to ensure Django migrations continue to work correctly.
 
 # Machine learning models
 from .ml_alert_models import MLAlert
-from .ml_models import FeedbackLearning, LearningMetrics, MLModel, TrainingData
+from .ml_models import (
+    FeedbackLearning,
+    LearningMetrics,
+    MLModel,
+    MLModelArtifact,
+    TrainingData,
+)
 
 # Core query models
 from .query_models import Query, QueryAnalysis
@@ -40,6 +46,7 @@ __all__ = [
     "UserDatabaseConnection",
     # ML models
     "MLModel",
+    "MLModelArtifact",
     "TrainingData",
     "LearningMetrics",
     "FeedbackLearning",

@@ -279,16 +279,17 @@ class ModelManager:
         start_time = timezone.now()
 
         try:
-            # Construct full file path
+            # Prefer the durable DB artifact (#91); fall back to the legacy
+            # container-local file for models trained before this change.
+            from .model_storage import retrieve as retrieve_artifact
+
+            model = retrieve_artifact(model_record)
             model_file_path = os.path.join(self.model_dir, model_record.file_path)
-
-            # Validate file exists
-            if not os.path.exists(model_file_path):
-                logger.error(f"Model file not found: {model_file_path}")
-                return None
-
-            # Load the model using joblib
-            model = joblib.load(model_file_path)
+            if model is None:
+                if not os.path.exists(model_file_path):
+                    logger.error(f"Model file not found: {model_file_path}")
+                    return None
+                model = joblib.load(model_file_path)
 
             # Calculate load time
             load_time = (timezone.now() - start_time).total_seconds()
@@ -370,6 +371,15 @@ class ModelManager:
                 training_samples=performance_metrics.get("training_samples", 0),
                 status="ACTIVE" if activate else "TRAINING",
             )
+
+            # Persist the serialized model to the shared DB (#91) so loaders on
+            # any service reach it without depending on this container's disk.
+            from .model_storage import store as store_artifact
+
+            artifact = store_artifact(model_record, model)
+            if not model_record.checksum:
+                model_record.checksum = artifact.checksum
+                model_record.save(update_fields=["checksum"])
 
             # If activating, deactivate other models of same type
             if activate:

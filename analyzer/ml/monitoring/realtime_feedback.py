@@ -9,6 +9,7 @@ streaming updates and incremental learning.
 import asyncio
 import json
 import logging
+import os
 import pickle
 import threading
 import time
@@ -148,8 +149,21 @@ class OnlineLearningEngine:
                 logger.warning("No active model found for online learning")
                 return False
 
-            model_path = active_model.file_path
-            self.current_model = joblib.load(model_path)
+            # Prefer the durable DB artifact (#91). The legacy fallback joins
+            # against BASE_DIR/ml_models (where hybrid_grader writes); the old
+            # code loaded a bare filename relative to cwd, which never resolved.
+            from ..core.model_storage import retrieve as retrieve_artifact
+
+            model = retrieve_artifact(active_model)
+            if model is None:
+                model_path = os.path.join(
+                    settings.BASE_DIR, "ml_models", active_model.file_path
+                )
+                if not os.path.exists(model_path):
+                    logger.error(f"Model file not found: {model_path}")
+                    return False
+                model = joblib.load(model_path)
+            self.current_model = model
             self.model_version = active_model.version
 
             logger.info(
