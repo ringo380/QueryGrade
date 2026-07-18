@@ -136,7 +136,14 @@ ML_MAX_VALIDATION_TEST_GAP = float(
 )
 
 # ML Feature Flags
-ML_HYBRID_GRADING = os.environ.get("ML_HYBRID_GRADING", "True").lower() in (
+# Default OFF: hybrid grading only fires for authenticated users, and the app
+# has effectively no authenticated traffic. Leaving it on made every anonymous
+# grade instantiate HybridQueryGrader and query for an ACTIVE HYBRID_SCORER
+# model that does not exist, doing dead work before falling back to rule-based.
+# It also arms a per-grade "Model file not found" error the moment any
+# HYBRID_SCORER goes ACTIVE without durable artifact storage (see #91). Turn
+# this back on via env once #91/#92 land and real usage justifies it.
+ML_HYBRID_GRADING = os.environ.get("ML_HYBRID_GRADING", "False").lower() in (
     "true",
     "1",
     "yes",
