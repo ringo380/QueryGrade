@@ -155,6 +155,30 @@ class TrainingPipelineManager:
                 logger.info("Skipping training - recent model exists")
                 return self._get_existing_model_result()
 
+            # 1b. Do not retrain on synthetic seed data alone: wait until enough
+            # real feedback has accumulated (#92). A forced run bypasses this.
+            if not force_retrain:
+                from .training_gates import real_feedback_gate
+
+                ok, real_count, threshold = real_feedback_gate()
+                if not ok:
+                    msg = (
+                        f"Insufficient real feedback: {real_count} < {threshold} "
+                        f"(synthetic seed does not count)"
+                    )
+                    logger.info("Skipping training - %s", msg)
+                    return TrainingResult(
+                        success=False,
+                        model_version="",
+                        training_accuracy=0.0,
+                        validation_accuracy=0.0,
+                        test_accuracy=0.0,
+                        feature_importance={},
+                        training_time=0.0,
+                        model_path="",
+                        error_message=msg,
+                    )
+
             # 2. Prepare training data
             logger.info("Preparing training data")
             X, y, metadata = self._prepare_training_data()

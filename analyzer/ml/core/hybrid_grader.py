@@ -297,6 +297,22 @@ class HybridQueryGrader:
                 logger.info("Model retraining not needed")
                 return None
 
+            # Do not retrain on synthetic seed data alone: wait until enough
+            # real feedback has accumulated (#92). A forced run bypasses this so
+            # an operator can still train deliberately.
+            if not force_retrain:
+                from .training_gates import real_feedback_gate
+
+                ok, real_count, threshold = real_feedback_gate()
+                if not ok:
+                    logger.info(
+                        "Skipping retrain: only %d real feedback samples < %d "
+                        "(synthetic seed does not count)",
+                        real_count,
+                        threshold,
+                    )
+                    return None
+
             # Collect training data
             training_data = self.feedback_collector.get_training_dataset(
                 min_feedback_count=3, include_validated_only=False

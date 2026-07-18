@@ -123,6 +123,16 @@ ML_MODEL_PATH = os.path.join(BASE_DIR, "analyzer", "ml", "models")
 ML_MIN_TRAINING_SAMPLES = int(os.environ.get("ML_MIN_TRAINING_SAMPLES", "50"))
 ML_RETRAIN_THRESHOLD_DAYS = int(os.environ.get("ML_RETRAIN_THRESHOLD_DAYS", "7"))
 
+# Minimum count of REAL (non-synthetic) training samples before the model may
+# retrain or auto-deploy. ML_MIN_TRAINING_SAMPLES counts the synthetic seed rows
+# too, so on its own it lets the pipeline "retrain" on pure bootstrap data and
+# ship another non-predictive model. This gate counts only rows whose
+# validation_source is not the synthetic seed, so retraining waits for genuine
+# user feedback to accumulate (see #92).
+ML_MIN_REAL_FEEDBACK_SAMPLES = int(
+    os.environ.get("ML_MIN_REAL_FEEDBACK_SAMPLES", "25")
+)
+
 # Deploy quality gate, read by TrainingConfig. A model must clear BOTH the
 # validation and the held-out test bar, and not show too large a gap between
 # them. Gating on validation alone let the synthetic bootstrap deploy at
