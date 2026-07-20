@@ -20,8 +20,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from analyzer.ml.monitoring.rollback import can_rollback
-from analyzer.ml.monitoring.rollback import RollbackError, perform_rollback
+from analyzer.ml.monitoring.rollback import (
+    RollbackError,
+    can_rollback,
+    perform_rollback,
+)
 from analyzer.models import MLAlert, MLModel
 
 logger = logging.getLogger(__name__)

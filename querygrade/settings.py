@@ -129,9 +129,7 @@ ML_RETRAIN_THRESHOLD_DAYS = int(os.environ.get("ML_RETRAIN_THRESHOLD_DAYS", "7")
 # ship another non-predictive model. This gate counts only rows whose
 # validation_source is not the synthetic seed, so retraining waits for genuine
 # user feedback to accumulate (see #92).
-ML_MIN_REAL_FEEDBACK_SAMPLES = int(
-    os.environ.get("ML_MIN_REAL_FEEDBACK_SAMPLES", "25")
-)
+ML_MIN_REAL_FEEDBACK_SAMPLES = int(os.environ.get("ML_MIN_REAL_FEEDBACK_SAMPLES", "25"))
 
 # Deploy quality gate, read by TrainingConfig. A model must clear BOTH the
 # validation and the held-out test bar, and not show too large a gap between
@@ -141,9 +139,7 @@ ML_PERFORMANCE_THRESHOLD = float(os.environ.get("ML_PERFORMANCE_THRESHOLD", "0.7
 ML_TEST_PERFORMANCE_THRESHOLD = float(
     os.environ.get("ML_TEST_PERFORMANCE_THRESHOLD", "0.7")
 )
-ML_MAX_VALIDATION_TEST_GAP = float(
-    os.environ.get("ML_MAX_VALIDATION_TEST_GAP", "0.15")
-)
+ML_MAX_VALIDATION_TEST_GAP = float(os.environ.get("ML_MAX_VALIDATION_TEST_GAP", "0.15"))
 
 # ML Feature Flags
 # Default OFF: hybrid grading only fires for authenticated users, and the app
