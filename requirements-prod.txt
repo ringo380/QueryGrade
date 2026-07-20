@@ -16,7 +16,7 @@ pandas>=2.0.0,<4.0
 scikit-learn>=1.5.0,<2.0
 numpy>=1.21.0,<3.0
 whitenoise==6.12.0
-sqlparse>=0.4.2,<1.0
+sqlparse>=0.5.5,<1.0
 djangorestframework>=3.14.0,<4.0
 djangorestframework-simplejwt>=5.2.0,<6.0
 celery>=5.2.0,<6.0
