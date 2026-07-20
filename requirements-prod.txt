@@ -9,7 +9,7 @@
 # incident that motivated them. Keep the bounds in sync with requirements.txt.
 
 Django>=4.0,<5.0
-gunicorn>=22.0.0,<27.0
+gunicorn>=26.0.0,<27.0
 psycopg2-binary>=2.9.3,<3.0
 cryptography>=42.0,<50.0
 pandas>=2.0.0,<4.0
