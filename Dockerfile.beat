@@ -5,7 +5,7 @@
 #
 # Issue #5 (ML Monitoring): beat fires `analyzer.tasks.monitor_ml_models`
 # every 15 min; see `querygrade/celery.py:beat_schedule`.
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
