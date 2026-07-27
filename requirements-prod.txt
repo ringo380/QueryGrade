@@ -8,7 +8,7 @@
 # happens to be current. See the header in requirements.txt for the pandas 3
 # incident that motivated them. Keep the bounds in sync with requirements.txt.
 
-Django>=4.0,<5.0
+Django>=6.0.7,<7.0
 gunicorn>=22.0.0,<27.0
 psycopg2-binary>=2.9.3,<3.0
 cryptography>=42.0,<50.0
