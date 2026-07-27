@@ -32,6 +32,13 @@ app.conf.beat_schedule = {
     # django_session grows without bound - it was 4,905 rows / 1.8 MB of a
     # 12 MB database with zero registered users. Daily at 04:10 UTC, off the
     # :00/:15 marks so it never contends with monitor-ml-models.
+    #
+    # NOTE: nothing in this schedule is running right now. The worker and beat
+    # services are stopped for cost while QueryGrade has no users (issue #133),
+    # so these three entries describe what beat WOULD do, not what is
+    # happening. The session purge is the one piece that still runs, from
+    # SessionPurgeMiddleware on the web service. The other two do not.
+    # Restore both services before QueryGrade takes real traffic.
     "purge-expired-sessions": {
         "task": "analyzer.tasks.purge_expired_sessions",
         "schedule": crontab(hour=4, minute=10),

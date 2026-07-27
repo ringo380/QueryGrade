@@ -51,7 +51,18 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "csp.middleware.CSPMiddleware",
     "analyzer.middleware.EnhancedSecurityMiddleware",
+    "analyzer.middleware.SessionPurgeMiddleware",
 ]
+
+# Expired-session retention. Normally beat's job, but the worker and beat
+# services are stopped while QueryGrade has no users (issue #133), so the web
+# process runs the purge itself at most this often. Safe to leave on when beat
+# returns - both take the same cache lock. Set SESSION_PURGE_IN_REQUEST=False
+# to turn the web-side path off and hand retention back to beat entirely.
+SESSION_PURGE_IN_REQUEST = config("SESSION_PURGE_IN_REQUEST", default=True, cast=bool)
+SESSION_PURGE_INTERVAL_SECONDS = config(
+    "SESSION_PURGE_INTERVAL_SECONDS", default=86400, cast=int
+)
 
 ROOT_URLCONF = "querygrade.urls"
 
