@@ -24,4 +24,5 @@ COPY . .
 # prefork pool defaults to os.cpu_count(), which reports the HOST's cores in a
 # container - 48 children and ~4.4 GB resident. See railway.worker.toml and
 # issue #126. Railway's startCommand overrides this CMD; keep the two in sync.
-CMD ["celery", "-A", "querygrade", "worker", "--loglevel=info", "--concurrency=2"]
+CMD ["celery", "-A", "querygrade", "worker", "--loglevel=info", "--concurrency=2", \
+     "-Q", "celery,heavy_processing,light_processing,maintenance"]

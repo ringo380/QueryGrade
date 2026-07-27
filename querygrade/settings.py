@@ -537,12 +537,18 @@ PERFORMANCE_MONITORING_ENABLED = DEBUG
 SLOW_QUERY_THRESHOLD = 1.0  # Log queries taking longer than 1 second
 
 # Background task optimization
+# NOTE: every queue named here must appear in the worker's -Q list
+# (railway.worker.toml / Dockerfile.worker). A task routed to a queue no
+# worker consumes is not an error - it is accepted, written to Redis, and
+# sits there forever. Adding a route without updating -Q silently disables
+# the task and leaks broker memory.
 CELERY_TASK_ROUTES = {
     "analyzer.tasks.process_log_file_async": {"queue": "heavy_processing"},
     "analyzer.tasks.batch_analyze_queries": {"queue": "heavy_processing"},
     "analyzer.tasks.analyze_database_schema_async": {"queue": "heavy_processing"},
     "analyzer.tasks.generate_performance_report": {"queue": "light_processing"},
     "analyzer.tasks.cleanup_temp_files": {"queue": "maintenance"},
+    "analyzer.tasks.purge_expired_sessions": {"queue": "maintenance"},
 }
 
 # Memory optimization
