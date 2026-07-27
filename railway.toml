@@ -16,6 +16,14 @@ startCommand = "sh -c 'python manage.py collectstatic --noinput && gunicorn quer
 #   querygrade-beat    - Dockerfile.beat   - Celery beat, schedules monitor_ml_models
 #                                            every 15 min (see querygrade/celery.py)
 #
+# BOTH ARE CURRENTLY STOPPED (issue #133). Their deployments were removed to
+# save about $6.90/month while QueryGrade has no users; the service config is
+# intact, so redeploying either brings it back as configured. While they are
+# down, every async feature (log processing, batch analysis, schema analysis,
+# report generation) is non-functional, and nothing consumes the Celery
+# queues. Session retention still runs, from SessionPurgeMiddleware on this
+# service. Restore both before QueryGrade takes real traffic.
+#
 # Both services share the same env vars as the web service (DATABASE_URL,
 # REDIS_URL, etc.). Beat additionally needs ML_ALERT_RECIPIENTS once PR 3
 # of the issue-#5 stack lands.

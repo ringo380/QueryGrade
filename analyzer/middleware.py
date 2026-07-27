@@ -4,6 +4,7 @@ Custom security middleware for enhanced CSRF and XSS protection.
 
 import logging
 import re
+import time
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
@@ -223,3 +224,74 @@ class CSRFFailureMiddleware(MiddlewareMixin):
         else:
             ip = request.META.get("REMOTE_ADDR")
         return ip
+
+
+class SessionPurgeMiddleware:
+    """
+    Run the expired-session purge from the web process, at most once per
+    SESSION_PURGE_INTERVAL_SECONDS.
+
+    Retention is normally beat's job (``purge-expired-sessions``, daily at
+    04:10 UTC). The worker and beat services are stopped while QueryGrade has
+    no users, because a full-time pair cost about $6.90/month to delete on the
+    order of 100-150 session rows a day (issue #133). This middleware keeps
+    the one piece of that work that still matters running on a service that is
+    already up, at no additional cost.
+
+    It is safe to leave enabled when beat comes back. Both callers take the
+    same cache lock, so whichever runs first wins the interval and the other
+    finds nothing to do.
+
+    Design constraints, in the order they matter:
+
+    1. The common path must be free. Almost every request should do no I/O to
+       decide it is not time yet, so the first check is an in-process
+       monotonic deadline - no cache round-trip, no query. The deadline is
+       per-process and resets on restart, which costs at most one extra cache
+       lookup per process.
+    2. It must never break a request. The purge runs inside a try/except that
+       swallows everything; a broken cache or database makes retention stop,
+       not the site.
+    3. It must not hot-loop when something is failing. The local deadline is
+       pushed forward *before* the attempt, so a failing purge is retried on
+       the next interval rather than on the next request.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Zero rather than "now + interval": the first request after a deploy
+        # should be eligible, otherwise a service that restarts more often
+        # than the interval would never purge at all.
+        self._next_attempt = 0.0
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        self._maybe_purge()
+        return response
+
+    def _maybe_purge(self):
+        interval = getattr(settings, "SESSION_PURGE_INTERVAL_SECONDS", 86400)
+        if not interval or not getattr(settings, "SESSION_PURGE_IN_REQUEST", True):
+            return
+
+        now = time.monotonic()
+        if now < self._next_attempt:
+            return
+        self._next_attempt = now + interval
+
+        try:
+            from django.core.cache import cache
+
+            from analyzer.tasks.maintenance_tasks import purge_expired_sessions_now
+
+            # add() is atomic, so exactly one process/replica wins the
+            # interval. The entry expires with the interval, which is what
+            # schedules the next run.
+            if not cache.add("session_purge_lock", "1", interval):
+                return
+
+            result = purge_expired_sessions_now()
+            logger.info("In-request session purge: %s", result)
+        except Exception as exc:
+            # Retention failing must never surface to a visitor.
+            logger.warning("In-request session purge skipped: %s", exc)

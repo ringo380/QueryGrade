@@ -18,8 +18,7 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name="analyzer.tasks.purge_expired_sessions")
-def purge_expired_sessions():
+def purge_expired_sessions_now():
     """
     Delete django_session rows whose expire_date has passed.
 
@@ -28,10 +27,18 @@ def purge_expired_sessions():
     forever. Every anonymous visitor that touches a view writing to the
     session leaves one behind, so the table is the only unbounded-growth
     surface in this database (4,905 rows / 1.8 MB of a 12 MB database when
-    this task was added, against zero registered users).
+    this was added, against zero registered users). Observed accumulation is
+    roughly 100-150 rows a day from crawler traffic alone.
 
     Delegates to the `clearsessions` management command so this stays
     correct if SESSION_ENGINE ever moves off the DB backend.
+
+    This is a plain function, not only a Celery task, because it has two
+    callers. The beat schedule runs it daily when the worker is up, and
+    SessionPurgeMiddleware runs it from the web process when it is not
+    (issue #133 - the worker and beat services are stopped for cost while
+    QueryGrade has no users). Never assume it runs on a worker: it must stay
+    safe to call inline in a request.
     """
     try:
         expired = Session.objects.filter(expire_date__lt=timezone.now()).count()
@@ -57,6 +64,12 @@ def purge_expired_sessions():
             "error": str(exc),
             "timestamp": timezone.now().isoformat(),
         }
+
+
+@shared_task(name="analyzer.tasks.purge_expired_sessions")
+def purge_expired_sessions():
+    """Celery entry point for :func:`purge_expired_sessions_now`."""
+    return purge_expired_sessions_now()
 
 
 @shared_task(name="analyzer.tasks.cleanup_temp_files")
