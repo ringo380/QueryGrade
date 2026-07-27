@@ -1,7 +1,7 @@
 # Slim production deps for the Railway web service.
-# Excludes heavy ML frameworks (tensorflow/torch/transformers/xgboost/lightgbm/matplotlib)
-# which are only used inside analyzer/ml/ensemble/ and analyzer/ml/training/.
-# Those run in the separate Celery worker service (see requirements-worker.txt).
+# Excludes the heavy ML frameworks (tensorflow, xgboost), which are only used
+# inside analyzer/ml/ensemble/ and analyzer/ml/training/ and run in the separate
+# Celery worker service (see requirements-worker.txt).
 #
 # Upper bounds are load-bearing here, not tidiness: this file is installed fresh
 # on every deploy, so an unbounded `>=` floor silently ships whatever major

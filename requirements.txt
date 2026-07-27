@@ -36,6 +36,14 @@ joblib>=1.5.3,<2.0
 beautifulsoup4>=4.12.0,<5.0
 requests>=2.31.0,<3.0
 
+# Optional, local/manual only: the `load_huggingface_queries` seeding command.
+# Deliberately NOT in requirements-worker.txt - it drags in pyarrow and friends
+# for one manually-run management command that is not on any worker code path.
+# The command already raises a CommandError naming the install when it is
+# missing, so the failure is loud and self-explaining. To run it against
+# Railway, pip install it inside that container first.
+datasets>=2.14.0,<6.0
+
 # Testing & Coverage
 coverage>=7.13.5,<8.0
 # Test-only: memory assertions in analyzer/ml/tests. Deliberately absent from
