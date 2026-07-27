@@ -45,7 +45,7 @@ requests>=2.31.0,<3.0
 datasets>=2.14.0,<6.0
 
 # Testing & Coverage
-coverage>=7.13.5,<8.0
+coverage>=7.15.2,<8.0
 # Test-only: memory assertions in analyzer/ml/tests. Deliberately absent from
 # requirements-prod.txt, which stays slim for the deployed web image.
 psutil>=5.9.0,<8.0
