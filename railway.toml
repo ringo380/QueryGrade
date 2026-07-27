@@ -12,11 +12,20 @@ startCommand = "sh -c 'python manage.py collectstatic --noinput && gunicorn quer
 # ---------------------------------------------------------------------------
 # Sibling services (provisioned in the Railway dashboard, not via railway.toml):
 #
-#   querygrade-worker  — Dockerfile.worker — Celery worker, executes ML tasks
-#   querygrade-beat    — Dockerfile.beat   — Celery beat, schedules monitor_ml_models
+#   querygrade-worker  - Dockerfile.worker - Celery worker, executes ML tasks
+#   querygrade-beat    - Dockerfile.beat   - Celery beat, schedules monitor_ml_models
 #                                            every 15 min (see querygrade/celery.py)
 #
 # Both services share the same env vars as the web service (DATABASE_URL,
 # REDIS_URL, etc.). Beat additionally needs ML_ALERT_RECIPIENTS once PR 3
 # of the issue-#5 stack lands.
+#
+#   Redis    - image service, Celery broker + Django cache backend
+#   Postgres - image service, application database
+#
+# Those two are image services with no repo source, so they have no config file
+# here and their settings live only in the Railway dashboard. infra/railway-services.md
+# is the record of what is set on them and why. Read it before changing either;
+# Redis in particular carries a memory ceiling and an eviction policy whose
+# failure modes are silent.
 # ---------------------------------------------------------------------------
