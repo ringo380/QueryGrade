@@ -213,7 +213,7 @@ We welcome contributions! Priority areas:
 ### Developer Documentation
 
 Before contributing, please review:
-- **[CLAUDE.md](CLAUDE.md)** - Complete project documentation, architecture, and development guide
+- **[.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)** - Development setup, coding standards, and contribution guide
 - **[TESTING.md](TESTING.md)** - Testing best practices and troubleshooting guide
 - **[INTEGRATION_TEST_FIX_SUMMARY.md](INTEGRATION_TEST_FIX_SUMMARY.md)** - Case study on cache issues in tests
 

@@ -28,13 +28,13 @@ from analyzer.models import TrainingData
 
 logger = logging.getLogger(__name__)
 
-# Default candidates documented in CLAUDE.md (lamini/spider_text_to_sql ~10k,
+# Default candidates (lamini/spider_text_to_sql ~10k,
 # lamini/bird_spider_train_text_to_sql 10k–100k, VPCSinfo/odoo-sql-query-dataset).
 DEFAULT_DATASET = "lamini/spider_text_to_sql"
 DEFAULT_SPLIT = "train"
 DEFAULT_COLUMN = "output"  # lamini/spider uses {input, output}; output is the SQL
 
-# Analyzer pipeline is SELECT-optimized (CLAUDE.md: non-SELECT no-ops with a
+# Analyzer pipeline is SELECT-optimized (a non-SELECT statement no-ops with a
 # performance_notes warning), so filter to queries that lead with SELECT/WITH.
 SELECT_RE = re.compile(r"^\s*(SELECT|WITH)\b", re.IGNORECASE)
 

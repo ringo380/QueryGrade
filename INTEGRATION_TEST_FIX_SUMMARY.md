@@ -9,7 +9,7 @@
 This document provides a detailed case study of debugging and fixing integration test failures. For comprehensive testing guidance and best practices, see:
 
 - **[TESTING.md](TESTING.md)** - Complete testing guide with examples, best practices, and troubleshooting
-- **[CLAUDE.md](CLAUDE.md)** - Project documentation with testing section and architecture overview
+- **[README.md](README.md)** - Project overview and architecture
 - **[analyzer/test_integration_refactored.py](analyzer/test_integration_refactored.py)** - Working test implementation with inline documentation
 
 ## Problem Overview
@@ -159,7 +159,7 @@ def setUp(self):
 - `analyzer/test_integration.py` - Marked as deprecated (original failing tests)
 
 ### Documentation
-- `CLAUDE.md` - Updated testing section with best practices
+- `TESTING.md` - Updated testing section with best practices
 - `TESTING.md` - **CREATED**: Comprehensive testing guide
 - `INTEGRATION_TEST_FIX_SUMMARY.md` - **CREATED**: This document
 
@@ -210,7 +210,7 @@ Adding debug output at critical points (cache checks, object creation, database 
 ## References
 
 - **[TESTING.md](TESTING.md)** - Comprehensive testing guide with examples
-- **[CLAUDE.md](CLAUDE.md)** - Project documentation with testing section
+- **[README.md](README.md)** - Project overview
 - **[analyzer/test_integration_refactored.py](analyzer/test_integration_refactored.py)** - Working test implementation
 - **[analyzer/performance.py](analyzer/performance.py)** - Cache singleton with testing warning
 

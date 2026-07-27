@@ -2,7 +2,7 @@
 populates ``QueryAnalysis.schema_insights`` and renders the insights panel.
 
 Mirrors ``test_grade_with_live_schema.py`` — mocks the introspector so no real
-database or HypoPG is touched (per CLAUDE.md the HypoPG path must be mocked)."""
+database or HypoPG is touched (the HypoPG path must always be mocked)."""
 
 from __future__ import annotations
 

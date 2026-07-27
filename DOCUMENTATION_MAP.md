@@ -8,19 +8,17 @@ This document provides a visual overview of how all documentation files intercon
 QueryGrade Documentation
 ├── README.md (Entry Point)
 │   └── Links to:
-│       ├── CLAUDE.md (for architecture & development)
+│       ├── .github/CONTRIBUTING.md (for development setup & standards)
 │       ├── TESTING.md (for testing best practices)
 │       └── INTEGRATION_TEST_FIX_SUMMARY.md (for cache issue case study)
 │
-├── CLAUDE.md (Project Documentation)
+├── .github/CONTRIBUTING.md (Contributor Guide)
 │   └── Links to:
 │       ├── TESTING.md (comprehensive testing guide)
-│       ├── INTEGRATION_TEST_FIX_SUMMARY.md (test debugging case study)
 │       └── README.md (project overview)
 │
 ├── TESTING.md (Testing Guide)
 │   └── Links to:
-│       ├── CLAUDE.md (project documentation)
 │       ├── INTEGRATION_TEST_FIX_SUMMARY.md (cache issue details)
 │       ├── README.md (project overview)
 │       └── analyzer/test_integration_refactored.py (working implementation)
@@ -28,7 +26,7 @@ QueryGrade Documentation
 ├── INTEGRATION_TEST_FIX_SUMMARY.md (Debugging Case Study)
 │   └── Links to:
 │       ├── TESTING.md (testing guide)
-│       ├── CLAUDE.md (project documentation)
+│       ├── README.md (project overview)
 │       ├── analyzer/test_integration_refactored.py (working implementation)
 │       └── analyzer/performance.py (cache singleton)
 │
@@ -36,7 +34,7 @@ QueryGrade Documentation
     └── References:
         ├── TESTING.md (testing guide)
         ├── INTEGRATION_TEST_FIX_SUMMARY.md (debugging case study)
-        └── CLAUDE.md (project documentation)
+        └── README.md (project overview)
 ```
 
 ## Document Purposes
@@ -44,7 +42,8 @@ QueryGrade Documentation
 | Document | Purpose | Primary Audience |
 |----------|---------|------------------|
 | **README.md** | Project introduction, quick start, features overview | New users, evaluators |
-| **CLAUDE.md** | Complete project documentation, architecture, development setup | Developers, AI assistants |
+| **.github/CONTRIBUTING.md** | Development setup, coding standards, PR process | Contributors |
+| **docs/specs/** | Per-feature design specs written before implementation | Developers picking up a feature |
 | **TESTING.md** | Comprehensive testing guide with examples and troubleshooting | Developers writing tests |
 | **INTEGRATION_TEST_FIX_SUMMARY.md** | Detailed case study of debugging cache initialization issue | Advanced developers, troubleshooting |
 | **test_integration_refactored.py** | Working test implementation with inline documentation | Developers writing integration tests |
@@ -54,13 +53,13 @@ QueryGrade Documentation
 ### "I want to..."
 
 - **Get started with the project** → [README.md](README.md)
-- **Understand the architecture** → [CLAUDE.md](CLAUDE.md)
+- **Understand the architecture** → [README.md](README.md) (Project Structure section)
 - **Write tests** → [TESTING.md](TESTING.md)
 - **Debug test failures** → [TESTING.md](TESTING.md) (Troubleshooting section)
 - **Understand the cache issue** → [INTEGRATION_TEST_FIX_SUMMARY.md](INTEGRATION_TEST_FIX_SUMMARY.md)
 - **See working test examples** → [analyzer/test_integration_refactored.py](analyzer/test_integration_refactored.py)
-- **Add new analyzers** → [CLAUDE.md](CLAUDE.md) (Adding New Analysis Rules section)
-- **Set up development environment** → [CLAUDE.md](CLAUDE.md) (Development Commands section)
+- **Add new analyzers** → [README.md](README.md) (Project Structure section) and `analyzer/analyzers/`
+- **Set up development environment** → [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) (Development Setup section)
 - **Contribute to the project** → [README.md](README.md) (Contributing section)
 
 ## Documentation Quality Standards
@@ -87,4 +86,4 @@ When updating documentation:
 
 **Date**: 2025-10-02
 **Reason**: Added comprehensive cross-references between all documentation files
-**Changed Files**: README.md, CLAUDE.md, TESTING.md, INTEGRATION_TEST_FIX_SUMMARY.md, test_integration_refactored.py
+**Changed Files**: README.md, TESTING.md, INTEGRATION_TEST_FIX_SUMMARY.md, test_integration_refactored.py
