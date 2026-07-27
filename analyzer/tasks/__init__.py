@@ -20,7 +20,7 @@ Do not rename task functions as this will break existing queued tasks.
 from .log_tasks import process_log_file_async
 
 # Maintenance tasks
-from .maintenance_tasks import cleanup_temp_files
+from .maintenance_tasks import cleanup_temp_files, purge_expired_sessions
 
 # ML monitoring tasks
 from .monitoring_tasks import monitor_ml_models
@@ -43,6 +43,7 @@ __all__ = [
     "analyze_database_schema_async",
     # Maintenance tasks
     "cleanup_temp_files",
+    "purge_expired_sessions",
     # Report tasks
     "generate_performance_report",
     # ML monitoring tasks

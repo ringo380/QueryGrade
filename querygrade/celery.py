@@ -28,6 +28,20 @@ app.conf.beat_schedule = {
         "task": "analyzer.tasks.monitor_ml_models",
         "schedule": crontab(minute="*/15"),
     },
+    # Retention. Django never deletes expired session rows on its own, so
+    # django_session grows without bound - it was 4,905 rows / 1.8 MB of a
+    # 12 MB database with zero registered users. Daily at 04:10 UTC, off the
+    # :00/:15 marks so it never contends with monitor-ml-models.
+    "purge-expired-sessions": {
+        "task": "analyzer.tasks.purge_expired_sessions",
+        "schedule": crontab(hour=4, minute=10),
+    },
+    # cleanup_temp_files has always documented itself as "should be run via
+    # celery beat every hour" but was never actually scheduled.
+    "cleanup-temp-files": {
+        "task": "analyzer.tasks.cleanup_temp_files",
+        "schedule": crontab(minute=40),
+    },
 }
 
 

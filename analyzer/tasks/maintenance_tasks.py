@@ -11,9 +11,52 @@ import tempfile
 from typing import Any, Dict
 
 from celery import shared_task
+from django.contrib.sessions.models import Session
+from django.core.management import call_command
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(name="analyzer.tasks.purge_expired_sessions")
+def purge_expired_sessions():
+    """
+    Delete django_session rows whose expire_date has passed.
+
+    Django never removes expired session rows on its own - the cookie stops
+    being honored at SESSION_COOKIE_AGE (1 hour here), but the row stays
+    forever. Every anonymous visitor that touches a view writing to the
+    session leaves one behind, so the table is the only unbounded-growth
+    surface in this database (4,905 rows / 1.8 MB of a 12 MB database when
+    this task was added, against zero registered users).
+
+    Delegates to the `clearsessions` management command so this stays
+    correct if SESSION_ENGINE ever moves off the DB backend.
+    """
+    try:
+        expired = Session.objects.filter(expire_date__lt=timezone.now()).count()
+        call_command("clearsessions")
+        remaining = Session.objects.count()
+
+        logger.info(
+            f"Session purge completed: removed {expired} expired sessions, "
+            f"{remaining} remaining"
+        )
+
+        return {
+            "status": "success",
+            "purged": expired,
+            "remaining": remaining,
+            "timestamp": timezone.now().isoformat(),
+        }
+
+    except Exception as exc:
+        logger.error(f"Error in session purge task: {str(exc)}")
+        return {
+            "status": "error",
+            "error": str(exc),
+            "timestamp": timezone.now().isoformat(),
+        }
 
 
 @shared_task(name="analyzer.tasks.cleanup_temp_files")

@@ -20,4 +20,9 @@ dockerfilePath = "Dockerfile.worker"
 # CELERY_WORKER_MAX_MEMORY_PER_CHILD does not substitute for this: prefork
 # only checks a child for recycling after it FINISHES a task, so idle
 # children are never reclaimed.
-startCommand = "celery -A querygrade worker --loglevel=info --concurrency=2"
+# -Q must list every queue in settings.CELERY_TASK_ROUTES plus the default
+# `celery` queue. Without it the worker consumed only `celery`, so the five
+# routed tasks (log processing, batch analysis, schema analysis, reports,
+# temp-file cleanup) were accepted, written to Redis, and never executed.
+# Only monitor_ml_models ran, because it is the one task with no route.
+startCommand = "celery -A querygrade worker --loglevel=info --concurrency=2 -Q celery,heavy_processing,light_processing,maintenance"
