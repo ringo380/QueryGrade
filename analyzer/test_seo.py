@@ -131,9 +131,7 @@ class MetaTagTests(TestCase):
         html = response.content.decode()
 
         self.assertEqual(html.count('rel="canonical"'), 1)
-        self.assertIn(
-            '<link rel="canonical" href="https://querygrade.com/">', html
-        )
+        self.assertIn('<link rel="canonical" href="https://querygrade.com/">', html)
 
     def test_home_page_is_indexable_and_describes_itself(self):
         response = self.client.get("/")
