@@ -228,6 +228,7 @@ QueryGrade/
 │   ├── templates/       # HTML templates
 │   └── static/          # CSS, JS, images
 ├── scripts/             # Developer utilities (og:image card, ML integration check)
+├── infra/               # Deployed datastore service config and rationale
 ├── requirements.txt     # Python dependencies (full, includes test deps)
 ├── requirements-prod.txt # Slim deps for the deployed web service
 ├── Dockerfile          # Local dev image, used by docker-compose

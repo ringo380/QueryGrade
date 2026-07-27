@@ -30,6 +30,11 @@ QueryGrade Documentation
 │       ├── analyzer/test_integration_refactored.py (working implementation)
 │       └── analyzer/performance.py (cache singleton)
 │
+├── infra/railway-services.md (Datastore Service Configuration)
+│   └── Referenced by:
+│       ├── railway.toml (sibling-services comment)
+│       └── scripts/check-railway-datastore-config.sh (live drift check)
+│
 └── analyzer/test_integration_refactored.py (Test Implementation)
     └── References:
         ├── TESTING.md (testing guide)
@@ -44,6 +49,7 @@ QueryGrade Documentation
 | **README.md** | Project introduction, quick start, features overview | New users, evaluators |
 | **.github/CONTRIBUTING.md** | Development setup, coding standards, PR process | Contributors |
 | **docs/specs/** | Per-feature design specs written before implementation | Developers picking up a feature |
+| **infra/railway-services.md** | Redis/Postgres runtime settings and the reasoning behind each non-default flag | Anyone changing a deployed datastore service |
 | **TESTING.md** | Comprehensive testing guide with examples and troubleshooting | Developers writing tests |
 | **INTEGRATION_TEST_FIX_SUMMARY.md** | Detailed case study of debugging cache initialization issue | Advanced developers, troubleshooting |
 | **test_integration_refactored.py** | Working test implementation with inline documentation | Developers writing integration tests |
@@ -61,6 +67,7 @@ QueryGrade Documentation
 - **Add new analyzers** → [README.md](README.md) (Project Structure section) and `analyzer/analyzers/`
 - **Set up development environment** → [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) (Development Setup section)
 - **Contribute to the project** → [README.md](README.md) (Contributing section)
+- **Change the Redis or Postgres service** → [infra/railway-services.md](infra/railway-services.md)
 
 ## Documentation Quality Standards
 
