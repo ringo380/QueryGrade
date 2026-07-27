@@ -114,7 +114,9 @@ class Command(BaseCommand):
             raise CommandError(
                 "The `datasets` package is required. Install with:\n"
                 "    pip install --break-system-packages datasets\n"
-                "(or add to requirements-worker.txt)"
+                "It is in requirements.txt (local/dev) but deliberately not in\n"
+                "requirements-worker.txt - see issue #130. Running this against\n"
+                "Railway means installing it in that container first."
             ) from exc
 
         dataset_id = options["dataset"]
