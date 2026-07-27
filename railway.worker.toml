@@ -8,4 +8,16 @@ dockerfilePath = "Dockerfile.worker"
 
 [deploy]
 # No preDeployCommand: migrations + init_superuser are owned by the web service.
-startCommand = "celery -A querygrade worker --loglevel=info"
+#
+# --concurrency is pinned deliberately. Celery's prefork pool defaults to
+# os.cpu_count(), which inside a Railway container reports the HOST's core
+# count (48), not this container's share. That forked 48 children, each
+# carrying its own dirtied copy of Django + pandas + scikit-learn +
+# matplotlib, for ~4.4 GB resident at ~0.002 vCPU of actual work - $46/mo of
+# a $60 Railway bill (issue #126). The real load is one monitor_ml_models
+# task every 15 min plus occasional user-triggered ML tasks; 2 is generous.
+#
+# CELERY_WORKER_MAX_MEMORY_PER_CHILD does not substitute for this: prefork
+# only checks a child for recycling after it FINISHES a task, so idle
+# children are never reclaimed.
+startCommand = "celery -A querygrade worker --loglevel=info --concurrency=2"
