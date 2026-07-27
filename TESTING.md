@@ -3,7 +3,7 @@
 This document provides comprehensive guidance for writing and maintaining tests for the QueryGrade project.
 
 ## Related Documentation
-- **[CLAUDE.md](CLAUDE.md)** - Project overview, architecture, and development setup
+- **[README.md](README.md)** - Project overview, architecture, and development setup
 - **[INTEGRATION_TEST_FIX_SUMMARY.md](INTEGRATION_TEST_FIX_SUMMARY.md)** - Detailed analysis of the integration test cache issue fix
 - **[README.md](README.md)** - Project introduction and quick start guide
 
@@ -487,7 +487,7 @@ If tests are failing, work through this checklist:
 
 ### QueryGrade Documentation
 - **[INTEGRATION_TEST_FIX_SUMMARY.md](INTEGRATION_TEST_FIX_SUMMARY.md)** - In-depth case study of solving the cache initialization issue
-- **[CLAUDE.md](CLAUDE.md)** - Complete project documentation including testing section
+- **[README.md](README.md)** - Project overview and structure
 - **[README.md](README.md)** - Project overview and setup instructions
 - **[analyzer/test_integration_refactored.py](analyzer/test_integration_refactored.py)** - Working integration test implementation with detailed comments
 

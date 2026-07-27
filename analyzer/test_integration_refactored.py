@@ -16,7 +16,7 @@ Key Solutions Implemented:
 Related Documentation:
 - TESTING.md - Comprehensive testing guide with examples and best practices
 - INTEGRATION_TEST_FIX_SUMMARY.md - Detailed case study of debugging this issue
-- CLAUDE.md - Project documentation with architecture and testing sections
+- README.md - Project overview and structure
 
 Testing Best Practices:
 - Always reinitialize query_cache in setUp() to use test cache backend

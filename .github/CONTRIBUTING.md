@@ -154,7 +154,7 @@ python test_ml_integration.py
 
 1. Implement in `analyzer/ml/` directory
 2. Create corresponding tests
-3. Update ML documentation in CLAUDE.md
+3. Update ML documentation in README.md
 4. Add performance metrics tracking
 5. Validate against benchmark queries
 
@@ -210,7 +210,7 @@ QueryGrade/
 │   └── tests/            # Test files
 ├── querygrade/           # Django project settings
 ├── requirements.txt      # Python dependencies
-└── CLAUDE.md            # Developer documentation
+└── docs/                # Design specs
 ```
 
 ## Getting Help

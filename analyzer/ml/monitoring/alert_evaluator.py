@@ -71,7 +71,7 @@ def _serialize_evidence(evidence: dict) -> dict:
 def _active_target_model() -> Optional[MLModel]:
     """The model these alerts get attached to.
 
-    Per CLAUDE.md, the production grading path uses an ACTIVE HYBRID_SCORER.
+    The production grading path uses an ACTIVE HYBRID_SCORER.
     If none is active yet (fresh deploy), fall back to the most recently
     deployed ACTIVE model of any type so alerts still attach to something
     real.

@@ -301,8 +301,7 @@ For questions about this refactoring:
 
 1. Check this README
 2. Review inline docstrings in each module
-3. Consult `.claude/plans/2025-09-29_views-refactoring.md` for detailed plan
-4. Contact the development team
+3. Contact the development team
 
 ---
 

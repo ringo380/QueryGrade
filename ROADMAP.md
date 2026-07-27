@@ -285,7 +285,7 @@ QueryGrade is a Django-based SQL query analysis and grading platform powered by 
 - **Test Coverage**: 100+ tests, all passing ✅
 - **Zero Technical Debt**: No TODO/stub code ✅
 - **Code Quality**: Modular architecture, 7+ refactored packages ✅
-- **Documentation**: 7 comprehensive docs (CLAUDE.md, TESTING.md, etc.) ✅
+- **Documentation**: 7 comprehensive docs (README.md, TESTING.md, etc.) ✅
 
 ### Target Metrics by Q3 2026
 - **User Base**: 1,000+ active users

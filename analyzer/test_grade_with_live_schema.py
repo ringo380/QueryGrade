@@ -44,7 +44,7 @@ class GradeWithLiveSchemaTests(TransactionTestCase):
         self.addCleanup(self._key_patch.stop)
         self.addCleanup(connection_crypto._get_fernet.cache_clear)
 
-        # Force query_cache to use dummy backend (CLAUDE.md test guidance).
+        # Force query_cache to use dummy backend. See TESTING.md.
         from django.core.cache import caches
 
         from analyzer.performance import query_cache
