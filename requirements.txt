@@ -42,7 +42,7 @@ requests>=2.31.0,<3.0
 # The command already raises a CommandError naming the install when it is
 # missing, so the failure is loud and self-explaining. To run it against
 # Railway, pip install it inside that container first.
-datasets>=2.14.0,<6.0
+datasets>=5.0.0,<6.0
 
 # Testing & Coverage
 coverage>=7.13.5,<8.0
