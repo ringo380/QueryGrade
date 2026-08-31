@@ -19,7 +19,7 @@ djangorestframework>=3.14.0,<4.0
 djangorestframework-simplejwt>=5.2.0,<6.0
 celery>=5.2.0,<6.0
 redis>=4.0.0,<9.0
-django-redis>=5.0.0,<7.0
+django-redis>=7.0.0,<8.0
 
 # Email delivery (Resend HTTP API - Railway blocks outbound SMTP)
 django-anymail[resend]>=10.0,<15.0
