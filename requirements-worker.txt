@@ -21,4 +21,4 @@
 # in analyzer/ml/ensemble or analyzer/ml/training should be treated as
 # unverified against these majors until it runs.
 tensorflow>=2.10.0,<3.0
-xgboost>=1.7.0,<4.0
+xgboost>=3.3.0,<4.0
