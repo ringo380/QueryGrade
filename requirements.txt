@@ -48,4 +48,4 @@ datasets>=2.14.0,<6.0
 coverage>=7.13.5,<8.0
 # Test-only: memory assertions in analyzer/ml/tests. Deliberately absent from
 # requirements-prod.txt, which stays slim for the deployed web image.
-psutil>=5.9.0,<8.0
+psutil>=7.2.2,<8.0
