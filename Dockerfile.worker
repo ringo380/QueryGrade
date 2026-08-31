@@ -1,5 +1,5 @@
 # Full Celery worker image with ML stack. Used by the Railway worker service.
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

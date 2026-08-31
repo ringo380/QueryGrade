@@ -1,7 +1,7 @@
 # Local dev image (docker-compose). Installs the full requirements.txt,
 # including test deps, which the slim Dockerfile.web deliberately omits.
 # Keep the base in sync with Dockerfile.web/.worker/.beat and CI (3.11).
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
