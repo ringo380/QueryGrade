@@ -9,7 +9,6 @@ from django.urls import path
 
 # ML Dashboard views (separate module)
 from .ml import dashboard_views
-from .views import ml_alert_views
 
 # Import from modular views package
 from .views import (  # Authentication views; Query grading views; Comparison views; Batch analysis views; History and feedback views; Upload views; Database introspection views; Async processing views; API views; Saved connection views
@@ -39,6 +38,7 @@ from .views import (  # Authentication views; Query grading views; Comparison vi
     index,
     login_view,
     logout_view,
+    ml_alert_views,
     password_change,
     password_reset_confirm,
     password_reset_request,
