@@ -264,9 +264,7 @@ class TrainingPipelineManager:
                 if ok:
                     self._deploy_model(model_version)
                 else:
-                    logger.warning(
-                        f"Model {model_version} not deployed: {reason}"
-                    )
+                    logger.warning(f"Model {model_version} not deployed: {reason}")
 
             training_time = (timezone.now() - start_time).total_seconds()
 
@@ -640,9 +638,7 @@ class TrainingPipelineManager:
                     os.remove(local_file)
                     logger.info(f"Removed old model file: {local_file}")
                 except OSError as e:
-                    logger.warning(
-                        f"Could not remove model file {local_file}: {e}"
-                    )
+                    logger.warning(f"Could not remove model file {local_file}: {e}")
 
             # Remove database record (cascades to MLModelArtifact)
             model.delete()
