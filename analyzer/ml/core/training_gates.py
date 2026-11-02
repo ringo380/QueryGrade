@@ -22,9 +22,7 @@ def real_training_sample_count() -> int:
     """Count TrainingData rows that came from real feedback, not the seed."""
     from ...models import TrainingData
 
-    return TrainingData.objects.exclude(
-        validation_source=SYNTHETIC_SEED_SOURCE
-    ).count()
+    return TrainingData.objects.exclude(validation_source=SYNTHETIC_SEED_SOURCE).count()
 
 
 def real_feedback_gate():
