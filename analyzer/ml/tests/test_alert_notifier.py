@@ -189,13 +189,14 @@ class EvaluatorEmailIntegrationTests(TestCase):
         cache.clear()
 
     def test_evaluation_sends_one_email_per_new_alert(self):
+        from django.utils import timezone as dj_timezone
+
         from analyzer.ml.monitoring import alert_evaluator
         from analyzer.ml.monitoring.retraining_system import (
             RetrainingTrigger,
             TriggerReason,
             TriggerUrgency,
         )
-        from django.utils import timezone as dj_timezone
 
         triggers = [
             RetrainingTrigger(
