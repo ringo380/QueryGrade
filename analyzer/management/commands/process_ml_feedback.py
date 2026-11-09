@@ -184,9 +184,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  {field:<18} {counts}")
 
         # Queries with feedback
-        queries_with_feedback = (
-            histories.values("query").distinct().count()
-        )
+        queries_with_feedback = histories.values("query").distinct().count()
         total_queries = Query.objects.count()
         self.stdout.write("")
         self.stdout.write(
@@ -225,9 +223,7 @@ class Command(BaseCommand):
         if not options["force_all"]:
             cutoff_date = timezone.now() - timedelta(days=options["days"])
             recent = self._feedback_histories().filter(submitted_at__gte=cutoff_date)
-            queryset = queryset.filter(
-                id__in=recent.values("query")
-            ).distinct()
+            queryset = queryset.filter(id__in=recent.values("query")).distinct()
 
         # Get queries with sufficient feedback
         queries_to_process = []
