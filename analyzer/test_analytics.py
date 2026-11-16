@@ -133,8 +133,9 @@ class PendingGtagEventTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("_auth_user_id", self.client.session)
 
-        self.assertEqual(self.rendered_event(self.client.get(response["Location"])),
-                         "user_login")
+        self.assertEqual(
+            self.rendered_event(self.client.get(response["Location"])), "user_login"
+        )
 
     def test_logout_survives_the_session_flush(self):
         """logout() flushes the session, then the view writes the flag into
@@ -145,8 +146,9 @@ class PendingGtagEventTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertNotIn("_auth_user_id", self.client.session)
 
-        self.assertEqual(self.rendered_event(self.client.get(response["Location"])),
-                         "user_logout")
+        self.assertEqual(
+            self.rendered_event(self.client.get(response["Location"])), "user_logout"
+        )
 
     def test_event_fires_exactly_once(self):
         """The pop has to mark the session dirty, or the flag survives and

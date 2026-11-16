@@ -97,9 +97,7 @@ class GradePathLoadsFromDatabaseTests(TestCase):
         # came from the database.
         with tempfile.TemporaryDirectory() as empty_dir:
             grader.model_path = empty_dir
-            self.assertFalse(
-                os.path.exists(os.path.join(empty_dir, row.file_path))
-            )
+            self.assertFalse(os.path.exists(os.path.join(empty_dir, row.file_path)))
             loaded = grader._load_current_model()
 
         self.assertIsNotNone(loaded)
