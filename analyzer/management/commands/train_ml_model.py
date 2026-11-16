@@ -131,9 +131,7 @@ class Command(BaseCommand):
                     else:
                         # Say why. Silently not deploying is how a bad model
                         # gets mistaken for a deploy that just did not happen.
-                        self.stdout.write(
-                            self.style.WARNING(f"Not deployed: {reason}")
-                        )
+                        self.stdout.write(self.style.WARNING(f"Not deployed: {reason}"))
 
             else:
                 raise CommandError(f"Training failed: {result.error_message}")

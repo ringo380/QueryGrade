@@ -254,9 +254,7 @@ class HybridQueryGrader:
 
             model_data = retrieve_artifact(active_model)
             if model_data is None:
-                model_file_path = os.path.join(
-                    self.model_path, active_model.file_path
-                )
+                model_file_path = os.path.join(self.model_path, active_model.file_path)
                 if not os.path.exists(model_file_path):
                     logger.error(f"Model file not found: {model_file_path}")
                     return None
