@@ -145,9 +145,7 @@ class ProcessMlFeedbackCommandTests(TestCase):
 
         output = self.run_cmd("--stats-only")
 
-        self.assertIn(
-            f"(>= {collector_min} feedback items): 0", output
-        )
+        self.assertIn(f"(>= {collector_min} feedback items): 0", output)
 
     def test_query_with_enough_feedback_is_found_and_processed(self):
         self.add_detailed_feedback(FeedbackCollector().min_feedback_count)

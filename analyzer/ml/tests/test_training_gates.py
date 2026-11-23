@@ -71,9 +71,7 @@ class RealFeedbackGateTests(TestCase):
         self.assertTrue(training_gates.real_feedback_gate()[0])
 
 
-@override_settings(
-    ML_MIN_REAL_FEEDBACK_SAMPLES=3, ML_MIN_TRAINING_SAMPLES=1
-)
+@override_settings(ML_MIN_REAL_FEEDBACK_SAMPLES=3, ML_MIN_TRAINING_SAMPLES=1)
 class TrainingPipelineGateTests(TestCase):
     """The pipeline must refuse synthetic-only data even when the plain
     sample-count gate (ML_MIN_TRAINING_SAMPLES) would pass."""
